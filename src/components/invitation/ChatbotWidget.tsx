@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendChatMessage, getChatConfig, buildSystemPrompt, checkQuota } from '../../lib/chatbot';
+import { sendChatMessage, buildSystemPrompt, checkQuota } from '../../lib/chatbot';
 import type { ChatMessage } from '../../types';
 
 interface ChatbotWidgetProps {
@@ -35,7 +35,7 @@ export default function ChatbotWidget({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isConfigured = getChatConfig() !== null;
+  const isConfigured = true; // Backend handles LLM config; always available if API is running
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -5,13 +5,7 @@ export interface ChatRequest {
   systemPrompt: string;
 }
 
-export interface ChatConfig {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  maxTokens: number;
-  temperature: number;
-}
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Generate a visitor ID (fingerprint) from browser
 export function getVisitorId(): string {
@@ -61,67 +55,27 @@ export async function checkQuota(
   return { allowed: true, remaining: dailyLimit - currentCount - 1 };
 }
 
-export function getChatConfig(): ChatConfig | null {
-  const baseUrl = import.meta.env.VITE_LLM_BASE_URL;
-  const apiKey = import.meta.env.VITE_LLM_API_KEY;
-  const model = import.meta.env.VITE_LLM_MODEL;
-
-  if (!baseUrl || !apiKey || !model) {
-    return null;
-  }
-
-  return {
-    baseUrl,
-    apiKey,
-    model,
-    maxTokens: Number(import.meta.env.VITE_LLM_MAX_TOKENS) || 512,
-    temperature: Number(import.meta.env.VITE_LLM_TEMPERATURE) || 0.7,
-  };
+export function getChatConfig() {
+  // Config is now on the backend - we just need the API URL
+  return { apiUrl: API_URL };
 }
 
 export async function sendChatMessage(req: ChatRequest): Promise<string> {
-  const config = getChatConfig();
-
-  if (!config) {
-    throw new Error('Chatbot belum dikonfigurasi. Sila tetapkan pemboleh ubah persekitaran LLM.');
-  }
-
-  const { baseUrl, apiKey, model, maxTokens, temperature } = config;
-
-  // Build messages array with system prompt at the front
-  const messages = [
-    { role: 'system', content: req.systemPrompt },
-    ...req.messages,
-  ];
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const response = await fetch(`${API_URL}/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: maxTokens,
-      temperature,
+      messages: req.messages,
+      systemPrompt: req.systemPrompt,
     }),
   });
 
   if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
-    throw new Error(`LLM API error (${response.status}): ${errorText}`);
+    throw new Error('Chat request failed');
   }
 
   const data = await response.json();
-
-  // OpenAI-compatible response format
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('Respons tidak sah daripada API.');
-  }
-
-  return content;
+  return data.content;
 }
 
 export function buildSystemPrompt(weddingContext: string, extraContext?: string): string {

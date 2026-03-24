@@ -1,11 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Plan, Payment } from '../types';
-import { loadStripe } from '@stripe/stripe-js';
-
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-  : null;
 
 // Default demo plans for when Supabase isn't connected
 const DEFAULT_PLANS: Plan[] = [
@@ -137,28 +132,31 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
         return `${window.location.origin}/dashboard`;
       }
 
-      // Paid plan: create Stripe Checkout session
-      const stripe = stripePromise ? await stripePromise : null;
+      // Paid plan: create Stripe Checkout session via backend
+      if (plan.stripe_price_id) {
+        const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-      if (stripe && plan.stripe_price_id) {
-        // Use Supabase Edge Function to create checkout session
-        const { data, error } = await supabase.functions.invoke(
-          'create-checkout',
-          {
-            body: {
-              plan_id: planId,
-              invitation_id: invitationId,
-              price_id: plan.stripe_price_id,
-              success_url: `${window.location.origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-              cancel_url: `${window.location.origin}/pricing`,
-            },
-          }
-        );
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) throw new Error('Not authenticated');
 
-        if (error) throw error;
+        const response = await fetch(`${API_URL}/stripe/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            planId,
+            invitationId,
+            userId: session.user.id,
+            priceId: plan.stripe_price_id,
+            email: session.user.email,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to create checkout');
+
+        const { url } = await response.json();
 
         set({ loading: false });
-        return data.checkout_url as string;
+        return url as string;
       }
 
       // Fallback: create a pending payment record (placeholder for when Stripe isn't configured)
