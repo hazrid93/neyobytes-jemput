@@ -34,7 +34,9 @@ function generateSlug(bride: string, groom: string): string {
       .split('-')[0];
   const b = clean(bride) || 'pengantin';
   const g = clean(groom) || 'pengantin';
-  return `${g}-${b}`;
+  // Append 4-char random suffix to prevent slug collisions
+  const suffix = Math.random().toString(36).substring(2, 6);
+  return `${g}-${b}-${suffix}`;
 }
 
 // First 5 theme templates for the selector

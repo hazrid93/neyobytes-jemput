@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import type { Invitation, RSVP, GuestbookMessage } from '../types';
 import { supabase } from '../lib/supabase';
 
+function handleSlugError(error: { code?: string; message?: string }): never {
+  if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+    throw new Error('Slug URL ini telah digunakan. Sila pilih slug yang lain.');
+  }
+  throw error;
+}
+
 interface DashboardState {
   invitations: Invitation[];
   currentInvitation: Invitation | null;
@@ -50,7 +57,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   createInvitation: async (inv) => {
     const { data, error } = await supabase.from('invitations').insert(inv).select().single();
-    if (error) throw error;
+    if (error) handleSlugError(error);
     const newInv = data as Invitation;
     set({ invitations: [newInv, ...get().invitations] });
     return newInv;
@@ -58,7 +65,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   updateInvitation: async (id, updates) => {
     const { error } = await supabase.from('invitations').update(updates).eq('id', id);
-    if (error) throw error;
+    if (error) handleSlugError(error);
     set({
       invitations: get().invitations.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv)),
       currentInvitation: get().currentInvitation?.id === id
