@@ -25,6 +25,8 @@ import {
   Divider,
   ScrollArea,
   CloseButton,
+  Image,
+  SimpleGrid,
 } from '@mantine/core';
 import { TimeInput, DatePickerInput } from '@mantine/dates';
 import { Dropzone, IMAGE_MIME_TYPE } from '@mantine/dropzone';
@@ -50,6 +52,7 @@ import {
   IconZoomIn,
   IconZoomOut,
   IconCheck,
+  IconChecklist,
   IconLoader,
   IconUpload,
   IconX,
@@ -57,10 +60,15 @@ import {
   IconRocket,
   IconEdit,
   IconEye,
+  IconRobot,
+  IconLayoutList,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
+import { uploadImage, deleteImage } from '../../lib/upload';
 import { useDashboardStore } from '../../stores/dashboardStore';
-import type { Invitation, ItineraryItem, ContactPerson, WishlistItem } from '../../types';
+import ThemeSelector from './ThemeSelector';
+import SectionManager from './SectionManager';
+import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate } from '../../types';
 
 const FONT_OPTIONS = [
   { value: 'Playfair Display', label: 'Playfair Display' },
@@ -98,6 +106,7 @@ export default function InvitationEditor() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [previewZoom, setPreviewZoom] = useState(0.75);
   const [mobileTab, setMobileTab] = useState<string | null>('edit');
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   const form = useForm<Partial<Invitation>>({
@@ -128,16 +137,28 @@ export default function InvitationEditor() {
         venue_address: currentInvitation.venue_address,
         venue_lat: currentInvitation.venue_lat,
         venue_lng: currentInvitation.venue_lng,
+        venue_google_maps_embed: currentInvitation.venue_google_maps_embed,
         invitation_text: currentInvitation.invitation_text,
         music_url: currentInvitation.music_url,
+        music_type: currentInvitation.music_type,
+        rsvp_enabled: currentInvitation.rsvp_enabled,
+        rsvp_deadline: currentInvitation.rsvp_deadline,
         itinerary: currentInvitation.itinerary || [],
         contacts: currentInvitation.contacts || [],
         money_gift: currentInvitation.money_gift,
         wishlist: currentInvitation.wishlist || [],
         theme_config: currentInvitation.theme_config,
+        sections: currentInvitation.sections || [],
+        template: currentInvitation.template,
+        chatbot_enabled: currentInvitation.chatbot_enabled ?? false,
+        chatbot_context: currentInvitation.chatbot_context || '',
         slug: currentInvitation.slug,
         status: currentInvitation.status,
       });
+      // Populate gallery URLs from existing images
+      if (currentInvitation.gallery_images?.length) {
+        setGalleryUrls(currentInvitation.gallery_images.map((img) => img.url));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentInvitation?.id]);
@@ -413,13 +434,47 @@ export default function InvitationEditor() {
                   <Text size="sm" fw={500} mb={4}>
                     Gambar Pengantin
                   </Text>
+                  {formValues.couple_photo_url && (
+                    <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
+                      <Image
+                        src={formValues.couple_photo_url}
+                        alt="Gambar pengantin"
+                        w={120}
+                        h={120}
+                        radius="md"
+                        fit="cover"
+                      />
+                      <ActionIcon
+                        color="red"
+                        variant="filled"
+                        size="xs"
+                        radius="xl"
+                        pos="absolute"
+                        top={4}
+                        right={4}
+                        onClick={async () => {
+                          try {
+                            await deleteImage(formValues.couple_photo_url as string);
+                          } catch {
+                            // ignore delete errors for external URLs
+                          }
+                          handleFieldChange('couple_photo_url', '');
+                        }}
+                      >
+                        <IconX size={12} />
+                      </ActionIcon>
+                    </Box>
+                  )}
                   <Dropzone
-                    onDrop={() => {
-                      notifications.show({
-                        title: 'Muat naik',
-                        message: 'Fungsi muat naik akan disambungkan ke Supabase Storage',
-                        color: 'blue',
-                      });
+                    onDrop={async (files) => {
+                      if (!files[0] || !currentInvitation) return;
+                      try {
+                        const url = await uploadImage(files[0], currentInvitation.user_id, 'couple');
+                        handleFieldChange('couple_photo_url', url);
+                        notifications.show({ title: 'Berjaya!', message: 'Gambar pengantin dimuat naik', color: 'green' });
+                      } catch {
+                        notifications.show({ title: 'Ralat', message: 'Gagal memuat naik gambar', color: 'red' });
+                      }
                     }}
                     accept={IMAGE_MIME_TYPE}
                     maxSize={5 * 1024 ** 2}
@@ -509,6 +564,13 @@ export default function InvitationEditor() {
                     step={0.0001}
                   />
                 </Group>
+                <TextInput
+                  label="Google Maps Embed URL"
+                  description="Pergi ke Google Maps > Share > Embed a map > salin URL sahaja"
+                  placeholder="https://www.google.com/maps/embed?pb=..."
+                  value={formValues.venue_google_maps_embed || ''}
+                  onChange={(e) => handleFieldChange('venue_google_maps_embed', e.currentTarget.value)}
+                />
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
@@ -648,6 +710,39 @@ export default function InvitationEditor() {
             </Accordion.Panel>
           </Accordion.Item>
 
+          {/* RSVP */}
+          <Accordion.Item value="rsvp">
+            <Accordion.Control icon={<IconChecklist size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Tetapan RSVP</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <Switch
+                  label="RSVP Aktif"
+                  description="Jika dimatikan, tetamu tidak boleh menghantar RSVP"
+                  checked={formValues.rsvp_enabled ?? true}
+                  onChange={(e) =>
+                    handleFieldChange('rsvp_enabled', e.currentTarget.checked)
+                  }
+                  color="green"
+                  size="md"
+                />
+                {(formValues.rsvp_enabled ?? true) && (
+                  <DatePickerInput
+                    label="Tarikh Tutup RSVP"
+                    description="RSVP akan ditutup secara automatik selepas tarikh ini"
+                    placeholder="Pilih tarikh tutup"
+                    value={formValues.rsvp_deadline ? new Date(formValues.rsvp_deadline) : null}
+                    onChange={(d) =>
+                      handleFieldChange('rsvp_deadline', d ? d.toISOString().split('T')[0] : '')
+                    }
+                    clearable
+                  />
+                )}
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
           {/* Money Gift */}
           <Accordion.Item value="moneygift">
             <Accordion.Control icon={<IconCreditCard size={18} color="#8B6F4E" />}>
@@ -692,13 +787,53 @@ export default function InvitationEditor() {
                   <Text size="sm" fw={500} mb={4}>
                     QR Code
                   </Text>
+                  {moneyGift?.qr_code_url && (
+                    <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
+                      <Image
+                        src={moneyGift.qr_code_url}
+                        alt="QR Code"
+                        w={100}
+                        h={100}
+                        radius="md"
+                        fit="cover"
+                      />
+                      <ActionIcon
+                        color="red"
+                        variant="filled"
+                        size="xs"
+                        radius="xl"
+                        pos="absolute"
+                        top={4}
+                        right={4}
+                        onClick={async () => {
+                          try {
+                            await deleteImage(moneyGift.qr_code_url as string);
+                          } catch {
+                            // ignore delete errors for external URLs
+                          }
+                          handleFieldChange('money_gift', {
+                            ...(moneyGift || { bank_name: '', account_name: '', account_number: '' }),
+                            qr_code_url: '',
+                          });
+                        }}
+                      >
+                        <IconX size={12} />
+                      </ActionIcon>
+                    </Box>
+                  )}
                   <Dropzone
-                    onDrop={() => {
-                      notifications.show({
-                        title: 'Muat naik',
-                        message: 'Fungsi muat naik QR akan disambungkan ke Supabase Storage',
-                        color: 'blue',
-                      });
+                    onDrop={async (files) => {
+                      if (!files[0] || !currentInvitation) return;
+                      try {
+                        const url = await uploadImage(files[0], currentInvitation.user_id, 'qr');
+                        handleFieldChange('money_gift', {
+                          ...(moneyGift || { bank_name: '', account_name: '', account_number: '' }),
+                          qr_code_url: url,
+                        });
+                        notifications.show({ title: 'Berjaya!', message: 'QR code dimuat naik', color: 'green' });
+                      } catch {
+                        notifications.show({ title: 'Ralat', message: 'Gagal memuat naik QR code', color: 'red' });
+                      }
                     }}
                     accept={IMAGE_MIME_TYPE}
                     maxSize={2 * 1024 ** 2}
@@ -780,13 +915,54 @@ export default function InvitationEditor() {
               <Text fw={600}>Galeri Foto</Text>
             </Accordion.Control>
             <Accordion.Panel>
+              {galleryUrls.length > 0 && (
+                <SimpleGrid cols={3} spacing="xs" mb="sm">
+                  {galleryUrls.map((url, i) => (
+                    <Box key={i} pos="relative">
+                      <Image
+                        src={url}
+                        alt={`Galeri ${i + 1}`}
+                        h={80}
+                        radius="md"
+                        fit="cover"
+                      />
+                      <ActionIcon
+                        color="red"
+                        variant="filled"
+                        size="xs"
+                        radius="xl"
+                        pos="absolute"
+                        top={4}
+                        right={4}
+                        onClick={async () => {
+                          try {
+                            await deleteImage(url);
+                          } catch {
+                            // ignore delete errors for external URLs
+                          }
+                          setGalleryUrls((prev) => prev.filter((_, idx) => idx !== i));
+                        }}
+                      >
+                        <IconX size={10} />
+                      </ActionIcon>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              )}
               <Dropzone
-                onDrop={() => {
-                  notifications.show({
-                    title: 'Muat naik',
-                    message: 'Fungsi galeri akan disambungkan ke Supabase Storage',
-                    color: 'blue',
-                  });
+                onDrop={async (files) => {
+                  if (!currentInvitation) return;
+                  try {
+                    const uploadedUrls: string[] = [];
+                    for (const file of files) {
+                      const url = await uploadImage(file, currentInvitation.user_id, 'gallery');
+                      uploadedUrls.push(url);
+                    }
+                    setGalleryUrls((prev) => [...prev, ...uploadedUrls]);
+                    notifications.show({ title: 'Berjaya!', message: `${files.length} gambar dimuat naik`, color: 'green' });
+                  } catch {
+                    notifications.show({ title: 'Ralat', message: 'Gagal memuat naik gambar', color: 'red' });
+                  }
                 }}
                 accept={IMAGE_MIME_TYPE}
                 maxSize={5 * 1024 ** 2}
@@ -821,10 +997,24 @@ export default function InvitationEditor() {
               <Text fw={600}>Tema</Text>
             </Accordion.Control>
             <Accordion.Panel>
-              <Stack gap="sm">
-                <Text size="sm" fw={600} c="dimmed">
-                  Warna
-                </Text>
+              <Stack gap="md">
+                {/* Theme Selector */}
+                <ThemeSelector
+                  currentTemplate={formValues.template || currentInvitation.template}
+                  onSelect={(template: ThemeTemplate) => {
+                    handleFieldChange('template', template.id);
+                    handleFieldChange('theme_config', template.theme_config);
+                  }}
+                />
+
+                <Divider
+                  label="Sesuaikan Warna"
+                  labelPosition="center"
+                  my="xs"
+                  styles={{ label: { fontWeight: 600, color: '#8B6F4E', fontSize: 13 } }}
+                />
+
+                {/* Color overrides */}
                 <Group grow>
                   <ColorInput
                     label="Utama"
@@ -928,6 +1118,55 @@ export default function InvitationEditor() {
             </Accordion.Panel>
           </Accordion.Item>
 
+          {/* Section Manager */}
+          <Accordion.Item value="sections">
+            <Accordion.Control icon={<IconLayoutList size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Susun Bahagian</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <SectionManager
+                sections={(formValues.sections || currentInvitation.sections || []) as InvitationSection[]}
+                onChange={(sections: InvitationSection[]) => handleFieldChange('sections', sections)}
+              />
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          {/* Chatbot AI */}
+          <Accordion.Item value="chatbot">
+            <Accordion.Control icon={<IconRobot size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Chatbot AI</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <Switch
+                  label="Aktifkan Chatbot"
+                  description="Chatbot AI akan membantu tetamu menjawab soalan tentang majlis"
+                  checked={formValues.chatbot_enabled ?? false}
+                  onChange={(e) =>
+                    handleFieldChange('chatbot_enabled', e.currentTarget.checked)
+                  }
+                  color="yellow"
+                  size="md"
+                />
+                {formValues.chatbot_enabled && (
+                  <Textarea
+                    label="Konteks Tambahan"
+                    description="Maklumat ini akan digunakan oleh chatbot untuk menjawab soalan tetamu"
+                    placeholder="Tambah maklumat tentang majlis yang chatbot perlu tahu..."
+                    value={formValues.chatbot_context || ''}
+                    onChange={(e) =>
+                      handleFieldChange('chatbot_context', e.currentTarget.value)
+                    }
+                    rows={4}
+                    autosize
+                    minRows={3}
+                    maxRows={8}
+                  />
+                )}
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
           {/* Settings */}
           <Accordion.Item value="settings">
             <Accordion.Control icon={<IconSettings size={18} color="#8B6F4E" />}>
@@ -966,10 +1205,30 @@ export default function InvitationEditor() {
                   color="green"
                   size="md"
                 />
+                <Select
+                  label="Jenis Muzik"
+                  data={[
+                    { value: 'youtube', label: 'YouTube' },
+                    { value: 'direct', label: 'Pautan Langsung (MP3)' },
+                  ]}
+                  value={formValues.music_type || 'direct'}
+                  onChange={(v) =>
+                    handleFieldChange('music_type', (v || 'direct') as 'youtube' | 'direct')
+                  }
+                  size="sm"
+                />
                 <TextInput
                   label="URL Muzik"
-                  placeholder="https://..."
-                  description="Pautan ke fail muzik latar (pilihan)"
+                  placeholder={
+                    formValues.music_type === 'youtube'
+                      ? 'https://www.youtube.com/watch?v=...'
+                      : 'https://example.com/music.mp3'
+                  }
+                  description={
+                    formValues.music_type === 'youtube'
+                      ? 'Tampal pautan YouTube untuk muzik latar'
+                      : 'Pautan terus ke fail audio'
+                  }
                   value={formValues.music_url || ''}
                   onChange={(e) => handleFieldChange('music_url', e.currentTarget.value)}
                 />

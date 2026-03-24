@@ -21,11 +21,16 @@ export const demoInvitation: Invitation = {
   venue_address: 'Jalan Bukit Bintang, 55100 Kuala Lumpur, Malaysia',
   venue_lat: 3.1466,
   venue_lng: 101.7108,
+  venue_google_maps_embed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3983.786!2d101.7108!3d3.1466!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMDgnNDcuOCJOIDEwMcKwNDInMzguOSJF!5e0!3m2!1sen!2smy!4v1616161616161',
+
+  rsvp_deadline: '2026-06-18T23:59:00',
+  rsvp_enabled: true,
 
   invitation_text:
     'Dengan segala hormatnya kami menjemput Dato\'/Datin/Tuan/Puan/Encik/Cik ke majlis perkahwinan putera dan puteri kami.',
 
-  music_url: '',
+  music_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  music_type: 'youtube' as const,
 
   itinerary: [
     { time: '11:00', event: 'Majlis Bermula', icon: 'clock' },
@@ -65,9 +70,34 @@ export const demoInvitation: Invitation = {
     font_display: 'Playfair Display',
     font_body: 'Poppins',
     font_arabic: 'Amiri',
+    ornament_style: 'classic',
   },
 
+  sections: [
+    { id: 'cover', type: 'cover', enabled: true, sort_order: 0 },
+    { id: 'islamic_greeting', type: 'islamic_greeting', enabled: true, sort_order: 1 },
+    { id: 'invitation_text', type: 'invitation_text', enabled: true, sort_order: 2 },
+    { id: 'couple', type: 'couple', enabled: true, sort_order: 3 },
+    { id: 'event_details', type: 'event_details', enabled: true, sort_order: 4 },
+    { id: 'countdown', type: 'countdown', enabled: true, sort_order: 5 },
+    { id: 'itinerary', type: 'itinerary', enabled: true, sort_order: 6 },
+    { id: 'location', type: 'location', enabled: true, sort_order: 7 },
+    { id: 'contact', type: 'contact', enabled: true, sort_order: 8 },
+    { id: 'rsvp', type: 'rsvp', enabled: true, sort_order: 9 },
+    { id: 'money_gift', type: 'money_gift', enabled: true, sort_order: 10 },
+    { id: 'gallery', type: 'gallery', enabled: true, sort_order: 11 },
+    { id: 'guestbook', type: 'guestbook', enabled: true, sort_order: 12 },
+    { id: 'calendar_save', type: 'calendar_save', enabled: true, sort_order: 13 },
+    { id: 'footer', type: 'footer', enabled: true, sort_order: 14 },
+  ],
+
+  chatbot_enabled: true,
+  chatbot_context: 'Majlis bermula jam 11 pagi. Dress code: baju Melayu / baju kurung. Parking tersedia di basement Dewan Seri Angkasa. Majlis di tingkat 3.',
+
   gallery_images: [],
+
+  payment_status: 'paid',
+  expires_at: '2026-08-20T00:00:00Z',
 
   created_at: '2026-01-15T00:00:00Z',
   updated_at: '2026-03-20T00:00:00Z',

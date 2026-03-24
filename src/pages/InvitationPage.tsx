@@ -296,7 +296,11 @@ export default function InvitationPage() {
             <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.25), transparent)' }} />
           </div>
 
-          <RSVPForm invitationId={invitation.id} />
+          <RSVPForm
+            invitationId={invitation.id}
+            rsvpDeadline={invitation.rsvp_deadline}
+            rsvpEnabled={invitation.rsvp_enabled}
+          />
 
           {invitation.money_gift && (
             <MoneyGift moneyGift={invitation.money_gift} />
@@ -314,7 +318,7 @@ export default function InvitationPage() {
 
       {/* Music toggle - always visible after cover opened */}
       {coverOpen && (
-        <MusicToggle musicUrl={invitation.music_url} />
+        <MusicToggle musicUrl={invitation.music_url} musicType={invitation.music_type} />
       )}
     </div>
   );

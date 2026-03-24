@@ -63,9 +63,17 @@ CREATE TABLE IF NOT EXISTS public.invitations (
   venue_lat           numeric,
   venue_lng           numeric,
 
+  -- RSVP settings
+  rsvp_deadline       timestamptz,
+  rsvp_enabled        boolean NOT NULL DEFAULT true,
+
+  -- Location
+  venue_google_maps_embed text,
+
   -- Content
   invitation_text     text NOT NULL DEFAULT '',
   music_url           text,
+  music_type          text NOT NULL DEFAULT 'youtube' CHECK (music_type IN ('direct', 'youtube')),
   itinerary           jsonb NOT NULL DEFAULT '[]'::jsonb,
   contacts            jsonb NOT NULL DEFAULT '[]'::jsonb,
   money_gift          jsonb,
@@ -373,3 +381,120 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+-- =============================================================================
+-- PLANS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.plans (
+  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name            text NOT NULL,
+  name_ms         text NOT NULL,
+  description     text NOT NULL DEFAULT '',
+  price_myr       numeric NOT NULL DEFAULT 0,
+  duration_days   integer NOT NULL DEFAULT 60,
+  features           jsonb NOT NULL DEFAULT '[]',
+  chatbot_enabled    boolean NOT NULL DEFAULT false,
+  chatbot_daily_limit integer NOT NULL DEFAULT 0,
+  stripe_price_id    text,
+  is_active       boolean NOT NULL DEFAULT true,
+  sort_order      integer NOT NULL DEFAULT 0,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- =============================================================================
+-- PAYMENTS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.payments (
+  id                        uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id                   uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  invitation_id             uuid REFERENCES public.invitations(id) ON DELETE SET NULL,
+  plan_id                   uuid REFERENCES public.plans(id),
+  amount                    numeric NOT NULL,
+  currency                  text NOT NULL DEFAULT 'myr',
+  stripe_session_id         text,
+  stripe_payment_intent_id  text,
+  status                    text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed')),
+  created_at                timestamptz NOT NULL DEFAULT now()
+);
+
+-- =============================================================================
+-- ADD COLUMNS TO INVITATIONS
+-- =============================================================================
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'free' CHECK (payment_status IN ('free', 'paid', 'expired'));
+
+-- AI Chatbot columns
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS chatbot_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS chatbot_context text;
+
+-- Sections column
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS sections jsonb NOT NULL DEFAULT '[]';
+
+-- =============================================================================
+-- ADD COLUMNS TO PROFILES
+-- =============================================================================
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'));
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+
+-- =============================================================================
+-- RLS FOR PLANS
+-- =============================================================================
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read active plans
+CREATE POLICY "plans_select_active" ON public.plans FOR SELECT USING (is_active = true);
+
+-- Admin can do everything
+CREATE POLICY "plans_admin_all" ON public.plans FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
+
+-- =============================================================================
+-- RLS FOR PAYMENTS
+-- =============================================================================
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own payments
+CREATE POLICY "payments_select_own" ON public.payments FOR SELECT USING (user_id = auth.uid());
+
+-- Users can insert their own payments
+CREATE POLICY "payments_insert_own" ON public.payments FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- Admin can do everything with payments
+CREATE POLICY "payments_admin_all" ON public.payments FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
+
+-- =============================================================================
+-- SEED DEFAULT PLANS
+-- =============================================================================
+INSERT INTO public.plans (name, name_ms, description, price_myr, duration_days, features, chatbot_enabled, chatbot_daily_limit, is_active, sort_order) VALUES
+('Basic', 'Asas', 'Semua yang anda perlukan untuk kad kahwin digital', 29, 60,
+ '["Semua rekaan tema", "Tiada watermark", "RSVP & pengurusan tetamu", "Galeri foto", "Muzik latar (YouTube)", "Hitung mundur", "Salam Kaut / DuitNow", "Eksport Excel", "Lokasi & peta Google", "Simpan tarikh kalendar", "Kongsi WhatsApp"]',
+ false, 0, true, 0),
+('Premium', 'Premium', 'Pengalaman terbaik dengan AI chatbot', 59, 60,
+ '["Semua ciri Asas", "Chatbot AI untuk tetamu (20 soalan/hari)", "Analitik terperinci", "Sokongan keutamaan", "Bahagian khas tanpa had", "Senarai hadiah"]',
+ true, 20, true, 1)
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- CHATBOT USAGE TRACKING
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.chatbot_usage (
+  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  invitation_id   uuid NOT NULL REFERENCES public.invitations(id) ON DELETE CASCADE,
+  visitor_id      text NOT NULL,
+  date            date NOT NULL DEFAULT CURRENT_DATE,
+  count           integer NOT NULL DEFAULT 1,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chatbot_usage_unique UNIQUE (invitation_id, visitor_id, date)
+);
+
+CREATE INDEX idx_chatbot_usage_lookup ON public.chatbot_usage (invitation_id, visitor_id, date);
+
+ALTER TABLE public.chatbot_usage ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert/read usage (needed for public chatbot)
+CREATE POLICY "chatbot_usage_insert_anyone" ON public.chatbot_usage FOR INSERT WITH CHECK (true);
+CREATE POLICY "chatbot_usage_select_anyone" ON public.chatbot_usage FOR SELECT USING (true);
+CREATE POLICY "chatbot_usage_update_anyone" ON public.chatbot_usage FOR UPDATE USING (true);

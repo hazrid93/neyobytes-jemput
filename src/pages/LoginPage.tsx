@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -15,27 +15,41 @@ import {
   Divider,
   Alert,
 } from '@mantine/core';
-import { IconMail, IconLock, IconUser, IconAlertCircle } from '@tabler/icons-react';
+import { IconMail, IconLock, IconUser, IconAlertCircle, IconCheck, IconArrowLeft } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/authStore';
 
+type ViewMode = 'auth' | 'forgot' | 'reset-password';
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp, initialized } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const { user, loading, signIn, signUp, signOut, resetPassword, updatePassword, initialized } = useAuthStore();
 
+  const [view, setView] = useState<ViewMode>('auth');
   const [activeTab, setActiveTab] = useState<string | null>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  // Redirect if already logged in
-  if (initialized && user) {
+  // If user arrives with ?reset=true, show the reset password form
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true') {
+      setView('reset-password');
+    }
+  }, [searchParams]);
+
+  // Redirect if already logged in (but not if resetting password)
+  if (initialized && user && view !== 'reset-password') {
     return <Navigate to="/dashboard" replace />;
   }
 
   const handleLogin = async () => {
     setError('');
+    setSuccess('');
     try {
       await signIn(email, password);
       navigate('/dashboard');
@@ -47,22 +61,64 @@ export default function LoginPage() {
 
   const handleRegister = async () => {
     setError('');
+    setSuccess('');
     if (!fullName.trim()) {
       setError('Sila masukkan nama penuh anda');
       return;
     }
     try {
       await signUp(email, password, fullName);
-      navigate('/dashboard');
+      setSuccess('Akaun berjaya didaftarkan! Sila semak emel untuk pengesahan.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Ralat semasa mendaftar';
       setError(msg);
     }
   };
 
+  const handleForgotPassword = async () => {
+    setError('');
+    setSuccess('');
+    if (!email.trim()) {
+      setError('Sila masukkan alamat emel anda');
+      return;
+    }
+    try {
+      await resetPassword(email);
+      setSuccess('Pautan tetapan semula kata laluan telah dihantar ke emel anda. Sila semak peti masuk dan spam.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ralat semasa menghantar emel';
+      setError(msg);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setError('');
+    setSuccess('');
+    if (password.length < 6) {
+      setError('Kata laluan mesti sekurang-kurangnya 6 aksara');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Kata laluan tidak sepadan');
+      return;
+    }
+    try {
+      await updatePassword(password);
+      setSuccess('Kata laluan berjaya dikemas kini! Mengalihkan ke papan pemuka...');
+      setTimeout(() => navigate('/dashboard'), 2000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ralat semasa mengemas kini kata laluan';
+      setError(msg);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeTab === 'login') {
+    if (view === 'forgot') {
+      handleForgotPassword();
+    } else if (view === 'reset-password') {
+      handleResetPassword();
+    } else if (activeTab === 'login') {
       handleLogin();
     } else {
       handleRegister();
@@ -114,137 +170,266 @@ export default function LoginPage() {
               border: '1px solid rgba(212, 175, 55, 0.15)',
             }}
           >
-            <Tabs value={activeTab} onChange={setActiveTab}>
-              <Tabs.List grow mb="lg">
-                <Tabs.Tab value="login" style={{ fontWeight: 600 }}>
-                  Log Masuk
-                </Tabs.Tab>
-                <Tabs.Tab value="register" style={{ fontWeight: 600 }}>
-                  Daftar
-                </Tabs.Tab>
-              </Tabs.List>
-
-              {error && (
-                <Alert
-                  icon={<IconAlertCircle size={16} />}
-                  color="red"
-                  variant="light"
-                  mb="md"
-                  onClose={() => setError('')}
-                  withCloseButton
-                >
-                  {error}
-                </Alert>
-              )}
-
+            {/* Forgot Password View */}
+            {view === 'forgot' && (
               <form onSubmit={handleSubmit}>
-                <Tabs.Panel value="login">
-                  <Stack gap="md">
-                    <TextInput
-                      label="Emel"
-                      placeholder="anda@contoh.com"
-                      leftSection={<IconMail size={16} />}
-                      value={email}
-                      onChange={(e) => setEmail(e.currentTarget.value)}
-                      required
-                      type="email"
-                      size="md"
-                    />
-                    <PasswordInput
-                      label="Kata Laluan"
-                      placeholder="Masukkan kata laluan"
-                      leftSection={<IconLock size={16} />}
-                      value={password}
-                      onChange={(e) => setPassword(e.currentTarget.value)}
-                      required
-                      size="md"
-                    />
-                    <Button
-                      type="submit"
-                      fullWidth
-                      size="md"
-                      loading={loading}
-                      mt="xs"
-                      style={{
-                        background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
-                        border: 'none',
-                      }}
-                    >
-                      Log Masuk
-                    </Button>
-                    <Text ta="center" size="sm" c="dimmed">
-                      Belum ada akaun?{' '}
-                      <Anchor
-                        component="button"
-                        type="button"
-                        size="sm"
-                        onClick={() => setActiveTab('register')}
-                      >
-                        Daftar sekarang
-                      </Anchor>
-                    </Text>
-                  </Stack>
-                </Tabs.Panel>
+                <Stack gap="md">
+                  <Anchor
+                    component="button"
+                    type="button"
+                    size="sm"
+                    onClick={() => { setView('auth'); setError(''); setSuccess(''); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <IconArrowLeft size={14} /> Kembali
+                  </Anchor>
 
-                <Tabs.Panel value="register">
-                  <Stack gap="md">
-                    <TextInput
-                      label="Nama Penuh"
-                      placeholder="Nama penuh anda"
-                      leftSection={<IconUser size={16} />}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.currentTarget.value)}
-                      required
-                      size="md"
-                    />
-                    <TextInput
-                      label="Emel"
-                      placeholder="anda@contoh.com"
-                      leftSection={<IconMail size={16} />}
-                      value={email}
-                      onChange={(e) => setEmail(e.currentTarget.value)}
-                      required
-                      type="email"
-                      size="md"
-                    />
-                    <PasswordInput
-                      label="Kata Laluan"
-                      placeholder="Minimum 6 aksara"
-                      leftSection={<IconLock size={16} />}
-                      value={password}
-                      onChange={(e) => setPassword(e.currentTarget.value)}
-                      required
-                      minLength={6}
-                      size="md"
-                    />
-                    <Button
-                      type="submit"
-                      fullWidth
-                      size="md"
-                      loading={loading}
-                      mt="xs"
-                      style={{
-                        background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
-                        border: 'none',
-                      }}
-                    >
-                      Daftar Akaun
-                    </Button>
-                    <Text ta="center" size="sm" c="dimmed">
-                      Sudah ada akaun?{' '}
-                      <Anchor
-                        component="button"
-                        type="button"
-                        size="sm"
-                        onClick={() => setActiveTab('login')}
-                      >
-                        Log masuk
-                      </Anchor>
-                    </Text>
-                  </Stack>
-                </Tabs.Panel>
+                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: '#2C1810' }}>
+                    Lupa Kata Laluan?
+                  </Title>
+                  <Text size="sm" c="dimmed">
+                    Masukkan alamat emel anda dan kami akan hantar pautan untuk tetapkan semula kata laluan.
+                  </Text>
+
+                  {error && (
+                    <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" onClose={() => setError('')} withCloseButton>
+                      {error}
+                    </Alert>
+                  )}
+                  {success && (
+                    <Alert icon={<IconCheck size={16} />} color="green" variant="light">
+                      {success}
+                    </Alert>
+                  )}
+
+                  <TextInput
+                    label="Emel"
+                    placeholder="anda@contoh.com"
+                    leftSection={<IconMail size={16} />}
+                    value={email}
+                    onChange={(e) => setEmail(e.currentTarget.value)}
+                    required
+                    type="email"
+                    size="md"
+                  />
+                  <Button
+                    type="submit"
+                    fullWidth
+                    size="md"
+                    loading={loading}
+                    style={{
+                      background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                      border: 'none',
+                    }}
+                  >
+                    Hantar Pautan
+                  </Button>
+                </Stack>
               </form>
-            </Tabs>
+            )}
+
+            {/* Reset Password View (after clicking email link) */}
+            {view === 'reset-password' && (
+              <form onSubmit={handleSubmit}>
+                <Stack gap="md">
+                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: '#2C1810' }}>
+                    Tetapkan Kata Laluan Baru
+                  </Title>
+                  <Text size="sm" c="dimmed">
+                    Masukkan kata laluan baru anda.
+                  </Text>
+
+                  {error && (
+                    <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" onClose={() => setError('')} withCloseButton>
+                      {error}
+                    </Alert>
+                  )}
+                  {success && (
+                    <Alert icon={<IconCheck size={16} />} color="green" variant="light">
+                      {success}
+                    </Alert>
+                  )}
+
+                  <PasswordInput
+                    label="Kata Laluan Baru"
+                    placeholder="Minimum 6 aksara"
+                    leftSection={<IconLock size={16} />}
+                    value={password}
+                    onChange={(e) => setPassword(e.currentTarget.value)}
+                    required
+                    minLength={6}
+                    size="md"
+                  />
+                  <PasswordInput
+                    label="Sahkan Kata Laluan"
+                    placeholder="Masukkan sekali lagi"
+                    leftSection={<IconLock size={16} />}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.currentTarget.value)}
+                    required
+                    minLength={6}
+                    size="md"
+                  />
+                  <Button
+                    type="submit"
+                    fullWidth
+                    size="md"
+                    loading={loading}
+                    style={{
+                      background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                      border: 'none',
+                    }}
+                  >
+                    Kemas Kini Kata Laluan
+                  </Button>
+
+                  {user && (
+                    <Anchor
+                      component="button"
+                      type="button"
+                      size="sm"
+                      ta="center"
+                      onClick={() => { signOut(); setView('auth'); }}
+                    >
+                      Log keluar & kembali
+                    </Anchor>
+                  )}
+                </Stack>
+              </form>
+            )}
+
+            {/* Login / Register View */}
+            {view === 'auth' && (
+              <>
+                <Tabs value={activeTab} onChange={setActiveTab}>
+                  <Tabs.List grow mb="lg">
+                    <Tabs.Tab value="login" style={{ fontWeight: 600 }}>
+                      Log Masuk
+                    </Tabs.Tab>
+                    <Tabs.Tab value="register" style={{ fontWeight: 600 }}>
+                      Daftar
+                    </Tabs.Tab>
+                  </Tabs.List>
+
+                  {error && (
+                    <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" mb="md" onClose={() => setError('')} withCloseButton>
+                      {error}
+                    </Alert>
+                  )}
+                  {success && (
+                    <Alert icon={<IconCheck size={16} />} color="green" variant="light" mb="md">
+                      {success}
+                    </Alert>
+                  )}
+
+                  <form onSubmit={handleSubmit}>
+                    <Tabs.Panel value="login">
+                      <Stack gap="md">
+                        <TextInput
+                          label="Emel"
+                          placeholder="anda@contoh.com"
+                          leftSection={<IconMail size={16} />}
+                          value={email}
+                          onChange={(e) => setEmail(e.currentTarget.value)}
+                          required
+                          type="email"
+                          size="md"
+                        />
+                        <PasswordInput
+                          label="Kata Laluan"
+                          placeholder="Masukkan kata laluan"
+                          leftSection={<IconLock size={16} />}
+                          value={password}
+                          onChange={(e) => setPassword(e.currentTarget.value)}
+                          required
+                          size="md"
+                        />
+                        <Anchor
+                          component="button"
+                          type="button"
+                          size="xs"
+                          c="dimmed"
+                          ta="right"
+                          onClick={() => { setView('forgot'); setError(''); setSuccess(''); }}
+                        >
+                          Lupa kata laluan?
+                        </Anchor>
+                        <Button
+                          type="submit"
+                          fullWidth
+                          size="md"
+                          loading={loading}
+                          style={{
+                            background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                            border: 'none',
+                          }}
+                        >
+                          Log Masuk
+                        </Button>
+                        <Text ta="center" size="sm" c="dimmed">
+                          Belum ada akaun?{' '}
+                          <Anchor component="button" type="button" size="sm" onClick={() => setActiveTab('register')}>
+                            Daftar sekarang
+                          </Anchor>
+                        </Text>
+                      </Stack>
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="register">
+                      <Stack gap="md">
+                        <TextInput
+                          label="Nama Penuh"
+                          placeholder="Nama penuh anda"
+                          leftSection={<IconUser size={16} />}
+                          value={fullName}
+                          onChange={(e) => setFullName(e.currentTarget.value)}
+                          required
+                          size="md"
+                        />
+                        <TextInput
+                          label="Emel"
+                          placeholder="anda@contoh.com"
+                          leftSection={<IconMail size={16} />}
+                          value={email}
+                          onChange={(e) => setEmail(e.currentTarget.value)}
+                          required
+                          type="email"
+                          size="md"
+                        />
+                        <PasswordInput
+                          label="Kata Laluan"
+                          placeholder="Minimum 6 aksara"
+                          leftSection={<IconLock size={16} />}
+                          value={password}
+                          onChange={(e) => setPassword(e.currentTarget.value)}
+                          required
+                          minLength={6}
+                          size="md"
+                        />
+                        <Button
+                          type="submit"
+                          fullWidth
+                          size="md"
+                          loading={loading}
+                          style={{
+                            background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                            border: 'none',
+                          }}
+                        >
+                          Daftar Akaun
+                        </Button>
+                        <Text ta="center" size="sm" c="dimmed">
+                          Sudah ada akaun?{' '}
+                          <Anchor component="button" type="button" size="sm" onClick={() => setActiveTab('login')}>
+                            Log masuk
+                          </Anchor>
+                        </Text>
+                      </Stack>
+                    </Tabs.Panel>
+                  </form>
+                </Tabs>
+              </>
+            )}
 
             <Divider my="lg" label="atau" labelPosition="center" />
 

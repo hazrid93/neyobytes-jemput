@@ -26,6 +26,7 @@ import {
   IconHome,
   IconMessage2,
   IconUsers,
+  IconCrown,
 } from '@tabler/icons-react';
 import { useAuthStore } from '../stores/authStore';
 import { useDashboardStore } from '../stores/dashboardStore';
@@ -33,6 +34,7 @@ import DashboardOverview from '../components/dashboard/DashboardOverview';
 import InvitationEditor from '../components/dashboard/InvitationEditor';
 import RSVPDashboard from '../components/dashboard/RSVPDashboard';
 import GuestbookManager from '../components/dashboard/GuestbookManager';
+import SubscriptionPage from '../components/dashboard/SubscriptionPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore();
@@ -97,6 +99,12 @@ export default function DashboardPage() {
       icon: IconCards,
       path: '/dashboard',
       description: 'Semua kad jemputan',
+    },
+    {
+      label: 'Langganan',
+      icon: IconCrown,
+      path: '/dashboard/subscription',
+      description: 'Pelan & pembayaran',
     },
   ];
 
@@ -318,6 +326,7 @@ export default function DashboardPage() {
               path="guestbook/:id"
               element={<InvitationSubPage component={GuestbookManager} />}
             />
+            <Route path="subscription" element={<SubscriptionPage />} />
           </Routes>
         </AppShell.Main>
       </AppShell>
