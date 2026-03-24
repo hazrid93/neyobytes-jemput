@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../stores/invitationStore';
+import type { Invitation, InvitationSection } from '../types';
 
 import CoverSection from '../components/invitation/CoverSection';
 import IslamicGreeting from '../components/invitation/IslamicGreeting';
@@ -19,7 +20,276 @@ import Guestbook from '../components/invitation/Guestbook';
 import CalendarSave from '../components/invitation/CalendarSave';
 import FooterSection from '../components/invitation/FooterSection';
 import MusicToggle from '../components/invitation/MusicToggle';
+import ChatbotWidget from '../components/invitation/ChatbotWidget';
 
+// ---------------------------------------------------------------------------
+// Helper: build wedding context string for chatbot
+// ---------------------------------------------------------------------------
+function buildWeddingContext(inv: Invitation): string {
+  const lines: string[] = [
+    `Majlis Perkahwinan ${inv.groom_name} & ${inv.bride_name}`,
+    `Tarikh: ${inv.event_date}`,
+    `Masa: ${inv.event_time_start} - ${inv.event_time_end}`,
+    `Tempat: ${inv.venue_name}, ${inv.venue_address}`,
+  ];
+
+  if (inv.venue_lat && inv.venue_lng) {
+    lines.push(`Koordinat: ${inv.venue_lat}, ${inv.venue_lng}`);
+  }
+
+  if (inv.groom_parent_names) {
+    lines.push(`Waris lelaki: ${inv.groom_parent_names}`);
+  }
+  if (inv.bride_parent_names) {
+    lines.push(`Waris perempuan: ${inv.bride_parent_names}`);
+  }
+
+  if (inv.itinerary && inv.itinerary.length > 0) {
+    lines.push('');
+    lines.push('Aturcara:');
+    inv.itinerary.forEach((item) => {
+      lines.push(`  ${item.time} - ${item.event}`);
+    });
+  }
+
+  if (inv.contacts && inv.contacts.length > 0) {
+    lines.push('');
+    lines.push('Hubungi:');
+    inv.contacts.forEach((c) => {
+      lines.push(`  ${c.name} (${c.role}): ${c.phone}`);
+    });
+  }
+
+  if (inv.rsvp_enabled && inv.rsvp_deadline) {
+    lines.push('');
+    lines.push(`RSVP sebelum: ${inv.rsvp_deadline}`);
+  }
+
+  if (inv.money_gift) {
+    lines.push('');
+    lines.push(`Sumbangan/Hadiah wang: ${inv.money_gift.bank_name} - ${inv.money_gift.account_name} (${inv.money_gift.account_number})`);
+  }
+
+  return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Ornament divider used between sections
+// ---------------------------------------------------------------------------
+function OrnamentDivider() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 24px',
+        maxWidth: '480px',
+        margin: '0 auto',
+      }}
+    >
+      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.25))' }} />
+      <span style={{ padding: '0 12px', color: 'var(--secondary-color, #D4AF37)', fontSize: '12px', opacity: 0.5 }}>
+        &#9674; &#9674; &#9674;
+      </span>
+      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.25), transparent)' }} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section types that should have a divider rendered BEFORE them
+// ---------------------------------------------------------------------------
+const DIVIDER_BEFORE: Set<string> = new Set([
+  'event_details',
+  'rsvp',
+  'money_gift',
+  'gallery',
+  'guestbook',
+  'calendar_save',
+  'footer',
+]);
+
+// ---------------------------------------------------------------------------
+// Render a single section by type
+// ---------------------------------------------------------------------------
+function renderSection(
+  section: InvitationSection,
+  invitation: Invitation,
+  guestbook: ReturnType<typeof useInvitationStore>['guestbook'],
+) {
+  switch (section.type) {
+    case 'islamic_greeting':
+      return <IslamicGreeting key={section.id} />;
+
+    case 'invitation_text':
+      return <InvitationText key={section.id} invitation={invitation} />;
+
+    case 'couple':
+      return <CoupleSection key={section.id} invitation={invitation} />;
+
+    case 'event_details':
+      return <EventDetails key={section.id} invitation={invitation} />;
+
+    case 'countdown':
+      return (
+        <CountdownTimer
+          key={section.id}
+          eventDate={invitation.event_date}
+          eventTime={invitation.event_time_start}
+        />
+      );
+
+    case 'itinerary':
+      return invitation.itinerary.length > 0 ? (
+        <Itinerary key={section.id} items={invitation.itinerary} />
+      ) : null;
+
+    case 'location':
+      return <LocationSection key={section.id} invitation={invitation} />;
+
+    case 'contact':
+      return invitation.contacts.length > 0 ? (
+        <ContactSection key={section.id} contacts={invitation.contacts} />
+      ) : null;
+
+    case 'rsvp':
+      return (
+        <RSVPForm
+          key={section.id}
+          invitationId={invitation.id}
+          rsvpDeadline={invitation.rsvp_deadline}
+          rsvpEnabled={invitation.rsvp_enabled}
+        />
+      );
+
+    case 'money_gift':
+      return invitation.money_gift ? (
+        <MoneyGift key={section.id} moneyGift={invitation.money_gift} />
+      ) : null;
+
+    case 'gallery':
+      return <GallerySection key={section.id} images={invitation.gallery_images} />;
+
+    case 'guestbook':
+      return (
+        <Guestbook
+          key={section.id}
+          invitationId={invitation.id}
+          messages={guestbook}
+        />
+      );
+
+    case 'calendar_save':
+      return <CalendarSave key={section.id} invitation={invitation} />;
+
+    case 'footer':
+      return <FooterSection key={section.id} invitation={invitation} />;
+
+    // ---- Custom section types ----
+    case 'custom_text': {
+      const content = (section.config as Record<string, string> | undefined)?.content;
+      return content ? (
+        <div
+          key={section.id}
+          style={{
+            maxWidth: '480px',
+            margin: '0 auto',
+            padding: '24px',
+            textAlign: 'center',
+            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+            fontSize: '15px',
+            lineHeight: 1.7,
+            color: 'var(--text-color, #2C1810)',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {content}
+        </div>
+      ) : null;
+    }
+
+    case 'custom_image': {
+      const imageUrl = (section.config as Record<string, string> | undefined)?.image_url;
+      return imageUrl ? (
+        <div
+          key={section.id}
+          style={{
+            maxWidth: '480px',
+            margin: '0 auto',
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <img
+            src={imageUrl}
+            alt="Custom"
+            style={{
+              maxWidth: '100%',
+              borderRadius: '8px',
+            }}
+          />
+        </div>
+      ) : null;
+    }
+
+    case 'custom_video': {
+      const videoUrl = (section.config as Record<string, string> | undefined)?.video_url;
+      return videoUrl ? (
+        <div
+          key={section.id}
+          style={{
+            maxWidth: '480px',
+            margin: '0 auto',
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <iframe
+            src={videoUrl}
+            title="Custom video"
+            style={{
+              width: '100%',
+              aspectRatio: '16/9',
+              border: 'none',
+              borderRadius: '8px',
+            }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : null;
+    }
+
+    default:
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Default section order for backward compatibility when invitation.sections
+// is empty or undefined.
+// ---------------------------------------------------------------------------
+const DEFAULT_SECTION_ORDER: InvitationSection[] = [
+  { id: 'default-islamic_greeting', type: 'islamic_greeting', enabled: true, sort_order: 1 },
+  { id: 'default-invitation_text', type: 'invitation_text', enabled: true, sort_order: 2 },
+  { id: 'default-couple', type: 'couple', enabled: true, sort_order: 3 },
+  { id: 'default-event_details', type: 'event_details', enabled: true, sort_order: 4 },
+  { id: 'default-countdown', type: 'countdown', enabled: true, sort_order: 5 },
+  { id: 'default-itinerary', type: 'itinerary', enabled: true, sort_order: 6 },
+  { id: 'default-location', type: 'location', enabled: true, sort_order: 7 },
+  { id: 'default-contact', type: 'contact', enabled: true, sort_order: 8 },
+  { id: 'default-rsvp', type: 'rsvp', enabled: true, sort_order: 9 },
+  { id: 'default-money_gift', type: 'money_gift', enabled: true, sort_order: 10 },
+  { id: 'default-gallery', type: 'gallery', enabled: true, sort_order: 11 },
+  { id: 'default-guestbook', type: 'guestbook', enabled: true, sort_order: 12 },
+  { id: 'default-calendar_save', type: 'calendar_save', enabled: true, sort_order: 13 },
+  { id: 'default-footer', type: 'footer', enabled: true, sort_order: 14 },
+];
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 export default function InvitationPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
@@ -122,6 +392,16 @@ export default function InvitationPage() {
       </div>
     );
   }
+
+  // -----------------------------------------------------------------------
+  // Determine which sections to render (dynamic or fallback)
+  // -----------------------------------------------------------------------
+  const sectionsToRender: InvitationSection[] =
+    invitation.sections && invitation.sections.length > 0
+      ? [...invitation.sections]
+          .filter((s) => s.enabled && s.type !== 'cover') // cover handled separately
+          .sort((a, b) => a.sort_order - b.sort_order)
+      : DEFAULT_SECTION_ORDER;
 
   return (
     <div
@@ -240,85 +520,30 @@ export default function InvitationPage() {
             />
           </div>
 
-          <IslamicGreeting />
-          <InvitationText invitation={invitation} />
-          <CoupleSection invitation={invitation} />
-
-          {/* Divider */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 24px',
-              maxWidth: '480px',
-              margin: '0 auto',
-            }}
-          >
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.25))' }} />
-            <span style={{ padding: '0 12px', color: 'var(--secondary-color, #D4AF37)', fontSize: '12px', opacity: 0.5 }}>
-              &#9674; &#9674; &#9674;
-            </span>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.25), transparent)' }} />
-          </div>
-
-          <EventDetails invitation={invitation} />
-          <CountdownTimer
-            eventDate={invitation.event_date}
-            eventTime={invitation.event_time_start}
-          />
-
-          {invitation.itinerary.length > 0 && (
-            <Itinerary items={invitation.itinerary} />
-          )}
-
-          <LocationSection invitation={invitation} />
-
-          {invitation.contacts.length > 0 && (
-            <ContactSection contacts={invitation.contacts} />
-          )}
-
-          {/* Divider */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 24px',
-              maxWidth: '480px',
-              margin: '0 auto',
-            }}
-          >
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.25))' }} />
-            <span style={{ padding: '0 12px', color: 'var(--secondary-color, #D4AF37)', fontSize: '12px', opacity: 0.5 }}>
-              &#9674; &#9674; &#9674;
-            </span>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.25), transparent)' }} />
-          </div>
-
-          <RSVPForm
-            invitationId={invitation.id}
-            rsvpDeadline={invitation.rsvp_deadline}
-            rsvpEnabled={invitation.rsvp_enabled}
-          />
-
-          {invitation.money_gift && (
-            <MoneyGift moneyGift={invitation.money_gift} />
-          )}
-
-          <GallerySection images={invitation.gallery_images} />
-          <Guestbook
-            invitationId={invitation.id}
-            messages={guestbook}
-          />
-          <CalendarSave invitation={invitation} />
-          <FooterSection invitation={invitation} />
+          {/* Dynamic sections */}
+          {sectionsToRender.map((section) => (
+            <div key={section.id}>
+              {DIVIDER_BEFORE.has(section.type) && <OrnamentDivider />}
+              {renderSection(section, invitation, guestbook)}
+            </div>
+          ))}
         </motion.div>
       )}
 
       {/* Music toggle - always visible after cover opened */}
       {coverOpen && (
         <MusicToggle musicUrl={invitation.music_url} musicType={invitation.music_type} />
+      )}
+
+      {/* Chatbot widget - visible after cover opened and when enabled */}
+      {coverOpen && invitation.chatbot_enabled && (
+        <ChatbotWidget
+          invitationId={invitation.id}
+          enabled={invitation.chatbot_enabled}
+          weddingContext={buildWeddingContext(invitation)}
+          extraContext={invitation.chatbot_context}
+          dailyLimit={20}
+        />
       )}
     </div>
   );

@@ -10,23 +10,6 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 // Default demo plans for when Supabase isn't connected
 const DEFAULT_PLANS: Plan[] = [
   {
-    id: 'plan-free',
-    name: 'Free',
-    name_ms: 'Percuma',
-    description: 'Kad asas dengan ciri terhad',
-    price_myr: 0,
-    duration_days: 30,
-    features: [
-      'Satu rekaan asas',
-      'RSVP',
-      'Lokasi & peta',
-      'Simpan tarikh',
-      'Watermark Jemput',
-    ],
-    is_active: true,
-    sort_order: 0,
-  },
-  {
     id: 'plan-basic',
     name: 'Basic',
     name_ms: 'Asas',
@@ -43,8 +26,10 @@ const DEFAULT_PLANS: Plan[] = [
       'Salam Kaut',
       'Eksport Excel',
     ],
+    chatbot_enabled: false,
+    chatbot_daily_limit: 0,
     is_active: true,
-    sort_order: 1,
+    sort_order: 0,
   },
   {
     id: 'plan-premium',
@@ -61,8 +46,10 @@ const DEFAULT_PLANS: Plan[] = [
       'Bahagian khas tanpa had',
       'Senarai hadiah',
     ],
+    chatbot_enabled: true,
+    chatbot_daily_limit: 20,
     is_active: true,
-    sort_order: 2,
+    sort_order: 1,
   },
 ];
 
@@ -104,6 +91,8 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
             typeof row.features === 'string'
               ? JSON.parse(row.features)
               : row.features ?? [],
+          chatbot_enabled: row.chatbot_enabled ?? false,
+          chatbot_daily_limit: row.chatbot_daily_limit ?? 0,
           stripe_price_id: row.stripe_price_id ?? undefined,
           is_active: row.is_active,
           sort_order: row.sort_order,

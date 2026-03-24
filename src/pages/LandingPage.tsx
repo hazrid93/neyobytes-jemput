@@ -626,17 +626,6 @@ function PlanCard({ name, price, period, badge, features: planFeatures, highligh
 
 const plans: Omit<PlanProps, 'index'>[] = [
   {
-    name: 'Percuma',
-    price: 'RM0',
-    features: [
-      'Kad kahwin digital asas',
-      'Dengan watermark Jemput',
-      'Fungsi RSVP',
-      'Peta lokasi majlis',
-      '1 rekaan pilihan',
-    ],
-  },
-  {
     name: 'Asas',
     price: 'RM29',
     period: '/ kad',
@@ -682,11 +671,15 @@ function Pricing() {
           </SectionTitle>
         </motion.div>
 
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing={28}>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={28} maw={700} mx="auto">
           {plans.map((p, i) => (
             <PlanCard key={p.name} {...p} index={i} />
           ))}
         </SimpleGrid>
+
+        <Text ta="center" c="dimmed" size="sm" mt={32} style={{ opacity: 0.7 }}>
+          Bayaran sekali sahaja. Kad aktif selama 60 hari. Boleh diperbaharui.
+        </Text>
       </Container>
     </Box>
   );

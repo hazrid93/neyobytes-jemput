@@ -7,12 +7,16 @@ import {
   Stack,
   Text,
   Group,
+  Box,
+  SimpleGrid,
+  Tooltip,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconUser, IconLink, IconCalendar } from '@tabler/icons-react';
+import { IconUser, IconLink, IconCalendar, IconCheck } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { useAuthStore } from '../../stores/authStore';
+import { THEME_TEMPLATES } from '../../lib/themes';
 import type { Invitation } from '../../types';
 
 interface Props {
@@ -33,16 +37,8 @@ function generateSlug(bride: string, groom: string): string {
   return `${g}-${b}`;
 }
 
-const defaultThemeConfig = {
-  primary_color: '#8B6F4E',
-  secondary_color: '#D4AF37',
-  accent_color: '#F5E6D3',
-  bg_color: '#FDF8F0',
-  text_color: '#2C1810',
-  font_display: 'Playfair Display',
-  font_body: 'Poppins',
-  font_arabic: 'Amiri',
-};
+// First 5 theme templates for the selector
+const THEME_PREVIEW_LIST = THEME_TEMPLATES.slice(0, 5);
 
 const defaultInvitationText =
   "Dengan segala hormatnya kami menjemput Dato'/Datin/Tuan/Puan/Encik/Cik ke majlis perkahwinan putera dan puteri kami.";
@@ -57,6 +53,7 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('elegant-gold');
 
   const autoSlug = generateSlug(brideName, groomName);
 
@@ -72,11 +69,13 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
 
     setCreating(true);
     try {
+      const selectedTemplate = THEME_TEMPLATES.find((t) => t.id === selectedTemplateId) ?? THEME_TEMPLATES[0];
+
       const newInv = await createInvitation({
         user_id: user?.id,
         slug: slug.trim() || autoSlug,
         status: 'draft',
-        template: 'elegant-gold',
+        template: selectedTemplate.id,
         bride_name: brideName,
         groom_name: groomName,
         bride_parent_names: '',
@@ -95,8 +94,14 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
         ],
         contacts: [],
         wishlist: [],
+        sections: selectedTemplate.default_sections,
+        rsvp_enabled: true,
+        chatbot_enabled: false,
+        chatbot_context: '',
         gallery_images: [],
-        theme_config: defaultThemeConfig,
+        music_type: 'youtube',
+        payment_status: 'free',
+        theme_config: selectedTemplate.theme_config,
       } as Partial<Invitation>);
 
       notifications.show({
@@ -172,6 +177,93 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
             )
           }
         />
+        {/* Theme selector */}
+        <Box>
+          <Text fw={500} size="sm" mb={8}>
+            Pilih Tema
+          </Text>
+          <SimpleGrid cols={5} spacing="xs">
+            {THEME_PREVIEW_LIST.map((tpl) => {
+              const isSelected = selectedTemplateId === tpl.id;
+              return (
+                <Tooltip key={tpl.id} label={tpl.name_ms} withArrow>
+                  <Box
+                    onClick={() => setSelectedTemplateId(tpl.id)}
+                    style={{
+                      cursor: 'pointer',
+                      borderRadius: 8,
+                      border: isSelected
+                        ? `2px solid ${tpl.theme_config.primary_color}`
+                        : '2px solid #e0e0e0',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      transition: 'border-color 0.2s ease, transform 0.2s ease',
+                      transform: isSelected ? 'scale(1.05)' : 'none',
+                    }}
+                  >
+                    {/* Color swatches preview */}
+                    <Box
+                      style={{
+                        height: 48,
+                        background: tpl.theme_config.bg_color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        padding: 6,
+                      }}
+                    >
+                      {tpl.preview_colors.map((c, idx) => (
+                        <Box
+                          key={idx}
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            background: c,
+                            border: '1px solid rgba(0,0,0,0.1)',
+                          }}
+                        />
+                      ))}
+                    </Box>
+                    <Text
+                      ta="center"
+                      size="xs"
+                      py={4}
+                      fw={isSelected ? 600 : 400}
+                      style={{
+                        background: isSelected ? tpl.theme_config.primary_color : '#f5f5f5',
+                        color: isSelected ? '#fff' : '#555',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {tpl.name_ms}
+                    </Text>
+                    {isSelected && (
+                      <Box
+                        style={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          width: 18,
+                          height: 18,
+                          borderRadius: '50%',
+                          background: tpl.theme_config.primary_color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <IconCheck size={12} color="#fff" stroke={3} />
+                      </Box>
+                    )}
+                  </Box>
+                </Tooltip>
+              );
+            })}
+          </SimpleGrid>
+        </Box>
+
         <Group justify="flex-end" mt="md">
           <Button variant="subtle" onClick={onClose} color="gray">
             Batal

@@ -235,6 +235,8 @@ const EMPTY_PLAN_FORM = {
   stripe_price_id: '',
   is_active: true,
   sort_order: 0,
+  chatbot_enabled: false,
+  chatbot_daily_limit: 0,
 };
 
 function PlansTab() {
@@ -267,6 +269,8 @@ function PlansTab() {
       stripe_price_id: plan.stripe_price_id ?? '',
       is_active: plan.is_active,
       sort_order: plan.sort_order,
+      chatbot_enabled: plan.chatbot_enabled ?? false,
+      chatbot_daily_limit: plan.chatbot_daily_limit ?? 0,
     });
     setModalOpen(true);
   };
@@ -287,6 +291,8 @@ function PlansTab() {
       stripe_price_id: form.stripe_price_id || undefined,
       is_active: form.is_active,
       sort_order: form.sort_order,
+      chatbot_enabled: form.chatbot_enabled,
+      chatbot_daily_limit: form.chatbot_daily_limit,
     };
 
     try {
@@ -348,6 +354,8 @@ function PlansTab() {
                 <Table.Th>Nama (MS)</Table.Th>
                 <Table.Th>Harga (RM)</Table.Th>
                 <Table.Th>Tempoh (Hari)</Table.Th>
+                <Table.Th>Chatbot</Table.Th>
+                <Table.Th>Had/Hari</Table.Th>
                 <Table.Th>Aktif</Table.Th>
                 <Table.Th>Urutan</Table.Th>
                 <Table.Th>Tindakan</Table.Th>
@@ -360,6 +368,16 @@ function PlansTab() {
                   <Table.Td>{plan.name_ms}</Table.Td>
                   <Table.Td>RM {plan.price_myr.toFixed(2)}</Table.Td>
                   <Table.Td>{plan.duration_days}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={plan.chatbot_enabled ? 'green' : 'gray'}
+                      variant="light"
+                      size="sm"
+                    >
+                      {plan.chatbot_enabled ? 'Ya' : 'Tidak'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{plan.chatbot_daily_limit}</Table.Td>
                   <Table.Td>
                     <Badge
                       color={plan.is_active ? 'green' : 'gray'}
@@ -470,6 +488,29 @@ function PlansTab() {
             }
             placeholder="price_xxxx (kosongkan jika belum ada)"
           />
+
+          <Box pt={8}>
+            <Switch
+              label="Chatbot AI Diaktifkan"
+              checked={form.chatbot_enabled}
+              onChange={(e) =>
+                setForm({ ...form, chatbot_enabled: e.currentTarget.checked })
+              }
+              color={GOLD}
+            />
+          </Box>
+
+          {form.chatbot_enabled && (
+            <NumberInput
+              label="Had Soalan Chatbot/Hari"
+              description="0 = tiada had"
+              value={form.chatbot_daily_limit}
+              onChange={(val) =>
+                setForm({ ...form, chatbot_daily_limit: Number(val) || 0 })
+              }
+              min={0}
+            />
+          )}
 
           <Group grow>
             <NumberInput
