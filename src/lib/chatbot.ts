@@ -7,6 +7,10 @@ export interface ChatRequest {
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 // Generate a visitor ID (fingerprint) from browser
 export function getVisitorId(): string {
   let id = localStorage.getItem('jemput_visitor_id');
@@ -23,36 +27,46 @@ export async function checkQuota(
   dailyLimit: number
 ): Promise<{ allowed: boolean; remaining: number }> {
   if (dailyLimit <= 0) return { allowed: true, remaining: 999 }; // 0 = unlimited
+  if (!isUuid(invitationId)) return { allowed: true, remaining: 999 }; // demo / fallback invitation
 
   const visitorId = getVisitorId();
   const today = new Date().toISOString().split('T')[0];
 
-  // Try to get existing usage
-  const { data } = await supabase
-    .from('chatbot_usage')
-    .select('count')
-    .eq('invitation_id', invitationId)
-    .eq('visitor_id', visitorId)
-    .eq('date', today)
-    .single();
+  try {
+    // Try to get existing usage
+    const { data, error } = await supabase
+      .from('chatbot_usage')
+      .select('count')
+      .eq('invitation_id', invitationId)
+      .eq('visitor_id', visitorId)
+      .eq('date', today)
+      .maybeSingle();
 
-  const currentCount = data?.count || 0;
-  if (currentCount >= dailyLimit) {
-    return { allowed: false, remaining: 0 };
+    if (error) throw error;
+
+    const currentCount = data?.count || 0;
+    if (currentCount >= dailyLimit) {
+      return { allowed: false, remaining: 0 };
+    }
+
+    // Upsert usage count
+    const { error: upsertError } = await supabase.from('chatbot_usage').upsert(
+      {
+        invitation_id: invitationId,
+        visitor_id: visitorId,
+        date: today,
+        count: currentCount + 1,
+      },
+      { onConflict: 'invitation_id,visitor_id,date' }
+    );
+
+    if (upsertError) throw upsertError;
+
+    return { allowed: true, remaining: dailyLimit - currentCount - 1 };
+  } catch (error) {
+    console.warn('Chatbot quota check failed, allowing request without quota tracking.', error);
+    return { allowed: true, remaining: 999 };
   }
-
-  // Upsert usage count
-  await supabase.from('chatbot_usage').upsert(
-    {
-      invitation_id: invitationId,
-      visitor_id: visitorId,
-      date: today,
-      count: currentCount + 1,
-    },
-    { onConflict: 'invitation_id,visitor_id,date' }
-  );
-
-  return { allowed: true, remaining: dailyLimit - currentCount - 1 };
 }
 
 export function getChatConfig() {

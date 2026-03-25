@@ -126,12 +126,14 @@ cp .env.example .env
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public API key |
 | `VITE_APP_URL` | Yes | Public URL of the app (e.g., `https://jemput.neyobytes.com`) |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | No | Stripe publishable key for payment integration |
-| `VITE_LLM_PROVIDER` | No | LLM provider: `novita`, `alibaba`, or `ollama` |
-| `VITE_LLM_MODEL` | No | Model name (e.g., `qwen/qwen-2.5-coder-32b-instruct`) |
-| `VITE_LLM_API_KEY` | No | API key for the LLM provider |
-| `VITE_LLM_BASE_URL` | No | Base URL for the LLM API (OpenAI-compatible endpoint) |
-| `VITE_LLM_MAX_TOKENS` | No | Maximum tokens per chatbot response (default: 512) |
-| `VITE_LLM_TEMPERATURE` | No | LLM temperature for response randomness (default: 0.7) |
+| `LLM_PROVIDER` | No | Server-side LLM provider: `novita`, `alibaba`, or `ollama-cloud` |
+| `LLM_MODEL` | No | Model name (e.g., `kimi-k2.5:cloud`) |
+| `LLM_API_KEY` | No | API key for the LLM provider |
+| `LLM_BASE_URL` | No | Base URL for the LLM API (OpenAI-compatible endpoint) |
+| `LLM_MAX_TOKENS` | No | Maximum tokens per chatbot response (default: 512) |
+| `LLM_TEMPERATURE` | No | LLM temperature for response randomness (default: 0.7) |
+
+The chatbot request is proxied through `server/index.js`, so the active LLM settings should be defined with `LLM_*` server-side environment variables. For backward compatibility, the server also accepts legacy `VITE_LLM_*` names if they already exist in your deployment.
 
 ### Development
 
@@ -206,17 +208,17 @@ The AI chatbot uses an OpenAI-compatible API format. Supported providers:
 |----------|----------|-------|
 | **Novita AI** | `https://api.novita.ai/openai` | Cloud-hosted, pay-per-token |
 | **Alibaba DashScope** | `https://coding-intl.dashscope.aliyuncs.com/v1` | Cloud-hosted, international endpoint |
-| **Ollama** (self-hosted) | `http://localhost:11434/v1` | Run your own models locally |
+| **Ollama Cloud** | `https://ollama.com/v1` | Cloud-hosted Ollama Pro / team plans |
 
 Configure via environment variables:
 
 ```env
-VITE_LLM_PROVIDER=novita
-VITE_LLM_MODEL=qwen/qwen-2.5-coder-32b-instruct
-VITE_LLM_API_KEY=your_api_key_here
-VITE_LLM_BASE_URL=https://api.novita.ai/openai
-VITE_LLM_MAX_TOKENS=512
-VITE_LLM_TEMPERATURE=0.7
+LLM_PROVIDER=ollama-cloud
+LLM_MODEL=kimi-k2.5:cloud
+LLM_API_KEY=your_ollama_cloud_key_here
+LLM_BASE_URL=https://ollama.com/v1
+LLM_MAX_TOKENS=512
+LLM_TEMPERATURE=0.7
 ```
 
 ### 6. Admin Access
@@ -347,7 +349,7 @@ sudo certbot renew --dry-run     # Test renewal without making changes
 | **Subscription plans** | Admin panel (`/admin`) or Supabase `plans` table | Name, price, duration, features, chatbot limits |
 | **Chatbot daily limit** | Admin panel or `plans.chatbot_daily_limit` column | Max questions per visitor per day (0 = unlimited) |
 | **Default expiry** | Admin panel or `plans.duration_days` column | How many days an invitation stays active after payment |
-| **LLM provider** | `.env` file (`VITE_LLM_*` variables) | Change provider, model, or API key; restart dev server |
+| **LLM provider** | `.env` file (`LLM_*` variables) | Change provider, model, or API key; restart the API server |
 | **Nginx config** | `nginx/jemput.conf` | Domain, SSL paths, caching, security headers |
 | **Supabase schema** | `supabase/migration.sql` | Database tables, RLS policies, triggers, storage |
 

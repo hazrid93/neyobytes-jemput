@@ -4,7 +4,6 @@ import {
   Box,
   Group,
   Stack,
-  Title,
   Text,
   TextInput,
   Textarea,
@@ -16,7 +15,6 @@ import {
   Select,
   Switch,
   Badge,
-  Card,
   Loader,
   Center,
   Tabs,
@@ -24,7 +22,6 @@ import {
   Paper,
   Divider,
   ScrollArea,
-  CloseButton,
   Image,
   SimpleGrid,
 } from '@mantine/core';
@@ -47,7 +44,6 @@ import {
   IconSettings,
   IconPlus,
   IconTrash,
-  IconDeviceMobile,
   IconExternalLink,
   IconZoomIn,
   IconZoomOut,
@@ -63,7 +59,6 @@ import {
   IconRobot,
   IconLayoutList,
 } from '@tabler/icons-react';
-import { motion } from 'framer-motion';
 import { uploadImage, deleteImage } from '../../lib/upload';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import ThemeSelector from './ThemeSelector';
@@ -183,15 +178,6 @@ export default function InvitationEditor() {
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   }, 1500);
-
-  // Watch form changes
-  useEffect(() => {
-    const subscription = form.watch((_values) => {
-      // form.watch is Mantine v8, but we'll do manual approach
-    });
-    return subscription;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const triggerSave = useCallback(() => {
     debouncedSave(form.getValues());
@@ -511,9 +497,9 @@ export default function InvitationEditor() {
                 <DatePickerInput
                   label="Tarikh Majlis"
                   placeholder="Pilih tarikh"
-                  value={formValues.event_date ? new Date(formValues.event_date) : null}
+                  value={formValues.event_date || null}
                   onChange={(d) =>
-                    handleFieldChange('event_date', d ? d.toISOString().split('T')[0] : '')
+                    handleFieldChange('event_date', d || '')
                   }
                 />
                 <Group grow>
@@ -732,9 +718,9 @@ export default function InvitationEditor() {
                     label="Tarikh Tutup RSVP"
                     description="RSVP akan ditutup secara automatik selepas tarikh ini"
                     placeholder="Pilih tarikh tutup"
-                    value={formValues.rsvp_deadline ? new Date(formValues.rsvp_deadline) : null}
+                    value={formValues.rsvp_deadline || null}
                     onChange={(d) =>
-                      handleFieldChange('rsvp_deadline', d ? d.toISOString().split('T')[0] : '')
+                      handleFieldChange('rsvp_deadline', d || '')
                     }
                     clearable
                   />
@@ -1250,14 +1236,29 @@ export default function InvitationEditor() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: isMobile ? 'flex-start' : 'center',
         height: '100%',
         background: '#f0ebe3',
-        padding: '1rem',
+        padding: isMobile ? '1rem 1rem 1.5rem' : '1rem',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Controls */}
-      <Group gap="xs" mb="sm">
+      <Group
+        gap="xs"
+        mb="sm"
+        style={{
+          position: isMobile ? 'sticky' : 'static',
+          top: 0,
+          zIndex: 5,
+          background: isMobile ? 'rgba(240, 235, 227, 0.96)' : 'transparent',
+          backdropFilter: isMobile ? 'blur(6px)' : 'none',
+          borderRadius: 999,
+          padding: isMobile ? '0.35rem 0.5rem' : 0,
+        }}
+      >
         <Tooltip label="Zum keluar">
           <ActionIcon
             variant="light"

@@ -21,7 +21,7 @@ import {
   IconArrowRight,
   IconSparkles,
 } from '@tabler/icons-react';
-import { motion } from 'framer-motion';
+import { cubicBezier, motion, type Variants } from 'framer-motion';
 import { usePaymentStore } from '../stores/paymentStore';
 import { useAuthStore } from '../stores/authStore';
 import type { Plan } from '../types';
@@ -39,25 +39,28 @@ const DARK_MID = '#4A3B2D';
 // ---------------------------------------------------------------------------
 // Animation helpers
 // ---------------------------------------------------------------------------
-const fadeUp = {
+const softReveal = cubicBezier(0.25, 0.46, 0.45, 0.94);
+const quickReveal = cubicBezier(0.16, 1, 0.3, 1);
+
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 40 },
-  visible: (i: number) => ({
+  visible: (i = 0) => ({
     opacity: 1,
     y: 0,
     transition: {
       delay: i * 0.12,
       duration: 0.7,
-      ease: [0.25, 0.46, 0.45, 0.94],
+      ease: softReveal,
     },
   }),
 };
 
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.92 },
-  visible: (i: number) => ({
+  visible: (i = 0) => ({
     opacity: 1,
     scale: 1,
-    transition: { delay: i * 0.1, duration: 0.6, ease: 'easeOut' },
+    transition: { delay: i * 0.1, duration: 0.6, ease: quickReveal },
   }),
 };
 

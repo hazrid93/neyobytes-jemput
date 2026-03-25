@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 
+function getAuthRedirectUrl(path = '/login') {
+  const baseUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
+}
+
 interface AuthState {
   user: UserProfile | null;
   loading: boolean;
@@ -29,6 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name,
+            role: 'user',
             created_at: session.user.created_at,
           },
           initialized: true,
@@ -47,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name,
+            role: 'user',
             created_at: session.user.created_at,
           },
         });
@@ -68,7 +76,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: getAuthRedirectUrl('/login'),
+      },
     });
     set({ loading: false });
     if (error) throw error;
@@ -82,7 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   resetPassword: async (email) => {
     set({ loading: true });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login?reset=true`,
+      redirectTo: getAuthRedirectUrl('/login?reset=true'),
     });
     set({ loading: false });
     if (error) throw error;

@@ -301,7 +301,7 @@ export default function LoginPage() {
             {/* Login / Register View */}
             {view === 'auth' && (
               <>
-                <Tabs value={activeTab} onChange={setActiveTab}>
+                <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false}>
                   <Tabs.List grow mb="lg">
                     <Tabs.Tab value="login" style={{ fontWeight: 600 }}>
                       Log Masuk

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../stores/invitationStore';
-import type { Invitation, InvitationSection } from '../types';
+import type { GuestbookMessage, Invitation, InvitationSection } from '../types';
 
 import CoverSection from '../components/invitation/CoverSection';
 import IslamicGreeting from '../components/invitation/IslamicGreeting';
@@ -116,7 +116,7 @@ const DIVIDER_BEFORE: Set<string> = new Set([
 function renderSection(
   section: InvitationSection,
   invitation: Invitation,
-  guestbook: ReturnType<typeof useInvitationStore>['guestbook'],
+  guestbook: GuestbookMessage[],
 ) {
   switch (section.type) {
     case 'islamic_greeting':

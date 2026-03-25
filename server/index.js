@@ -7,6 +7,31 @@ config(); // loads .env from project root
 
 const app = express();
 const PORT = process.env.API_PORT || 3002;
+const LLM_PROVIDER_DEFAULTS = {
+  novita: {
+    baseUrl: 'https://api.novita.ai/openai',
+    model: 'meta-llama/llama-3.1-8b-instruct',
+  },
+  alibaba: {
+    baseUrl: 'https://coding-intl.dashscope.aliyuncs.com/v1',
+    model: 'qwen-plus',
+  },
+  'ollama-cloud': {
+    baseUrl: 'https://ollama.com/v1',
+    model: 'kimi-k2.5:cloud',
+  },
+};
+
+function getEnv(...keys) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value !== undefined && value !== '') {
+      return value;
+    }
+  }
+
+  return undefined;
+}
 
 // CORS - allow frontend
 app.use(cors({
@@ -22,21 +47,26 @@ app.use(express.json());
 app.post('/api/chat', async (req, res) => {
   const { messages, systemPrompt } = req.body;
 
-  const baseUrl = process.env.LLM_BASE_URL || 'https://api.novita.ai/openai';
-  const apiKey = process.env.LLM_API_KEY;
-  const model = process.env.LLM_MODEL || 'meta-llama/llama-3.1-8b-instruct';
-  const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1000');
-  const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
-
-  if (!apiKey) return res.status(500).json({ error: 'LLM not configured' });
+  const provider = getEnv('LLM_PROVIDER', 'VITE_LLM_PROVIDER') || 'ollama-cloud';
+  const providerDefaults = LLM_PROVIDER_DEFAULTS[provider] || LLM_PROVIDER_DEFAULTS['ollama-cloud'];
+  const baseUrl = (getEnv('LLM_BASE_URL', 'VITE_LLM_BASE_URL') || providerDefaults.baseUrl).replace(/\/$/, '');
+  const apiKey = getEnv('LLM_API_KEY', 'VITE_LLM_API_KEY');
+  const model = getEnv('LLM_MODEL', 'VITE_LLM_MODEL') || providerDefaults.model;
+  const maxTokens = parseInt(getEnv('LLM_MAX_TOKENS', 'VITE_LLM_MAX_TOKENS') || '512', 10);
+  const temperature = parseFloat(getEnv('LLM_TEMPERATURE', 'VITE_LLM_TEMPERATURE') || '0.7');
 
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify({
         model,
         messages: [

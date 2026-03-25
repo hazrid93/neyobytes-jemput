@@ -22,7 +22,6 @@ import {
   IconPlus,
   IconEdit,
   IconEye,
-  IconShare,
   IconTrash,
   IconDots,
   IconCalendar,

@@ -52,7 +52,7 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
 
   const [brideName, setBrideName] = useState('');
   const [groomName, setGroomName] = useState('');
-  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [eventDate, setEventDate] = useState<string | null>(null);
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('elegant-gold');
@@ -82,7 +82,7 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
         groom_name: groomName,
         bride_parent_names: '',
         groom_parent_names: '',
-        event_date: eventDate ? eventDate.toISOString().split('T')[0] : '',
+        event_date: eventDate || '',
         event_time_start: '11:00',
         event_time_end: '16:00',
         venue_name: '',
@@ -100,7 +100,6 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
         rsvp_enabled: true,
         chatbot_enabled: false,
         chatbot_context: '',
-        gallery_images: [],
         music_type: 'youtube',
         payment_status: 'free',
         theme_config: selectedTemplate.theme_config,

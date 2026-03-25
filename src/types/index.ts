@@ -236,7 +236,7 @@ export interface ChatQuota {
 }
 
 export interface ChatbotConfig {
-  provider: 'alibaba' | 'ollama' | 'novita';
+  provider: 'alibaba' | 'ollama-cloud' | 'novita';
   model: string;
   api_key: string;
   base_url?: string;

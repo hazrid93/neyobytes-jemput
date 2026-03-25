@@ -32,32 +32,35 @@ import {
   IconStar,
   IconStarFilled,
 } from '@tabler/icons-react';
-import { motion } from 'framer-motion';
+import { cubicBezier, motion, type Variants } from 'framer-motion';
 import Logo from '../components/common/Logo';
 
 // ---------------------------------------------------------------------------
 // Animation helpers
 // ---------------------------------------------------------------------------
-const fadeUp = {
+const softReveal = cubicBezier(0.25, 0.46, 0.45, 0.94);
+const quickReveal = cubicBezier(0.16, 1, 0.3, 1);
+
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 40 },
-  visible: (i: number) => ({
+  visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { delay: i * 0.12, duration: 0.7, ease: softReveal },
   }),
 };
 
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.8 } },
 };
 
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.92 },
-  visible: (i: number) => ({
+  visible: (i = 0) => ({
     opacity: 1,
     scale: 1,
-    transition: { delay: i * 0.1, duration: 0.6, ease: 'easeOut' },
+    transition: { delay: i * 0.1, duration: 0.6, ease: quickReveal },
   }),
 };
 

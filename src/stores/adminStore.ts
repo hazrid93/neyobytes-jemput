@@ -43,6 +43,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         price_myr: Number(row.price_myr),
         duration_days: row.duration_days,
         features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features ?? [],
+        chatbot_enabled: row.chatbot_enabled ?? false,
+        chatbot_daily_limit: row.chatbot_daily_limit ?? 0,
         stripe_price_id: row.stripe_price_id ?? undefined,
         is_active: row.is_active,
         sort_order: row.sort_order,
@@ -65,6 +67,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         price_myr: plan.price_myr ?? 0,
         duration_days: plan.duration_days ?? 60,
         features: plan.features ?? [],
+        chatbot_enabled: plan.chatbot_enabled ?? false,
+        chatbot_daily_limit: plan.chatbot_daily_limit ?? 0,
         stripe_price_id: plan.stripe_price_id ?? null,
         is_active: plan.is_active ?? true,
         sort_order: plan.sort_order ?? 0,
@@ -91,6 +95,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       if (updates.price_myr !== undefined) payload.price_myr = updates.price_myr;
       if (updates.duration_days !== undefined) payload.duration_days = updates.duration_days;
       if (updates.features !== undefined) payload.features = updates.features;
+      if (updates.chatbot_enabled !== undefined) payload.chatbot_enabled = updates.chatbot_enabled;
+      if (updates.chatbot_daily_limit !== undefined) payload.chatbot_daily_limit = updates.chatbot_daily_limit;
       if (updates.stripe_price_id !== undefined) payload.stripe_price_id = updates.stripe_price_id;
       if (updates.is_active !== undefined) payload.is_active = updates.is_active;
       if (updates.sort_order !== undefined) payload.sort_order = updates.sort_order;
