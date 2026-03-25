@@ -370,11 +370,13 @@ export default function ChatbotWidget({
                 <div
                   style={{
                     display: 'flex',
+                    alignItems: 'center',
                     gap: 8,
                     padding: '10px 12px',
                     borderTop: '1px solid #E8D5B7',
                     background: '#FFFDF8',
                     flexShrink: 0,
+                    boxSizing: 'border-box',
                   }}
                 >
                   <input
@@ -391,6 +393,8 @@ export default function ChatbotWidget({
                     disabled={isTyping || quotaExceeded}
                     style={{
                       flex: 1,
+                      minWidth: 0,
+                      width: 0,
                       border: '1px solid #E8D5B7',
                       borderRadius: 20,
                       padding: '8px 16px',
@@ -399,6 +403,7 @@ export default function ChatbotWidget({
                       background: quotaExceeded ? '#f5f5f5' : 'white',
                       color: '#2C1810',
                       fontFamily: 'Poppins, sans-serif',
+                      boxSizing: 'border-box',
                     }}
                   />
                   <button

@@ -52,7 +52,7 @@ app.post('/api/chat', async (req, res) => {
   const baseUrl = (getEnv('LLM_BASE_URL', 'VITE_LLM_BASE_URL') || providerDefaults.baseUrl).replace(/\/$/, '');
   const apiKey = getEnv('LLM_API_KEY', 'VITE_LLM_API_KEY');
   const model = getEnv('LLM_MODEL', 'VITE_LLM_MODEL') || providerDefaults.model;
-  const maxTokens = parseInt(getEnv('LLM_MAX_TOKENS', 'VITE_LLM_MAX_TOKENS') || '512', 10);
+  const maxTokens = parseInt(getEnv('LLM_MAX_TOKENS', 'VITE_LLM_MAX_TOKENS') || '2048', 10);
   const temperature = parseFloat(getEnv('LLM_TEMPERATURE', 'VITE_LLM_TEMPERATURE') || '0.7');
 
   try {

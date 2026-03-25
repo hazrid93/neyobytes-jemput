@@ -56,9 +56,38 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   createInvitation: async (inv) => {
-    const { data, error } = await supabase.from('invitations').insert(inv).select().single();
-    if (error) handleSlugError(error);
-    const newInv = data as Invitation;
+    const { data, error } = await supabase
+      .from('invitations')
+      .insert(inv)
+      .select()
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') handleSlugError(error);
+
+    let newInv = data as Invitation | null;
+
+    // Some Supabase/PostgREST setups return 0 rows after insert even when the
+    // write succeeds, so fall back to reading the row back by slug.
+    if (!newInv && inv.slug) {
+      const query = supabase
+        .from('invitations')
+        .select('*')
+        .eq('slug', inv.slug)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const fetchResult = inv.user_id
+        ? await query.eq('user_id', inv.user_id).maybeSingle()
+        : await query.maybeSingle();
+
+      if (fetchResult.error) handleSlugError(fetchResult.error);
+      newInv = fetchResult.data as Invitation | null;
+    }
+
+    if (!newInv) {
+      throw new Error('Kad jemputan berjaya disimpan tetapi data tidak dapat dimuat semula. Sila segar semula halaman.');
+    }
+
     set({ invitations: [newInv, ...get().invitations] });
     return newInv;
   },

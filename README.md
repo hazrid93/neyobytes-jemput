@@ -130,7 +130,7 @@ cp .env.example .env
 | `LLM_MODEL` | No | Model name (e.g., `kimi-k2.5:cloud`) |
 | `LLM_API_KEY` | No | API key for the LLM provider |
 | `LLM_BASE_URL` | No | Base URL for the LLM API (OpenAI-compatible endpoint) |
-| `LLM_MAX_TOKENS` | No | Maximum tokens per chatbot response (default: 512) |
+| `LLM_MAX_TOKENS` | No | Maximum tokens per chatbot response (default: 2048) |
 | `LLM_TEMPERATURE` | No | LLM temperature for response randomness (default: 0.7) |
 
 The chatbot request is proxied through `server/index.js`, so the active LLM settings should be defined with `LLM_*` server-side environment variables. For backward compatibility, the server also accepts legacy `VITE_LLM_*` names if they already exist in your deployment.
@@ -217,7 +217,7 @@ LLM_PROVIDER=ollama-cloud
 LLM_MODEL=kimi-k2.5:cloud
 LLM_API_KEY=your_ollama_cloud_key_here
 LLM_BASE_URL=https://ollama.com/v1
-LLM_MAX_TOKENS=512
+LLM_MAX_TOKENS=2048
 LLM_TEMPERATURE=0.7
 ```
 
