@@ -222,6 +222,10 @@ function syncEditorPreviewInvitation(values: Partial<Invitation>, sourceInvitati
   window.localStorage.setItem(EDITOR_PREVIEW_STORAGE_KEY, JSON.stringify(previewInvitation));
 }
 
+function createLocalImageUrl(file: File): string {
+  return URL.createObjectURL(file);
+}
+
 function getGallerySectionConfig(sections: InvitationSection[] | undefined) {
   const gallerySection = (sections || []).find((section) => section.type === 'gallery');
   return (gallerySection?.config || {}) as { layout?: 'carousel' | 'grid' | 'masonry' };
@@ -760,23 +764,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   <Text size="sm" fw={500} mb={4}>
                     Gambar Pengantin
                   </Text>
-                  {trialMode ? (
-                    <Box
-                      p="sm"
-                      style={{
-                        border: '1px dashed #ccc',
-                        borderRadius: 8,
-                        background: '#f9f9f9',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <IconLock size={20} color="#999" />
-                      <Text size="xs" c="dimmed" mt={4}>
-                        Muat naik gambar memerlukan akaun
-                      </Text>
-                    </Box>
-                  ) : (
-                    <>
+                  <>
                   {formValues.couple_photo_url && (
                     <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
                       <Image
@@ -796,10 +784,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                         top={4}
                         right={4}
                         onClick={async () => {
-                          try {
-                            await deleteImage(formValues.couple_photo_url as string);
-                          } catch {
-                            // ignore delete errors for external URLs
+                          if (!trialMode) {
+                            try {
+                              await deleteImage(formValues.couple_photo_url as string);
+                            } catch {
+                              // ignore delete errors for external URLs
+                            }
                           }
                           handleFieldChange('couple_photo_url', '');
                         }}
@@ -810,7 +800,14 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   )}
                   <Dropzone
                     onDrop={async (files) => {
-                      if (!files[0] || !currentInvitation) return;
+                      if (!files[0]) return;
+                      if (trialMode) {
+                        const localUrl = createLocalImageUrl(files[0]);
+                        handleFieldChange('couple_photo_url', localUrl);
+                        notifications.show({ title: 'Berjaya!', message: 'Gambar pengantin dimuat naik secara tempatan', color: 'green' });
+                        return;
+                      }
+                      if (!currentInvitation) return;
                       try {
                         const url = await uploadImage(files[0], currentInvitation.user_id, 'couple');
                         handleFieldChange('couple_photo_url', url);
@@ -839,8 +836,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                       </Stack>
                     </Center>
                   </Dropzone>
-                    </>
-                  )}
+                  </>
                 </div>
               </Stack>
             </Accordion.Panel>
@@ -1132,23 +1128,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   <Text size="sm" fw={500} mb={4}>
                     QR Code
                   </Text>
-                  {trialMode ? (
-                    <Box
-                      p="sm"
-                      style={{
-                        border: '1px dashed #ccc',
-                        borderRadius: 8,
-                        background: '#f9f9f9',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <IconLock size={20} color="#999" />
-                      <Text size="xs" c="dimmed" mt={4}>
-                        Muat naik QR code memerlukan akaun
-                      </Text>
-                    </Box>
-                  ) : (
-                    <>
+                  <>
                   {moneyGift?.qr_code_url && (
                     <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
                       <Image
@@ -1168,10 +1148,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                         top={4}
                         right={4}
                         onClick={async () => {
-                          try {
-                            await deleteImage(moneyGift.qr_code_url as string);
-                          } catch {
-                            // ignore delete errors for external URLs
+                          if (!trialMode) {
+                            try {
+                              await deleteImage(moneyGift.qr_code_url as string);
+                            } catch {
+                              // ignore delete errors for external URLs
+                            }
                           }
                           handleFieldChange('money_gift', {
                             ...(moneyGift || { bank_name: '', account_name: '', account_number: '' }),
@@ -1185,7 +1167,17 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   )}
                   <Dropzone
                     onDrop={async (files) => {
-                      if (!files[0] || !currentInvitation) return;
+                      if (!files[0]) return;
+                      if (trialMode) {
+                        const localUrl = createLocalImageUrl(files[0]);
+                        handleFieldChange('money_gift', {
+                          ...(moneyGift || { bank_name: '', account_name: '', account_number: '' }),
+                          qr_code_url: localUrl,
+                        });
+                        notifications.show({ title: 'Berjaya!', message: 'QR code dimuat naik secara tempatan', color: 'green' });
+                        return;
+                      }
+                      if (!currentInvitation) return;
                       try {
                         const url = await uploadImage(files[0], currentInvitation.user_id, 'qr');
                         handleFieldChange('money_gift', {
@@ -1217,8 +1209,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                       </Group>
                     </Center>
                   </Dropzone>
-                    </>
-                  )}
+                  </>
                 </div>
               </Stack>
             </Accordion.Panel>
@@ -1299,13 +1290,11 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   size="sm"
                 />
 
-                {!trialMode && (
-                  <Text size="xs" c="dimmed">
-                    Maksimum {MAX_GALLERY_IMAGES} gambar untuk setiap kad jemputan.
-                  </Text>
-                )}
+                <Text size="xs" c="dimmed">
+                  Maksimum {MAX_GALLERY_IMAGES} gambar untuk setiap kad jemputan.
+                </Text>
 
-              {!trialMode && galleryUrls.length > 0 && (
+              {galleryUrls.length > 0 && (
                 <SimpleGrid cols={3} spacing="xs" mb="sm">
                   {galleryUrls.map((url, i) => (
                     <Box key={i} pos="relative">
@@ -1325,10 +1314,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                         top={4}
                         right={4}
                         onClick={async () => {
-                          try {
-                            await deleteImage(url);
-                          } catch {
-                            // ignore delete errors for external URLs
+                          if (!trialMode) {
+                            try {
+                              await deleteImage(url);
+                            } catch {
+                              // ignore delete errors for external URLs
+                            }
                           }
                           const newUrls = galleryUrls.filter((_, idx) => idx !== i);
                           setGalleryUrls(newUrls);
@@ -1353,31 +1344,8 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   ))}
                 </SimpleGrid>
               )}
-              {trialMode ? (
-                <Box
-                  p="md"
-                  style={{
-                    border: '1px dashed #ccc',
-                    borderRadius: 10,
-                    background: '#f9f9f9',
-                    textAlign: 'center',
-                  }}
-                >
-                  <IconLock size={22} color="#999" />
-                  <Text size="sm" mt={6} fw={500}>
-                    Muat naik galeri memerlukan akaun
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={4} mb={10}>
-                    Daftar untuk tambah gambar pasangan dan galeri majlis anda.
-                  </Text>
-                  <Button size="xs" variant="light" color="yellow" onClick={() => setSignupModalOpen(true)}>
-                    Daftar Untuk Guna Galeri
-                  </Button>
-                </Box>
-              ) : (
-                <Dropzone
+              <Dropzone
                   onDrop={async (files) => {
-                    if (!currentInvitation) return;
                     const remainingSlots = MAX_GALLERY_IMAGES - galleryUrls.length;
                     if (remainingSlots <= 0) {
                       notifications.show({
@@ -1389,6 +1357,27 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                     }
 
                     const filesToUpload = files.slice(0, remainingSlots);
+
+                    if (trialMode) {
+                      const uploadedUrls = filesToUpload.map((file) => createLocalImageUrl(file));
+                      const newUrls = [...galleryUrls, ...uploadedUrls];
+                      setGalleryUrls(newUrls);
+                      syncTrialPreviewInvitation({ ...form.getValues(), gallery_images: [] }, newUrls);
+                      if (previewRef.current) {
+                        previewRef.current.src = previewRef.current.src;
+                      }
+                      notifications.show({
+                        title: 'Berjaya!',
+                        message:
+                          filesToUpload.length < files.length
+                            ? `${filesToUpload.length} gambar dimuat naik secara tempatan. Had maksimum galeri ialah ${MAX_GALLERY_IMAGES} gambar.`
+                            : `${filesToUpload.length} gambar dimuat naik secara tempatan`,
+                        color: 'green',
+                      });
+                      return;
+                    }
+
+                    if (!currentInvitation) return;
 
                     try {
                       const uploadedUrls: string[] = [];
@@ -1447,7 +1436,6 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                     </Stack>
                   </Center>
                 </Dropzone>
-              )}
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
