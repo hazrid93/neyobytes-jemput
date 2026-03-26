@@ -57,6 +57,8 @@ interface SmartCoachmarkProps {
   showSpotlight?: boolean;
   footer?: ReactNode;
   onClose?: () => void;
+  /** When true, overlay & bubble use CSS transitions instead of hard jumps */
+  animate?: boolean;
 }
 
 interface CoachmarkTourProps {
@@ -146,6 +148,7 @@ export function SmartCoachmark({
   showSpotlight = true,
   footer,
   onClose,
+  animate = false,
 }: SmartCoachmarkProps) {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -326,6 +329,7 @@ export function SmartCoachmark({
 
   const OVERLAY_OPACITY = 0.55;
   const SPOTLIGHT_RADIUS = 14;
+  const TRANSITION_MS = animate ? '350ms' : '0ms';
 
   return (
     <Portal>
@@ -354,6 +358,7 @@ export function SmartCoachmark({
                   rx={SPOTLIGHT_RADIUS}
                   ry={SPOTLIGHT_RADIUS}
                   fill="black"
+                  style={{ transition: `x ${TRANSITION_MS} ease, y ${TRANSITION_MS} ease, width ${TRANSITION_MS} ease, height ${TRANSITION_MS} ease` }}
                 />
               </mask>
             </defs>
@@ -376,6 +381,7 @@ export function SmartCoachmark({
               fill="none"
               stroke="rgba(212,175,55,0.55)"
               strokeWidth="2"
+              style={{ transition: `x ${TRANSITION_MS} ease, y ${TRANSITION_MS} ease, width ${TRANSITION_MS} ease, height ${TRANSITION_MS} ease` }}
             />
           </svg>
         </>
@@ -400,6 +406,7 @@ export function SmartCoachmark({
           zIndex,
           pointerEvents: 'auto',
           visibility: spotlightReady ? 'visible' : 'hidden',
+          transition: animate ? `top ${TRANSITION_MS} ease, left ${TRANSITION_MS} ease` : undefined,
         }}
       >
         <Paper
@@ -508,9 +515,46 @@ export function CoachmarkTour({
 
   if (!isOpen || !currentStep) return null;
 
+  const tourFooter = (
+    <Group justify="space-between" align="center" mt="sm">
+      <Text size="xs" c="dimmed">
+        Langkah {Math.min(index + 1, visibleSteps.length)} / {visibleSteps.length}
+      </Text>
+      <Group gap="xs">
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          color="gray"
+          leftSection={<IconChevronLeft size={14} />}
+          disabled={index === 0}
+          onClick={() => setIndex((value) => Math.max(0, value - 1))}
+        >
+          Kembali
+        </Button>
+        {index < visibleSteps.length - 1 ? (
+          <Button
+            size="compact-sm"
+            color="yellow"
+            rightSection={<IconChevronRight size={14} />}
+            onClick={() => setIndex((value) => Math.min(visibleSteps.length - 1, value + 1))}
+          >
+            Seterusnya
+          </Button>
+        ) : (
+          <Button
+            size="compact-sm"
+            color="yellow"
+            onClick={closeTour}
+          >
+            Selesai
+          </Button>
+        )}
+      </Group>
+    </Group>
+  );
+
   return (
     <SmartCoachmark
-      key={currentStep.id}
       targetRef={currentStep.targetRef}
       title={currentStep.title}
       description={currentStep.description}
@@ -520,43 +564,8 @@ export function CoachmarkTour({
       open={isOpen}
       showSpotlight={showSpotlight}
       onClose={closeTour}
-      footer={
-        <Group justify="space-between" align="center" mt="sm">
-          <Text size="xs" c="dimmed">
-            Langkah {Math.min(index + 1, visibleSteps.length)} / {visibleSteps.length}
-          </Text>
-          <Group gap="xs">
-            <Button
-              variant="subtle"
-              size="compact-sm"
-              color="gray"
-              leftSection={<IconChevronLeft size={14} />}
-              disabled={index === 0}
-              onClick={() => setIndex((value) => Math.max(0, value - 1))}
-            >
-              Kembali
-            </Button>
-            {index < visibleSteps.length - 1 ? (
-              <Button
-                size="compact-sm"
-                color="yellow"
-                rightSection={<IconChevronRight size={14} />}
-                onClick={() => setIndex((value) => Math.min(visibleSteps.length - 1, value + 1))}
-              >
-                Seterusnya
-              </Button>
-            ) : (
-              <Button
-                size="compact-sm"
-                color="yellow"
-                onClick={closeTour}
-              >
-                Selesai
-              </Button>
-            )}
-          </Group>
-        </Group>
-      }
+      footer={tourFooter}
+      animate
     />
   );
 }
