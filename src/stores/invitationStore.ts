@@ -6,6 +6,7 @@ import {
   demoRSVPs,
   demoGuestbook,
   TRIAL_PREVIEW_STORAGE_KEY,
+  EDITOR_PREVIEW_STORAGE_KEY,
 } from '../lib/demo-data';
 
 interface InvitationState {
@@ -58,6 +59,21 @@ export const useInvitationStore = create<InvitationState>((set, get) => ({
     }
 
     try {
+      if (typeof window !== 'undefined') {
+        const previewRaw = window.localStorage.getItem(EDITOR_PREVIEW_STORAGE_KEY);
+        if (previewRaw) {
+          try {
+            const previewInvitation = JSON.parse(previewRaw) as Invitation;
+            if (previewInvitation.slug === slug) {
+              set({ invitation: previewInvitation, rsvps: [], guestbook: [], loading: false });
+              return;
+            }
+          } catch {
+            // ignore invalid preview cache
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('invitations')
         .select('*')

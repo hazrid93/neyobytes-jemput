@@ -1,6 +1,7 @@
 import type { Invitation, RSVP, GuestbookMessage } from '../types';
 
 export const TRIAL_PREVIEW_STORAGE_KEY = 'jemput_trial_preview_invitation';
+export const EDITOR_PREVIEW_STORAGE_KEY = 'jemput_editor_preview_invitation';
 
 export const demoInvitation: Invitation = {
   id: 'demo-001',

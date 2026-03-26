@@ -62,11 +62,12 @@ import {
   IconCrown,
   IconUserPlus,
   IconArrowRight,
+  IconArrowLeft,
 } from '@tabler/icons-react';
 import { uploadImage, deleteImage } from '../../lib/upload';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { supabase } from '../../lib/supabase';
-import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
+import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY, EDITOR_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
 import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate } from '../../types';
@@ -197,6 +198,30 @@ function syncTrialPreviewInvitation(values: Partial<Invitation>, galleryUrls: st
   window.localStorage.setItem(TRIAL_PREVIEW_STORAGE_KEY, JSON.stringify(invitation));
 }
 
+function syncEditorPreviewInvitation(values: Partial<Invitation>, sourceInvitation: Invitation, galleryUrls: string[]) {
+  if (typeof window === 'undefined') return;
+
+  const previewInvitation: Invitation = {
+    ...sourceInvitation,
+    ...values,
+    gallery_images: galleryUrls.map((url, idx) => ({
+      id: `gallery-${idx}`,
+      invitation_id: sourceInvitation.id,
+      url,
+      sort_order: idx,
+    })),
+    itinerary: (values.itinerary || sourceInvitation.itinerary),
+    contacts: (values.contacts || sourceInvitation.contacts),
+    wishlist: (values.wishlist || sourceInvitation.wishlist),
+    money_gift: values.money_gift || sourceInvitation.money_gift,
+    theme_config: values.theme_config || sourceInvitation.theme_config,
+    sections: (values.sections || sourceInvitation.sections),
+    updated_at: new Date().toISOString(),
+  } as Invitation;
+
+  window.localStorage.setItem(EDITOR_PREVIEW_STORAGE_KEY, JSON.stringify(previewInvitation));
+}
+
 function getGallerySectionConfig(sections: InvitationSection[] | undefined) {
   const gallerySection = (sections || []).find((section) => section.type === 'gallery');
   return (gallerySection?.config || {}) as { layout?: 'carousel' | 'grid' | 'masonry' };
@@ -233,6 +258,23 @@ function updateSectionConfig(
 ) {
   return (sections || []).map((section) => {
     if (section.type !== type) return section;
+    return {
+      ...section,
+      config: {
+        ...(section.config || {}),
+        ...updates,
+      },
+    };
+  });
+}
+
+function updateSectionConfigById(
+  sections: InvitationSection[] | undefined,
+  id: string,
+  updates: Record<string, unknown>
+) {
+  return (sections || []).map((section) => {
+    if (section.id !== id) return section;
     return {
       ...section,
       config: {
@@ -323,6 +365,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialMode]);
 
+  useEffect(() => {
+    if (trialMode || !sourceInvitation) return;
+    syncEditorPreviewInvitation(form.getValues(), sourceInvitation, galleryUrls);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trialMode, sourceInvitation?.id]);
+
   // Debounced auto-save (in trial mode, just refresh preview)
   const debouncedSave = useDebouncedCallback(async (values: Partial<Invitation>) => {
     if (trialMode) {
@@ -331,6 +379,9 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         previewRef.current.src = previewRef.current.src;
       }
       return;
+    }
+    if (sourceInvitation) {
+      syncEditorPreviewInvitation(values, sourceInvitation, galleryUrls);
     }
     if (!id) return;
     setSaveStatus('saving');
@@ -377,6 +428,11 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         previewRef.current.src = previewRef.current.src;
       }
       return;
+    }
+
+    if (!trialMode && sourceInvitation) {
+      const nextValues = form.getValues();
+      syncEditorPreviewInvitation(nextValues, sourceInvitation, galleryUrls);
     }
 
     triggerSave();
@@ -516,6 +572,9 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const moneyGift = formValues.money_gift || sourceInvitation!.money_gift;
   const gallerySectionConfig = getGallerySectionConfig((formValues.sections || sourceInvitation!.sections) as InvitationSection[]);
   const currentSections = (formValues.sections || sourceInvitation!.sections || []) as InvitationSection[];
+  const customSections = currentSections.filter((section) =>
+    section.type === 'custom_text' || section.type === 'custom_image' || section.type === 'custom_video'
+  );
 
   const previewUrl = trialMode ? '/aiman-nadia' : `/${formValues.slug || sourceInvitation!.slug}`;
 
@@ -572,6 +631,15 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             <Text size="sm" c="dimmed" mb={8}>
               Cuba editor dengan data contoh. Daftar untuk simpan dan terbitkan kad anda.
             </Text>
+            <Button
+              size="sm"
+              variant="subtle"
+              color="gray"
+              leftSection={<IconArrowLeft size={14} />}
+              onClick={() => navigate('/dashboard')}
+            >
+              Kembali ke Dashboard
+            </Button>
             <Button
               size="sm"
               leftSection={<IconUserPlus size={16} />}
@@ -1568,6 +1636,106 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </Accordion.Panel>
           </Accordion.Item>
 
+          {customSections.length > 0 && (
+            <Accordion.Item value="custom-sections-editor">
+              <Accordion.Control icon={<IconEdit size={18} color="#8B6F4E" />}>
+                <Text fw={600}>Bahagian Khas</Text>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  <Text size="sm" c="dimmed">
+                    Edit kandungan untuk bahagian yang ditambah melalui menu `Tambah Bahagian`.
+                  </Text>
+
+                  {customSections.map((section, index) => {
+                    const sectionConfig = (section.config || {}) as Record<string, string>;
+                    const title =
+                      section.type === 'custom_text'
+                        ? `Teks Khas ${index + 1}`
+                        : section.type === 'custom_image'
+                          ? `Gambar Khas ${index + 1}`
+                          : `Video Khas ${index + 1}`;
+
+                    return (
+                      <Paper key={section.id} withBorder radius="md" p="md" style={{ borderColor: '#E8D5B7' }}>
+                        <Stack gap="sm">
+                          <Text fw={600} size="sm">
+                            {title}
+                          </Text>
+
+                          {section.type === 'custom_text' && (
+                            <>
+                              <TextInput
+                                label="Tajuk Ringkas"
+                                value={sectionConfig.title || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { title: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <Textarea
+                                label="Kandungan"
+                                minRows={4}
+                                autosize
+                                value={sectionConfig.content || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { content: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                            </>
+                          )}
+
+                          {section.type === 'custom_image' && (
+                            <>
+                              <TextInput
+                                label="URL Gambar"
+                                placeholder="https://..."
+                                value={sectionConfig.image_url || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { image_url: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <Text size="xs" c="dimmed">
+                                Buat masa ini, bahagian khas menggunakan URL gambar terus.
+                              </Text>
+                            </>
+                          )}
+
+                          {section.type === 'custom_video' && (
+                            <>
+                              <TextInput
+                                label="URL Video Embed"
+                                placeholder="https://www.youtube.com/embed/..."
+                                value={sectionConfig.video_url || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { video_url: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <Text size="xs" c="dimmed">
+                                Gunakan pautan embed yang sesuai untuk iframe.
+                              </Text>
+                            </>
+                          )}
+                        </Stack>
+                      </Paper>
+                    );
+                  })}
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          )}
+
           {/* Section Manager */}
           <Accordion.Item value="sections">
             <Accordion.Control icon={<IconLayoutList size={18} color="#8B6F4E" />}>
@@ -1753,7 +1921,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             <IconZoomIn size={16} />
           </ActionIcon>
         </Tooltip>
-        {formValues.status === 'published' && (
+        {!trialMode && formValues.status === 'published' && (
           <Tooltip label="Buka di tab baru">
             <ActionIcon
               variant="light"

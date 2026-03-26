@@ -18,6 +18,7 @@ import {
   IconPhoto,
   IconTextPlus,
   IconVideo,
+  IconTrash,
 } from '@tabler/icons-react';
 import { SECTION_LABELS } from '../../lib/themes';
 import type { InvitationSection, SectionType } from '../../types';
@@ -99,6 +100,17 @@ export default function SectionManager({ sections, onChange }: SectionManagerPro
     onChange([...sections, newSection]);
   };
 
+  const handleDeleteSection = (id: string) => {
+    const remaining = sections
+      .filter((section) => section.id !== id)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((section, index) => ({
+        ...section,
+        sort_order: index + 1,
+      }));
+    onChange(remaining);
+  };
+
   return (
     <Box>
       <Stack gap="xs">
@@ -107,6 +119,7 @@ export default function SectionManager({ sections, onChange }: SectionManagerPro
           const isFirst = index === 0;
           const isLast = index === sorted.length - 1;
           const isBookend = isFirst || isLast;
+          const isCustomSection = section.type === 'custom_text' || section.type === 'custom_image' || section.type === 'custom_video';
 
           return (
             <Card
@@ -196,6 +209,18 @@ export default function SectionManager({ sections, onChange }: SectionManagerPro
                   style={{ flexShrink: 0 }}
                   aria-label={`Togol ${labelData?.label || section.type}`}
                 />
+
+                {isCustomSection && (
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    color="red"
+                    onClick={() => handleDeleteSection(section.id)}
+                    aria-label={`Padam ${labelData?.label || section.type}`}
+                  >
+                    <IconTrash size={14} />
+                  </ActionIcon>
+                )}
               </Group>
             </Card>
           );
