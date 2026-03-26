@@ -50,7 +50,7 @@ function TemplatePreviewCard({
           ? `color-mix(in srgb, ${vars.secondary} 4%, white)`
           : undefined,
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
       styles={{
         root: {

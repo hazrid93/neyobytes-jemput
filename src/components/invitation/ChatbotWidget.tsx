@@ -183,13 +183,13 @@ export default function ChatbotWidget({
               width: 48,
               height: 48,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #D4AF37 0%, #8B6F4E 100%)',
+              background: 'linear-gradient(135deg, var(--secondary-color, #D4AF37) 0%, var(--primary-color, #8B6F4E) 100%)',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 20px rgba(212, 175, 55, 0.4)',
+              boxShadow: '0 4px 20px color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent)',
               zIndex: 1000,
               animation: 'chatbot-pulse 2s ease-in-out 3',
             }}
@@ -205,9 +205,9 @@ export default function ChatbotWidget({
                 d="M12 2C6.477 2 2 5.813 2 10.5c0 2.694 1.475 5.087 3.775 6.625L4.5 21.5l4.325-2.437C9.863 19.35 10.913 19.5 12 19.5c5.523 0 10-3.813 10-8.5S17.523 2 12 2z"
                 fill="white"
               />
-              <circle cx="8" cy="10.5" r="1.25" fill="#D4AF37" />
-              <circle cx="12" cy="10.5" r="1.25" fill="#D4AF37" />
-              <circle cx="16" cy="10.5" r="1.25" fill="#D4AF37" />
+              <circle cx="8" cy="10.5" r="1.25" fill="var(--secondary-color, #D4AF37)" />
+              <circle cx="12" cy="10.5" r="1.25" fill="var(--secondary-color, #D4AF37)" />
+              <circle cx="16" cy="10.5" r="1.25" fill="var(--secondary-color, #D4AF37)" />
             </svg>
           </motion.button>
         )}
@@ -227,14 +227,14 @@ export default function ChatbotWidget({
               left: 24,
               width: 'min(380px, calc(100vw - 48px))',
               maxHeight: 'min(500px, calc(100vh - 100px))',
-              background: '#FFFAF3',
+              background: 'color-mix(in srgb, var(--bg-color, #FDF8F0) 92%, white)',
               borderRadius: 16,
               boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
               zIndex: 1001,
-              border: '1px solid #E8D5B7',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 24%, transparent)',
             }}
           >
             {/* Header */}
@@ -244,7 +244,7 @@ export default function ChatbotWidget({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: 'linear-gradient(135deg, #D4AF37 0%, #8B6F4E 100%)',
+                background: 'linear-gradient(135deg, var(--secondary-color, #D4AF37) 0%, var(--primary-color, #8B6F4E) 100%)',
                 color: 'white',
                 flexShrink: 0,
               }}
@@ -292,7 +292,7 @@ export default function ChatbotWidget({
                 style={{
                   padding: 24,
                   textAlign: 'center',
-                  color: '#8B6F4E',
+                  color: 'var(--primary-color, #8B6F4E)',
                   fontSize: 14,
                   flex: 1,
                   display: 'flex',
@@ -307,17 +307,19 @@ export default function ChatbotWidget({
             {/* Messages area */}
             {isConfigured && (
               <>
-                <div
-                  style={{
-                    flex: 1,
-                    overflowY: 'auto',
+                 <div
+                  className="chatbot-messages-scroll"
+                   style={{
+                     flex: 1,
+                     overflowY: 'auto',
                     padding: '12px 16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 10,
-                    minHeight: 200,
-                  }}
-                >
+                     minHeight: 200,
+                     scrollbarColor: 'color-mix(in srgb, var(--secondary-color, #D4AF37) 65%, transparent) transparent',
+                   }}
+                 >
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
@@ -337,9 +339,9 @@ export default function ChatbotWidget({
                               : '16px 16px 16px 4px',
                           background:
                             msg.role === 'user'
-                              ? 'linear-gradient(135deg, #D4AF37, #C9A032)'
-                              : '#F5EDE0',
-                          color: msg.role === 'user' ? 'white' : '#2C1810',
+                              ? 'linear-gradient(135deg, var(--secondary-color, #D4AF37), var(--primary-color, #8B6F4E))'
+                              : 'color-mix(in srgb, var(--accent-color, #F5E6D3) 65%, white)',
+                          color: msg.role === 'user' ? 'white' : 'var(--text-color, #2C1810)',
                           fontSize: 14,
                           lineHeight: 1.5,
                           wordBreak: 'break-word',
@@ -358,7 +360,7 @@ export default function ChatbotWidget({
                         style={{
                           padding: '10px 18px',
                           borderRadius: '16px 16px 16px 4px',
-                          background: '#F5EDE0',
+                          background: 'color-mix(in srgb, var(--accent-color, #F5E6D3) 65%, white)',
                           display: 'flex',
                           gap: 4,
                           alignItems: 'center',
@@ -381,11 +383,11 @@ export default function ChatbotWidget({
                       padding: '4px 12px',
                       background: quotaExceeded
                         ? 'rgba(255, 59, 48, 0.08)'
-                        : 'rgba(212, 175, 55, 0.08)',
-                      borderTop: '1px solid #E8D5B7',
+                        : 'color-mix(in srgb, var(--secondary-color, #D4AF37) 10%, transparent)',
+                      borderTop: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 24%, transparent)',
                       textAlign: 'center',
                       fontSize: 12,
-                      color: quotaExceeded ? '#e03131' : '#8B6F4E',
+                      color: quotaExceeded ? '#e03131' : 'var(--primary-color, #8B6F4E)',
                       flexShrink: 0,
                     }}
                   >
@@ -402,8 +404,8 @@ export default function ChatbotWidget({
                     alignItems: 'center',
                     gap: 8,
                     padding: '10px 12px',
-                    borderTop: '1px solid #E8D5B7',
-                    background: '#FFFDF8',
+                    borderTop: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 24%, transparent)',
+                    background: 'color-mix(in srgb, var(--bg-color, #FDF8F0) 96%, white)',
                     flexShrink: 0,
                     boxSizing: 'border-box',
                   }}
@@ -424,13 +426,13 @@ export default function ChatbotWidget({
                       flex: 1,
                       minWidth: 0,
                       width: 0,
-                      border: '1px solid #E8D5B7',
+                      border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 24%, transparent)',
                       borderRadius: 20,
                       padding: '8px 16px',
                       fontSize: 14,
                       outline: 'none',
                       background: quotaExceeded ? '#f5f5f5' : 'white',
-                      color: '#2C1810',
+                      color: 'var(--text-color, #2C1810)',
                       fontFamily: 'Poppins, sans-serif',
                       boxSizing: 'border-box',
                     }}
@@ -446,8 +448,8 @@ export default function ChatbotWidget({
                       border: 'none',
                       background:
                         input.trim() && !isTyping && !quotaExceeded
-                          ? 'linear-gradient(135deg, #D4AF37 0%, #8B6F4E 100%)'
-                          : '#E0D5C5',
+                          ? 'linear-gradient(135deg, var(--secondary-color, #D4AF37) 0%, var(--primary-color, #8B6F4E) 100%)'
+                          : 'color-mix(in srgb, var(--accent-color, #F5E6D3) 75%, var(--bg-color, #FDF8F0))',
                       cursor:
                         input.trim() && !isTyping && !quotaExceeded
                           ? 'pointer'
@@ -482,12 +484,30 @@ export default function ChatbotWidget({
       {/* Global keyframe styles */}
       <style>{`
         @keyframes chatbot-pulse {
-          0%, 100% { box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4); }
-          50% { box-shadow: 0 4px 30px rgba(212, 175, 55, 0.7), 0 0 0 8px rgba(212, 175, 55, 0.15); }
+          0%, 100% { box-shadow: 0 4px 20px color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent); }
+          50% { box-shadow: 0 4px 30px color-mix(in srgb, var(--secondary-color, #D4AF37) 65%, transparent), 0 0 0 8px color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent); }
         }
         @keyframes chatbot-typing-dot {
           0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
           30% { opacity: 1; transform: scale(1); }
+        }
+        [aria-label="Buka chatbot"]:focus-visible,
+        [aria-label="Tutup chatbot"]:focus-visible {
+          outline: 2px solid var(--secondary-color, #D4AF37);
+          outline-offset: 2px;
+        }
+        .chatbot-messages-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .chatbot-messages-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .chatbot-messages-scroll::-webkit-scrollbar-thumb {
+          background: color-mix(in srgb, var(--secondary-color, #D4AF37) 55%, transparent);
+          border-radius: 999px;
+        }
+        .chatbot-messages-scroll::-webkit-scrollbar-thumb:hover {
+          background: color-mix(in srgb, var(--secondary-color, #D4AF37) 75%, transparent);
         }
       `}</style>
     </>
@@ -498,7 +518,7 @@ const typingDotStyle: React.CSSProperties = {
   width: 7,
   height: 7,
   borderRadius: '50%',
-  background: '#8B6F4E',
+  background: 'var(--primary-color, #8B6F4E)',
   display: 'inline-block',
   animation: 'chatbot-typing-dot 1.2s ease-in-out infinite',
 };
