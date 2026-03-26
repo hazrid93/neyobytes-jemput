@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { THEME_TEMPLATES } from '../../lib/themes';
 import { getTemplateVisuals, buildThemeVars } from '../../lib/template-styles';
+import { getTemplatePreviewHints } from '../../lib/template-ui';
 import type { ThemeTemplate } from '../../types';
 
 interface ThemeSelectorProps {
@@ -35,6 +36,7 @@ function TemplatePreviewCard({
   const bgStyle = visuals.coverBackground(vars);
   const patternStyle = visuals.coverPattern(vars);
   const dividerSvg = visuals.dividerSvg(vars.secondary);
+  const previewHints = useMemo(() => getTemplatePreviewHints(theme.id), [theme.id]);
 
   return (
     <Card
@@ -186,6 +188,43 @@ function TemplatePreviewCard({
 
       {/* Bottom info section */}
       <Box p="xs" pb="sm">
+        <Group justify="center" mb={6}>
+          <Badge variant="light" size="xs" style={{ color: vars.primary, background: `color-mix(in srgb, ${vars.secondary} 12%, white)` }}>
+            {previewHints.badgeText}
+          </Badge>
+        </Group>
+
+        <Group gap={6} justify="center" mb={8} wrap="nowrap">
+          <Box
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: previewHints.eventRadius,
+              border: `1px solid ${vars.secondary}`,
+              background: `color-mix(in srgb, ${vars.bg} 82%, white)`,
+            }}
+          />
+          <Box
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: previewHints.countdownRadius,
+              border: `1px solid ${vars.secondary}`,
+              background: `color-mix(in srgb, ${vars.accent} 42%, white)`,
+            }}
+          />
+          <Box
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: previewHints.galleryRadius,
+              border: `1px solid ${vars.secondary}`,
+              background: `linear-gradient(135deg, ${vars.secondary}, ${vars.primary})`,
+              opacity: 0.75,
+            }}
+          />
+        </Group>
+
         {/* Color palette dots */}
         <Group gap={4} mb={6} justify="center">
           {theme.preview_colors.map((color, i) => (
@@ -235,10 +274,10 @@ export default function ThemeSelector({ currentTemplate, onSelect }: ThemeSelect
   return (
     <Box>
       <Title order={5} mb="sm" c="#8B6F4E">
-        Pilih Tema
+        Pilih Template
       </Title>
       <Text size="sm" c="dimmed" mb="md">
-        Pilih tema yang sesuai untuk kad jemputan anda. Setiap tema mempunyai corak, hiasan dan gaya tersendiri.
+        Pilih template kad yang anda suka. Setiap template mempunyai gaya visual, bingkai, susun atur dan suasana tersendiri.
       </Text>
 
       <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">

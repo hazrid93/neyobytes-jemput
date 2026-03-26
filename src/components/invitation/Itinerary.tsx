@@ -3,6 +3,7 @@ import type { ItineraryItem } from '../../types';
 
 interface ItineraryProps {
   items: ItineraryItem[];
+  styleVariant?: 'timeline' | 'cards' | 'split';
 }
 
 function formatTime(time: string): string {
@@ -15,21 +16,21 @@ function formatTime(time: string): string {
 
 function getIcon(icon?: string): string {
   const icons: Record<string, string> = {
-    clock: '\u23F0',
-    users: '\u{1F465}',
-    heart: '\u2665',
-    crown: '\u{1F451}',
-    utensils: '\u{1F374}',
-    camera: '\u{1F4F7}',
-    check: '\u2713',
-    music: '\u266B',
-    ring: '\u{1F48D}',
-    gift: '\u{1F381}',
+    clock: '⏰',
+    users: '👥',
+    heart: '♥',
+    crown: '👑',
+    utensils: '🍴',
+    camera: '📷',
+    check: '✓',
+    music: '♫',
+    ring: '💍',
+    gift: '🎁',
   };
-  return icon && icons[icon] ? icons[icon] : '\u25C7';
+  return icon && icons[icon] ? icons[icon] : '◇';
 }
 
-export default function Itinerary({ items }: ItineraryProps) {
+export default function Itinerary({ items, styleVariant = 'timeline' }: ItineraryProps) {
   if (!items || items.length === 0) return null;
 
   const itemVariants = {
@@ -68,7 +69,6 @@ export default function Itinerary({ items }: ItineraryProps) {
         textAlign: 'center',
       }}
     >
-      {/* Section title */}
       <motion.p
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -102,13 +102,13 @@ export default function Itinerary({ items }: ItineraryProps) {
         Tentatif Majlis
       </motion.h3>
 
-      {/* Timeline */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           textAlign: 'left',
+          gap: styleVariant === 'cards' ? '12px' : 0,
         }}
       >
         {items.map((item, index) => (
@@ -121,17 +121,26 @@ export default function Itinerary({ items }: ItineraryProps) {
             viewport={{ once: true, margin: '-30px' }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '80px 32px 1fr',
+              gridTemplateColumns:
+                styleVariant === 'timeline'
+                  ? '80px 32px 1fr'
+                  : styleVariant === 'split'
+                    ? '90px 1fr'
+                    : '1fr',
               alignItems: 'center',
               minHeight: '60px',
               position: 'relative',
+              border: styleVariant === 'cards' ? '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)' : 'none',
+              borderRadius: styleVariant === 'cards' ? '14px' : undefined,
+              background: styleVariant === 'cards' ? 'rgba(255,255,255,0.35)' : undefined,
+              padding: styleVariant === 'cards' ? '16px 18px' : undefined,
             }}
           >
-            {/* Time */}
             <div
               style={{
-                textAlign: 'right',
-                paddingRight: '12px',
+                textAlign: styleVariant === 'cards' ? 'left' : 'right',
+                paddingRight: styleVariant === 'timeline' ? '12px' : 0,
+                marginBottom: styleVariant === 'cards' ? '8px' : 0,
               }}
             >
               <p
@@ -147,79 +156,76 @@ export default function Itinerary({ items }: ItineraryProps) {
               </p>
             </div>
 
-            {/* Timeline dot and line */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                position: 'relative',
-                height: '100%',
-                minHeight: '60px',
-              }}
-            >
-              {/* Vertical line */}
-              {index < items.length - 1 && (
-                <motion.div
-                  variants={lineVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  custom={index}
-                  viewport={{ once: true, margin: '-30px' }}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    bottom: '-50%',
-                    width: '1px',
-                    background: 'linear-gradient(180deg, var(--secondary-color, #D4AF37), color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent))',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    transformOrigin: 'top center',
-                  }}
-                />
-              )}
-              {/* Top line segment for non-first items */}
-              {index > 0 && (
-                <motion.div
-                  variants={lineVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  custom={index}
-                  viewport={{ once: true, margin: '-30px' }}
-                  style={{
-                    position: 'absolute',
-                    top: '-50%',
-                    bottom: '50%',
-                    width: '1px',
-                    background: 'linear-gradient(180deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent), var(--secondary-color, #D4AF37))',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    transformOrigin: 'bottom center',
-                  }}
-                />
-              )}
-              {/* Dot */}
-              <motion.div
-                variants={dotVariants}
-                initial="hidden"
-                whileInView="visible"
-                custom={index}
-                viewport={{ once: true, margin: '-30px' }}
+            {styleVariant === 'timeline' && (
+              <div
                 style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  background: 'var(--secondary-color, #D4AF37)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   position: 'relative',
-                  zIndex: 1,
-                  flexShrink: 0,
-                  boxShadow: '0 0 0 3px color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
+                  height: '100%',
+                  minHeight: '60px',
                 }}
-              />
-            </div>
+              >
+                {index < items.length - 1 && (
+                  <motion.div
+                    variants={lineVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    custom={index}
+                    viewport={{ once: true, margin: '-30px' }}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      bottom: '-50%',
+                      width: '1px',
+                      background: 'linear-gradient(180deg, var(--secondary-color, #D4AF37), color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent))',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      transformOrigin: 'top center',
+                    }}
+                  />
+                )}
+                {index > 0 && (
+                  <motion.div
+                    variants={lineVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    custom={index}
+                    viewport={{ once: true, margin: '-30px' }}
+                    style={{
+                      position: 'absolute',
+                      top: '-50%',
+                      bottom: '50%',
+                      width: '1px',
+                      background: 'linear-gradient(180deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent), var(--secondary-color, #D4AF37))',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      transformOrigin: 'bottom center',
+                    }}
+                  />
+                )}
+                <motion.div
+                  variants={dotVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  custom={index}
+                  viewport={{ once: true, margin: '-30px' }}
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: 'var(--secondary-color, #D4AF37)',
+                    position: 'relative',
+                    zIndex: 1,
+                    flexShrink: 0,
+                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
+                  }}
+                />
+              </div>
+            )}
 
-            {/* Event name */}
-            <div style={{ paddingLeft: '12px' }}>
+            <div style={{ paddingLeft: styleVariant === 'timeline' ? '12px' : 0 }}>
               <p
                 style={{
                   fontFamily: 'var(--font-body, "Poppins"), sans-serif',
@@ -235,6 +241,11 @@ export default function Itinerary({ items }: ItineraryProps) {
                 <span style={{ fontSize: '14px', opacity: 0.7 }}>
                   {getIcon(item.icon)}
                 </span>
+                {styleVariant !== 'timeline' && (
+                  <span style={{ fontSize: '12px', color: 'var(--primary-color, #8B6F4E)', marginRight: 6 }}>
+                    {formatTime(item.time)}
+                  </span>
+                )}
                 {item.event}
               </p>
             </div>

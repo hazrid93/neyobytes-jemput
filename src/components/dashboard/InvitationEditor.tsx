@@ -20,7 +20,6 @@ import {
   Tabs,
   Tooltip,
   Paper,
-  Divider,
   ScrollArea,
   Image,
   SimpleGrid,
@@ -77,6 +76,37 @@ interface InvitationEditorProps {
 }
 
 const MAX_GALLERY_IMAGES = 6;
+
+const SECTION_STYLE_OPTIONS: Partial<Record<InvitationSection['type'], { value: string; label: string }[]>> = {
+  countdown: [
+    { value: 'cards', label: 'Kad Klasik' },
+    { value: 'pill', label: 'Pill Lembut' },
+    { value: 'minimal', label: 'Minimal' },
+  ],
+  itinerary: [
+    { value: 'timeline', label: 'Timeline' },
+    { value: 'cards', label: 'Kad Agenda' },
+    { value: 'split', label: 'Dua Kolum' },
+  ],
+  gallery: [
+    { value: 'carousel', label: 'Carousel / Leret' },
+    { value: 'grid', label: 'Grid Kemas' },
+    { value: 'masonry', label: 'Kolaj / Masonry' },
+  ],
+  event_details: [
+    { value: 'classic', label: 'Kad Tarikh Klasik' },
+    { value: 'plaque', label: 'Plak Mewah' },
+    { value: 'editorial', label: 'Editorial' },
+  ],
+  contact: [
+    { value: 'cards', label: 'Kad Kontak' },
+    { value: 'compact', label: 'Padat' },
+  ],
+  rsvp: [
+    { value: 'form-card', label: 'Borang Kad' },
+    { value: 'soft-panel', label: 'Panel Lembut' },
+  ],
+};
 
 const FONT_OPTIONS = [
   { value: 'Playfair Display', label: 'Playfair Display' },
@@ -172,12 +202,37 @@ function getGallerySectionConfig(sections: InvitationSection[] | undefined) {
   return (gallerySection?.config || {}) as { layout?: 'carousel' | 'grid' | 'masonry' };
 }
 
+function getSectionConfig<T extends Record<string, unknown>>(
+  sections: InvitationSection[] | undefined,
+  type: InvitationSection['type']
+) {
+  const section = (sections || []).find((item) => item.type === type);
+  return ((section?.config || {}) as T);
+}
+
 function updateGallerySectionConfig(
   sections: InvitationSection[] | undefined,
   updates: { layout?: 'carousel' | 'grid' | 'masonry' }
 ) {
   return (sections || []).map((section) => {
     if (section.type !== 'gallery') return section;
+    return {
+      ...section,
+      config: {
+        ...(section.config || {}),
+        ...updates,
+      },
+    };
+  });
+}
+
+function updateSectionConfig(
+  sections: InvitationSection[] | undefined,
+  type: InvitationSection['type'],
+  updates: Record<string, unknown>
+) {
+  return (sections || []).map((section) => {
+    if (section.type !== type) return section;
     return {
       ...section,
       config: {
@@ -460,6 +515,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const wishlist = (formValues.wishlist || []) as WishlistItem[];
   const moneyGift = formValues.money_gift || sourceInvitation!.money_gift;
   const gallerySectionConfig = getGallerySectionConfig((formValues.sections || sourceInvitation!.sections) as InvitationSection[]);
+  const currentSections = (formValues.sections || sourceInvitation!.sections || []) as InvitationSection[];
 
   const previewUrl = trialMode ? '/aiman-nadia' : `/${formValues.slug || sourceInvitation!.slug}`;
 
@@ -1328,30 +1384,29 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </Accordion.Panel>
           </Accordion.Item>
 
-          {/* Theme */}
-          <Accordion.Item value="theme">
+          {/* Template */}
+          <Accordion.Item value="template">
             <Accordion.Control icon={<IconPalette size={18} color="#8B6F4E" />}>
-              <Text fw={600}>Tema</Text>
+              <Text fw={600}>Template Kad</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <ThemeSelector
+                currentTemplate={formValues.template || sourceInvitation!.template}
+                onSelect={(template: ThemeTemplate) => {
+                  handleFieldChange('template', template.id);
+                  handleFieldChange('theme_config', template.theme_config);
+                }}
+              />
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          {/* Color Theme */}
+          <Accordion.Item value="color-theme">
+            <Accordion.Control icon={<IconPalette size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Tema Warna & Font</Text>
             </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="md">
-                {/* Theme Selector */}
-                <ThemeSelector
-                  currentTemplate={formValues.template || sourceInvitation!.template}
-                  onSelect={(template: ThemeTemplate) => {
-                    handleFieldChange('template', template.id);
-                    handleFieldChange('theme_config', template.theme_config);
-                  }}
-                />
-
-                <Divider
-                  label="Sesuaikan Warna"
-                  labelPosition="center"
-                  my="xs"
-                  styles={{ label: { fontWeight: 600, color: '#8B6F4E', fontSize: 13 } }}
-                />
-
-                {/* Color overrides */}
                 <Group grow>
                   <ColorInput
                     label="Utama"
@@ -1411,7 +1466,6 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   }
                   size="sm"
                 />
-                <Divider my="xs" />
                 <Text size="sm" fw={600} c="dimmed">
                   Font
                 </Text>
@@ -1451,6 +1505,65 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   }
                   size="sm"
                 />
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          {/* Section Styles */}
+          <Accordion.Item value="section-styles">
+            <Accordion.Control icon={<IconChecklist size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Gaya Bahagian</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="md">
+                <Text size="sm" c="dimmed">
+                  Ubah gaya paparan untuk countdown, tentatif, galeri dan beberapa bahagian penting lain.
+                </Text>
+
+                {Object.entries(SECTION_STYLE_OPTIONS).map(([sectionType, options]) => {
+                  const typedSection = sectionType as InvitationSection['type'];
+                  const sectionLabels: Partial<Record<InvitationSection['type'], string>> = {
+                    countdown: 'Countdown',
+                    itinerary: 'Tentatif Majlis',
+                    gallery: 'Galeri',
+                    event_details: 'Butiran Majlis',
+                    contact: 'Hubungi Kami',
+                    rsvp: 'RSVP',
+                  };
+                  const sectionLabel = sectionLabels[typedSection] || typedSection;
+                  const currentValue = (getSectionConfig<Record<string, unknown>>(currentSections, typedSection).style as string | undefined)
+                    || (typedSection === 'gallery'
+                      ? gallerySectionConfig.layout || 'carousel'
+                      : options?.[0]?.value);
+
+                  return (
+                    <Select
+                      key={typedSection}
+                      label={sectionLabel}
+                      data={options || []}
+                      value={currentValue}
+                      onChange={(value) => {
+                        if (!value) return;
+
+                        if (typedSection === 'gallery') {
+                          handleFieldChange(
+                            'sections',
+                            updateGallerySectionConfig(currentSections, {
+                              layout: value as 'carousel' | 'grid' | 'masonry',
+                            }) as InvitationSection[]
+                          );
+                          return;
+                        }
+
+                        handleFieldChange(
+                          'sections',
+                          updateSectionConfig(currentSections, typedSection, { style: value }) as InvitationSection[]
+                        );
+                      }}
+                      size="sm"
+                    />
+                  );
+                })}
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>

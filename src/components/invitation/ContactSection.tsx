@@ -6,9 +6,10 @@ import { getActionButtonStyle } from '../../lib/template-ui';
 interface ContactSectionProps {
   contacts: ContactPerson[];
   templateId: string;
+  styleVariant?: 'cards' | 'compact';
 }
 
-export default function ContactSection({ contacts, templateId }: ContactSectionProps) {
+export default function ContactSection({ contacts, templateId, styleVariant = 'cards' }: ContactSectionProps) {
   if (!contacts || contacts.length === 0) return null;
 
   return (
@@ -98,6 +99,7 @@ export default function ContactSection({ contacts, templateId }: ContactSectionP
                   display: 'flex',
                   gap: '10px',
                   justifyContent: 'center',
+                  flexDirection: styleVariant === 'compact' ? 'column' : 'row',
                 }}
               >
               {/* Phone call */}

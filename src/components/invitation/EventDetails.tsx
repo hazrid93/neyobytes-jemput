@@ -6,6 +6,7 @@ import { getEventDateStyles } from '../../lib/template-ui';
 interface EventDetailsProps {
   invitation: Invitation;
   templateId: string;
+  styleVariant?: 'classic' | 'plaque' | 'editorial';
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -26,7 +27,7 @@ function formatTime(time: string): string {
   return `${displayHour}:${m} ${period}`;
 }
 
-export default function EventDetails({ invitation, templateId }: EventDetailsProps) {
+export default function EventDetails({ invitation, templateId, styleVariant = 'classic' }: EventDetailsProps) {
   const dateObj = new Date(invitation.event_date + 'T00:00:00');
   const dayNum = dateObj.getDate().toString().padStart(2, '0');
   const months = [
@@ -72,7 +73,11 @@ export default function EventDetails({ invitation, templateId }: EventDetailsPro
         transition={{ duration: 0.8, delay: 0.2 }}
         style={{ position: 'relative' }}
       >
-        <TemplateSectionShell templateId={templateId} padding="36px 24px">
+        <TemplateSectionShell
+          templateId={templateId}
+          padding={styleVariant === 'editorial' ? '24px 10px' : '36px 24px'}
+          style={styleVariant === 'plaque' ? { borderRadius: '18px', boxShadow: '0 18px 36px color-mix(in srgb, var(--secondary-color, #D4AF37) 14%, transparent)' } : undefined}
+        >
           <p
             style={{
               fontFamily: 'var(--font-body, "Poppins"), sans-serif',
@@ -107,6 +112,21 @@ export default function EventDetails({ invitation, templateId }: EventDetailsPro
           >
             {monthName} {year}
           </p>
+
+          {styleVariant === 'editorial' && (
+            <p
+              style={{
+                fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+                fontSize: '11px',
+                letterSpacing: '4px',
+                textTransform: 'uppercase',
+                color: 'var(--secondary-color, #D4AF37)',
+                margin: '0 0 14px',
+              }}
+            >
+              Save The Date
+            </p>
+          )}
 
           <div
             style={{

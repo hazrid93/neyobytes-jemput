@@ -761,3 +761,35 @@ export function getGalleryFrameStyle(templateId: string, index: number): CSSProp
       };
   }
 }
+
+export function getTemplatePreviewHints(templateId: string): {
+  countdownRadius: string;
+  eventRadius: string;
+  galleryRadius: string;
+  badgeText: string;
+} {
+  const mood = getTemplateMood(templateId);
+
+  switch (mood) {
+    case 'romantic':
+      return { countdownRadius: '999px', eventRadius: '24px', galleryRadius: '24px', badgeText: 'Romantik' };
+    case 'botanical':
+      return { countdownRadius: '18px', eventRadius: '20px', galleryRadius: '20px', badgeText: 'Tropika' };
+    case 'heritage':
+      return { countdownRadius: '6px', eventRadius: '6px', galleryRadius: '6px', badgeText: 'Warisan' };
+    case 'batik':
+      return { countdownRadius: '8px', eventRadius: '12px', galleryRadius: '8px', badgeText: 'Batik' };
+    case 'arch':
+      return { countdownRadius: '18px 18px 8px 8px', eventRadius: '24px 24px 10px 10px', galleryRadius: '24px 24px 10px 10px', badgeText: 'Islamik' };
+    case 'minimal':
+      return { countdownRadius: '0', eventRadius: '0', galleryRadius: '0', badgeText: 'Minimal' };
+    case 'vintage':
+      return { countdownRadius: '14px', eventRadius: '18px', galleryRadius: '4px', badgeText: 'Vintaj' };
+    case 'marble':
+      return { countdownRadius: '10px', eventRadius: '12px', galleryRadius: '12px', badgeText: 'Mewah' };
+    case 'rustic':
+      return { countdownRadius: '10px', eventRadius: '16px', galleryRadius: '6px', badgeText: 'Rustik' };
+    case 'midnight':
+      return { countdownRadius: '12px', eventRadius: '14px', galleryRadius: '14px', badgeText: 'Malam' };
+  }
+}

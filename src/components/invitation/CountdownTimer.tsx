@@ -6,6 +6,7 @@ interface CountdownTimerProps {
   eventDate: string;
   eventTime: string;
   templateId: string;
+  styleVariant?: 'cards' | 'pill' | 'minimal';
 }
 
 interface TimeLeft {
@@ -35,7 +36,7 @@ const units: { key: keyof TimeLeft; label: string }[] = [
   { key: 'seconds', label: 'Saat' },
 ];
 
-export default function CountdownTimer({ eventDate, eventTime, templateId }: CountdownTimerProps) {
+export default function CountdownTimer({ eventDate, eventTime, templateId, styleVariant = 'cards' }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
     calculateTimeLeft(eventDate, eventTime)
   );
@@ -124,6 +125,19 @@ export default function CountdownTimer({ eventDate, eventTime, templateId }: Cou
               background: 'rgba(255,255,255,0.4)',
               position: 'relative',
               ...getCountdownUnitStyle(templateId, index),
+              ...(styleVariant === 'pill'
+                ? { borderRadius: '999px' }
+                : styleVariant === 'minimal'
+                  ? {
+                      borderRadius: '0',
+                      background: 'transparent',
+                      boxShadow: 'none',
+                      borderTop: 'none',
+                      borderLeft: 'none',
+                      borderRight: 'none',
+                      borderBottom: '2px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 35%, transparent)',
+                    }
+                  : {}),
             }}
           >
             <p

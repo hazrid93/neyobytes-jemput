@@ -9,6 +9,7 @@ interface RSVPFormProps {
   rsvpDeadline?: string;
   rsvpEnabled: boolean;
   templateId: string;
+  styleVariant?: 'form-card' | 'soft-panel';
 }
 
 /**
@@ -51,7 +52,7 @@ function formatMalayDate(dateStr: string): string {
   }
 }
 
-export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, templateId }: RSVPFormProps) {
+export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, templateId, styleVariant = 'form-card' }: RSVPFormProps) {
   const submitRSVP = useInvitationStore((s) => s.submitRSVP);
 
   const [attending, setAttending] = useState<boolean | null>(null);
@@ -174,7 +175,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
           transition={{ duration: 0.6 }}
           style={{}}
         >
-          <TemplateSectionShell templateId={templateId} padding="48px 24px">
+          <TemplateSectionShell templateId={templateId} padding="48px 24px" style={styleVariant === 'soft-panel' ? { borderRadius: '22px' } : undefined}>
           {/* Lock icon */}
           <div
             style={{
@@ -256,7 +257,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
               transition={{ duration: 0.5 }}
               style={{}}
             >
-              <TemplateSectionShell templateId={templateId} padding="40px 24px">
+              <TemplateSectionShell templateId={templateId} padding="40px 24px" style={styleVariant === 'soft-panel' ? { borderRadius: '22px' } : undefined}>
               <div
                 style={{
                   width: '56px',
@@ -307,7 +308,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
               transition={{ duration: 0.8, delay: 0.2 }}
               style={{}}
             >
-              <TemplateSectionShell templateId={templateId} padding="28px 20px">
+              <TemplateSectionShell templateId={templateId} padding="28px 20px" style={styleVariant === 'soft-panel' ? { borderRadius: '22px' } : undefined}>
               {/* Deadline banner */}
               {formattedDeadline && (
                 <div

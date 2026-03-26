@@ -135,7 +135,14 @@ function renderSection(
       return <CoupleSection key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'event_details':
-      return <EventDetails key={section.id} invitation={invitation} templateId={templateId} />;
+      return (
+        <EventDetails
+          key={section.id}
+          invitation={invitation}
+          templateId={templateId}
+          styleVariant={((section.config as { style?: 'classic' | 'plaque' | 'editorial' } | undefined)?.style) || 'classic'}
+        />
+      );
 
     case 'countdown':
       return (
@@ -144,12 +151,17 @@ function renderSection(
           eventDate={invitation.event_date}
           eventTime={invitation.event_time_start}
           templateId={templateId}
+          styleVariant={((section.config as { style?: 'cards' | 'pill' | 'minimal' } | undefined)?.style) || 'cards'}
         />
       );
 
     case 'itinerary':
       return invitation.itinerary.length > 0 ? (
-        <Itinerary key={section.id} items={invitation.itinerary} />
+        <Itinerary
+          key={section.id}
+          items={invitation.itinerary}
+          styleVariant={((section.config as { style?: 'timeline' | 'cards' | 'split' } | undefined)?.style) || 'timeline'}
+        />
       ) : null;
 
     case 'location':
@@ -157,7 +169,12 @@ function renderSection(
 
     case 'contact':
       return invitation.contacts.length > 0 ? (
-        <ContactSection key={section.id} contacts={invitation.contacts} templateId={templateId} />
+        <ContactSection
+          key={section.id}
+          contacts={invitation.contacts}
+          templateId={templateId}
+          styleVariant={((section.config as { style?: 'cards' | 'compact' } | undefined)?.style) || 'cards'}
+        />
       ) : null;
 
     case 'rsvp':
@@ -168,6 +185,7 @@ function renderSection(
           rsvpDeadline={invitation.rsvp_deadline}
           rsvpEnabled={invitation.rsvp_enabled}
           templateId={templateId}
+          styleVariant={((section.config as { style?: 'form-card' | 'soft-panel' } | undefined)?.style) || 'form-card'}
         />
       );
 
