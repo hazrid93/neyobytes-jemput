@@ -70,7 +70,7 @@ import { supabase } from '../../lib/supabase';
 import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY, EDITOR_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
-import CoachmarkHints, { CoachmarkTour } from '../common/CoachmarkHints';
+import { CoachmarkTour } from '../common/CoachmarkHints';
 import EditorChatAssistant from './EditorChatAssistant';
 import { fetchPublicSiteSettings } from '../../lib/site-settings';
 import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate, SiteSettings } from '../../types';
@@ -738,59 +738,6 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   );
 
   const coachmarkPrefix = trialMode ? 'trial' : 'editor';
-  const hintItems = trialMode
-    ? [
-        {
-          id: 'preview',
-          title: 'Edit terus dalam preview',
-          description: 'Klik `Edit Teks`, ubah teks pada kad, kemudian tekan `Simpan Teks` dalam preview supaya perubahan kekal.',
-          icon: <IconEye size={18} />,
-        },
-        {
-          id: 'template',
-          title: 'Pilih gaya kad dahulu',
-          description: 'Mulakan dengan `Template Kad`, kemudian ubah `Tema Warna & Font` untuk nampak hasil dengan cepat.',
-          icon: <IconPalette size={18} />,
-        },
-        {
-          id: 'trial',
-          title: 'Percubaan simpan dalam pelayar sahaja',
-          description: 'Semua perubahan di sini hanya disimpan dalam pelayar anda. Daftar bila sudah bersedia untuk simpan kad sebenar.',
-          icon: <IconLock size={18} />,
-        },
-        {
-          id: 'sections',
-          title: 'Susun ikut aliran majlis',
-          description: 'Seret bahagian ke atas atau bawah supaya tetamu nampak maklumat paling utama dahulu.',
-          icon: <IconLayoutList size={18} />,
-        },
-      ]
-    : [
-        {
-          id: 'save',
-          title: 'Simpan semasa mengubah',
-          description: 'Perubahan biasa disimpan automatik, tetapi anda juga boleh tekan butang simpan untuk pastikan semuanya terkini.',
-          icon: <IconDeviceFloppy size={18} />,
-        },
-        {
-          id: 'copy',
-          title: 'Gunakan Teks & Copy',
-          description: 'Bahagian ini memudahkan anda ubah label, tajuk, mesej RSVP dan teks sistem tanpa mencari satu-satu komponen.',
-          icon: <IconMessage size={18} />,
-        },
-        {
-          id: 'publish',
-          title: 'Terbitkan kad bila siap',
-          description: 'Tekan butang Terbitkan untuk buat kad anda boleh diakses oleh tetamu. Anda boleh nyahdraf bila-bila masa.',
-          icon: <IconRocket size={18} />,
-        },
-        {
-          id: 'sections',
-          title: 'Susun ikut aliran majlis',
-          description: 'Seret bahagian yang penting ke atas supaya tetamu nampak maklumat paling utama dahulu.',
-          icon: <IconLayoutList size={18} />,
-        },
-      ];
 
   // Shared accordion steps (DOM order) for both trial and signed-in
   const accordionSteps: { id: string; targetRef: React.RefObject<HTMLElement | null>; title: string; description: string }[] = [
@@ -952,15 +899,6 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const FormPanel = (
     <ScrollArea h="calc(100vh - 130px)" offsetScrollbars>
       <Box p="md">
-        <CoachmarkHints
-          storageKey={`jemput-${coachmarkPrefix}-editor-hints`}
-          badge="Panduan Editor"
-          title="Petua cepat edit kad kahwin"
-          description="Gunakan panduan ini untuk bergerak lebih laju antara suntingan, preview, dan susunan bahagian."
-          items={hintItems}
-          collapsedLabel="Tunjuk panduan editor"
-        />
-
         {/* Top actions */}
         <Group justify="space-between" mb="md">
           <Group gap="sm">

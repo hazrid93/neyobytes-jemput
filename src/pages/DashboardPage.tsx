@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppShell,
@@ -14,6 +14,7 @@ import {
   Loader,
   Center,
   Stack,
+  Anchor,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -22,10 +23,11 @@ import {
   IconLogout,
   IconUser,
   IconChevronDown,
-  IconHome,
+  IconChevronRight,
   IconMessage2,
   IconUsers,
   IconCrown,
+  IconEdit,
 } from '@tabler/icons-react';
 import { useAuthStore } from '../stores/authStore';
 import { useDashboardStore } from '../stores/dashboardStore';
@@ -79,6 +81,79 @@ function InvitationSubPage({
   return <Component />;
 }
 
+// Build breadcrumb segments from the current path
+function useBreadcrumbs(invitations: Array<{ id: string; groom_name: string; bride_name: string }>) {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  return useMemo(() => {
+    const crumbs: Array<{ label: string; path: string }> = [
+      { label: 'Dashboard', path: '/dashboard' },
+    ];
+
+    // /dashboard (index) — just "Dashboard"
+    if (currentPath === '/dashboard' || currentPath === '/dashboard/') {
+      return crumbs;
+    }
+
+    // /dashboard/edit/:id
+    const editMatch = currentPath.match(/^\/dashboard\/edit\/(.+)/);
+    if (editMatch) {
+      const invId = editMatch[1];
+      const inv = invitations.find((i) => i.id === invId);
+      const label = inv ? `${inv.groom_name} & ${inv.bride_name}` : 'Editor';
+      crumbs.push({ label: 'Edit', path: '' }); // non-clickable
+      crumbs.push({ label, path: '' });
+      return crumbs;
+    }
+
+    // /dashboard/rsvp/:id
+    const rsvpMatch = currentPath.match(/^\/dashboard\/rsvp\/(.+)/);
+    if (rsvpMatch) {
+      const invId = rsvpMatch[1];
+      const inv = invitations.find((i) => i.id === invId);
+      if (inv) {
+        crumbs.push({ label: `${inv.groom_name} & ${inv.bride_name}`, path: `/dashboard/edit/${invId}` });
+      }
+      crumbs.push({ label: 'RSVP', path: '' });
+      return crumbs;
+    }
+
+    // /dashboard/guestbook/:id
+    const guestbookMatch = currentPath.match(/^\/dashboard\/guestbook\/(.+)/);
+    if (guestbookMatch) {
+      const invId = guestbookMatch[1];
+      const inv = invitations.find((i) => i.id === invId);
+      if (inv) {
+        crumbs.push({ label: `${inv.groom_name} & ${inv.bride_name}`, path: `/dashboard/edit/${invId}` });
+      }
+      crumbs.push({ label: 'Buku Tamu', path: '' });
+      return crumbs;
+    }
+
+    // /dashboard/subscription
+    if (currentPath.includes('/dashboard/subscription')) {
+      crumbs.push({ label: 'Langganan', path: '' });
+      return crumbs;
+    }
+
+    // /dashboard/checkout/return
+    if (currentPath.includes('/dashboard/checkout/return')) {
+      crumbs.push({ label: 'Pembayaran', path: '' });
+      crumbs.push({ label: 'Status', path: '' });
+      return crumbs;
+    }
+
+    // /dashboard/checkout
+    if (currentPath.includes('/dashboard/checkout')) {
+      crumbs.push({ label: 'Pembayaran', path: '' });
+      return crumbs;
+    }
+
+    return crumbs;
+  }, [currentPath, invitations]);
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,8 +162,8 @@ export default function DashboardPage() {
   const [opened, { toggle, close }] = useDisclosure();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Determine if we're in editor mode (hide sidebar)
   const isEditorMode = location.pathname.includes('/dashboard/edit/');
+  const breadcrumbs = useBreadcrumbs(invitations);
 
   const handleSignOut = async () => {
     await signOut();
@@ -116,53 +191,39 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <AppShell
         header={{ height: 60 }}
-        navbar={
-          isEditorMode
-            ? undefined
-            : {
-                width: 260,
-                breakpoint: 'sm',
-                collapsed: { mobile: !opened },
-              }
-        }
+        navbar={{
+          width: 280,
+          breakpoint: 10000, // always collapsible — never auto-show
+          collapsed: { mobile: !opened, desktop: !opened },
+        }}
         padding={isEditorMode ? 0 : 'md'}
         styles={{
           header: {
             background: 'linear-gradient(90deg, #FDF8F0, #F5E6D3)',
             borderBottom: '1px solid #E8D5B7',
+            zIndex: 200,
           },
           navbar: {
             background: '#FDFAF5',
             borderRight: '1px solid #E8D5B7',
+            zIndex: 201,
           },
           main: {
             background: '#FAFAFA',
           },
         }}
       >
-        {/* Header */}
+        {/* ─── Header ─── */}
         <AppShell.Header>
           <Group h="100%" px="md" justify="space-between">
+            {/* Left: Burger + Logo + Breadcrumbs */}
             <Group gap="sm">
-              {!isEditorMode && (
-                <Burger
-                  opened={opened}
-                  onClick={toggle}
-                  hiddenFrom="sm"
-                  size="sm"
-                />
-              )}
-              {isEditorMode && (
-                <Button
-                  variant="subtle"
-                  size="sm"
-                  leftSection={<IconHome size={16} />}
-                  onClick={() => navigate('/dashboard')}
-                  color="dark"
-                >
-                  Dashboard
-                </Button>
-              )}
+              <Burger
+                opened={opened}
+                onClick={toggle}
+                size="sm"
+                aria-label="Navigasi"
+              />
               <Box
                 onClick={() => navigate('/dashboard')}
                 style={{
@@ -173,13 +234,51 @@ export default function DashboardPage() {
               >
                 <Logo size="sm" color="#8B6F4E" />
               </Box>
+
+              {/* Desktop breadcrumbs */}
               {!isMobile && (
-                <Text size="xs" c="dimmed">
-                  Dashboard
-                </Text>
+                <Group gap={4} style={{ flexWrap: 'nowrap' }}>
+                  {breadcrumbs.map((crumb, idx) => (
+                    <Group key={idx} gap={4} style={{ flexWrap: 'nowrap' }}>
+                      {idx > 0 && (
+                        <IconChevronRight size={14} color="#8B6F4E" style={{ opacity: 0.5, flexShrink: 0 }} />
+                      )}
+                      {crumb.path && idx < breadcrumbs.length - 1 ? (
+                        <Anchor
+                          size="sm"
+                          c="#8B6F4E"
+                          fw={500}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(crumb.path);
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          {crumb.label}
+                        </Anchor>
+                      ) : (
+                        <Text
+                          size="sm"
+                          c={idx === breadcrumbs.length - 1 ? '#5A4633' : 'dimmed'}
+                          fw={idx === breadcrumbs.length - 1 ? 600 : 400}
+                          style={{ whiteSpace: 'nowrap' }}
+                          lineClamp={1}
+                        >
+                          {crumb.label}
+                        </Text>
+                      )}
+                    </Group>
+                  ))}
+                </Group>
               )}
             </Group>
 
+            {/* Right: User menu */}
             <Menu shadow="md" width={200} position="bottom-end">
               <Menu.Target>
                 <Button variant="subtle" color="dark" size="sm" rightSection={<IconChevronDown size={14} />}>
@@ -220,101 +319,117 @@ export default function DashboardPage() {
           </Group>
         </AppShell.Header>
 
-        {/* Sidebar */}
-        {!isEditorMode && (
-          <AppShell.Navbar p="sm">
-            <Box style={{ flex: 1 }}>
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  label={item.label}
-                  description={item.description}
-                  leftSection={<item.icon size={20} />}
-                  active={
-                    currentPath === item.path ||
-                    (item.path === '/dashboard' && currentPath === '/dashboard/')
-                  }
-                  onClick={() => {
-                    navigate(item.path);
-                    close();
-                  }}
-                  variant="light"
-                  color="gold"
-                  style={{ borderRadius: 8, marginBottom: 4 }}
-                />
-              ))}
+        {/* ─── Collapsible Sidebar (all screens) ─── */}
+        <AppShell.Navbar p="sm">
+          <Box style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Main nav items */}
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                label={item.label}
+                description={item.description}
+                leftSection={<item.icon size={20} />}
+                active={
+                  currentPath === item.path ||
+                  (item.path === '/dashboard' && currentPath === '/dashboard/')
+                }
+                onClick={() => {
+                  navigate(item.path);
+                  close();
+                }}
+                variant="light"
+                color="gold"
+                style={{ borderRadius: 8, marginBottom: 4 }}
+              />
+            ))}
 
-              {/* Show invitation sub-nav if on rsvp/guestbook page */}
-              {invitations.length > 0 && (
-                <>
-                  <Divider my="sm" label="Kad Anda" labelPosition="left" />
-                  {invitations.map((inv) => (
+            {/* Per-invitation sub-nav */}
+            {invitations.length > 0 && (
+              <>
+                <Divider my="sm" label="Kad Anda" labelPosition="left" />
+                {invitations.map((inv) => (
+                  <NavLink
+                    key={inv.id}
+                    label={`${inv.groom_name} & ${inv.bride_name}`}
+                    leftSection={<IconCards size={16} />}
+                    active={currentPath.includes(inv.id)}
+                    defaultOpened={currentPath.includes(inv.id)}
+                    onClick={() => {
+                      navigate(`/dashboard/edit/${inv.id}`);
+                      close();
+                    }}
+                    variant="light"
+                    color="gold"
+                    style={{
+                      borderRadius: 8,
+                      marginBottom: 2,
+                      fontSize: '0.85rem',
+                    }}
+                  >
                     <NavLink
-                      key={inv.id}
-                      label={`${inv.groom_name} & ${inv.bride_name}`}
-                      leftSection={<IconCards size={16} />}
-                      active={currentPath.includes(inv.id)}
-                      onClick={() => {
+                      label="Edit"
+                      leftSection={<IconEdit size={14} />}
+                      active={currentPath === `/dashboard/edit/${inv.id}`}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
                         navigate(`/dashboard/edit/${inv.id}`);
                         close();
                       }}
                       variant="light"
-                      color="gold"
-                      style={{
-                        borderRadius: 8,
-                        marginBottom: 2,
-                        fontSize: '0.85rem',
+                      color="orange"
+                      style={{ borderRadius: 6 }}
+                    />
+                    <NavLink
+                      label="RSVP"
+                      leftSection={<IconUsers size={14} />}
+                      active={currentPath === `/dashboard/rsvp/${inv.id}`}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        navigate(`/dashboard/rsvp/${inv.id}`);
+                        close();
                       }}
-                    >
-                      <NavLink
-                        label="RSVP"
-                        leftSection={<IconUsers size={14} />}
-                        active={currentPath === `/dashboard/rsvp/${inv.id}`}
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/rsvp/${inv.id}`);
-                          close();
-                        }}
-                        variant="light"
-                        color="blue"
-                        style={{ borderRadius: 6 }}
-                      />
-                      <NavLink
-                        label="Buku Tamu"
-                        leftSection={<IconMessage2 size={14} />}
-                        active={currentPath === `/dashboard/guestbook/${inv.id}`}
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/guestbook/${inv.id}`);
-                          close();
-                        }}
-                        variant="light"
-                        color="teal"
-                        style={{ borderRadius: 6 }}
-                      />
-                    </NavLink>
-                  ))}
-                </>
-              )}
-            </Box>
+                      variant="light"
+                      color="blue"
+                      style={{ borderRadius: 6 }}
+                    />
+                    <NavLink
+                      label="Buku Tamu"
+                      leftSection={<IconMessage2 size={14} />}
+                      active={currentPath === `/dashboard/guestbook/${inv.id}`}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        navigate(`/dashboard/guestbook/${inv.id}`);
+                        close();
+                      }}
+                      variant="light"
+                      color="teal"
+                      style={{ borderRadius: 6 }}
+                    />
+                  </NavLink>
+                ))}
+              </>
+            )}
+          </Box>
 
-            {/* Create New Button in sidebar */}
-            <Box mt="auto" pt="md">
-              <Divider mb="sm" />
-              <Button
-                fullWidth
-                leftSection={<IconPlus size={18} />}
-                variant="light"
-                color="gold"
-                onClick={() => navigate('/dashboard')}
-              >
-                Cipta Kad Baru
-              </Button>
-            </Box>
-          </AppShell.Navbar>
-        )}
+          {/* Bottom: Create new card */}
+          <Box mt="auto" pt="md">
+            <Divider mb="sm" />
+            <Button
+              fullWidth
+              leftSection={<IconPlus size={18} />}
+              variant="light"
+              color="gold"
+              onClick={() => {
+                navigate('/dashboard');
+                close();
+              }}
+            >
+              Cipta Kad Baru
+            </Button>
+          </Box>
+        </AppShell.Navbar>
 
-        {/* Main Content */}
+        {/* ─── Main Content ─── */}
         <AppShell.Main>
           <Routes>
             <Route index element={<DashboardOverview />} />
