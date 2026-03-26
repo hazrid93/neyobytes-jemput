@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getCountdownUnitStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface CountdownTimerProps {
   eventDate: string;
   eventTime: string;
   templateId: string;
   styleVariant?: 'cards' | 'pill' | 'minimal';
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 interface TimeLeft {
@@ -29,17 +33,25 @@ function calculateTimeLeft(eventDate: string, eventTime: string): TimeLeft {
   };
 }
 
-const units: { key: keyof TimeLeft; label: string }[] = [
-  { key: 'days', label: 'Hari' },
-  { key: 'hours', label: 'Jam' },
-  { key: 'minutes', label: 'Minit' },
-  { key: 'seconds', label: 'Saat' },
+const units: { key: keyof TimeLeft; label: string; copyKey: string }[] = [
+  { key: 'days', label: 'Hari', copyKey: 'countdown.unit_days' },
+  { key: 'hours', label: 'Jam', copyKey: 'countdown.unit_hours' },
+  { key: 'minutes', label: 'Minit', copyKey: 'countdown.unit_minutes' },
+  { key: 'seconds', label: 'Saat', copyKey: 'countdown.unit_seconds' },
 ];
 
-export default function CountdownTimer({ eventDate, eventTime, templateId, styleVariant = 'cards' }: CountdownTimerProps) {
+export default function CountdownTimer({
+  eventDate,
+  eventTime,
+  templateId,
+  styleVariant = 'cards',
+  copyOverrides,
+  previewEditMode = false,
+}: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
     calculateTimeLeft(eventDate, eventTime)
   );
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -79,7 +91,12 @@ export default function CountdownTimer({ eventDate, eventTime, templateId, style
           marginBottom: '8px',
         }}
       >
-        Menghitung Hari
+        <EditableCopy
+          as="span"
+          value={copy('countdown.eyebrow', 'Menghitung Hari')}
+          copyKey="countdown.eyebrow"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       <motion.h3
@@ -95,7 +112,15 @@ export default function CountdownTimer({ eventDate, eventTime, templateId, style
           marginBottom: '28px',
         }}
       >
-        {isExpired ? 'Hari Bahagia Telah Tiba!' : 'Menuju Hari Bahagia'}
+        <EditableCopy
+          as="span"
+          value={copy(
+            isExpired ? 'countdown.title_expired' : 'countdown.title_active',
+            isExpired ? 'Hari Bahagia Telah Tiba!' : 'Menuju Hari Bahagia'
+          )}
+          copyKey={isExpired ? 'countdown.title_expired' : 'countdown.title_active'}
+          editMode={previewEditMode}
+        />
       </motion.h3>
 
       {/* Countdown boxes */}
@@ -110,7 +135,7 @@ export default function CountdownTimer({ eventDate, eventTime, templateId, style
           gap: '12px',
         }}
       >
-        {units.map(({ key, label }, index) => (
+        {units.map(({ key, label, copyKey }, index) => (
           <motion.div
             key={key}
             initial={{ opacity: 0, y: 20 }}
@@ -162,7 +187,12 @@ export default function CountdownTimer({ eventDate, eventTime, templateId, style
                 margin: 0,
               }}
             >
-              {label}
+              <EditableCopy
+                as="span"
+                value={copy(copyKey, label)}
+                copyKey={copyKey}
+                editMode={previewEditMode}
+              />
             </p>
           </motion.div>
         ))}

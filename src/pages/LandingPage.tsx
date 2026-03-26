@@ -171,7 +171,12 @@ function Hero() {
       </svg>
 
       <Container size="sm" style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-        <motion.div initial="hidden" animate="visible" variants={fadeIn}>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+          style={{ display: 'flex', justifyContent: 'center' }}
+        >
           <Logo size="lg" color={GOLD} />
         </motion.div>
 

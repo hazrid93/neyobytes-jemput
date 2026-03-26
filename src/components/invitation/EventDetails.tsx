@@ -2,11 +2,15 @@ import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
 import TemplateSectionShell from './TemplateSectionShell';
 import { getEventDateStyles } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface EventDetailsProps {
   invitation: Invitation;
   templateId: string;
   styleVariant?: 'classic' | 'plaque' | 'editorial';
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -27,7 +31,13 @@ function formatTime(time: string): string {
   return `${displayHour}:${m} ${period}`;
 }
 
-export default function EventDetails({ invitation, templateId, styleVariant = 'classic' }: EventDetailsProps) {
+export default function EventDetails({
+  invitation,
+  templateId,
+  styleVariant = 'classic',
+  copyOverrides,
+  previewEditMode = false,
+}: EventDetailsProps) {
   const dateObj = new Date(invitation.event_date + 'T00:00:00');
   const dayNum = dateObj.getDate().toString().padStart(2, '0');
   const months = [
@@ -37,6 +47,7 @@ export default function EventDetails({ invitation, templateId, styleVariant = 'c
   const monthName = months[dateObj.getMonth()];
   const year = dateObj.getFullYear();
   const dateStyles = getEventDateStyles(templateId);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   return (
     <section
@@ -62,7 +73,12 @@ export default function EventDetails({ invitation, templateId, styleVariant = 'c
           marginBottom: '24px',
         }}
       >
-        Atur Cara Majlis
+        <EditableCopy
+          as="span"
+          value={copy('event_details.title', 'Atur Cara Majlis')}
+          copyKey="event_details.title"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       {/* Event card */}
@@ -124,7 +140,12 @@ export default function EventDetails({ invitation, templateId, styleVariant = 'c
                 margin: '0 0 14px',
               }}
             >
-              Save The Date
+              <EditableCopy
+                as="span"
+                value={copy('event_details.badge', 'Save The Date')}
+                copyKey="event_details.badge"
+                editMode={previewEditMode}
+              />
             </p>
           )}
 

@@ -1,9 +1,13 @@
 import { motion } from 'framer-motion';
 import type { ItineraryItem } from '../../types';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface ItineraryProps {
   items: ItineraryItem[];
   styleVariant?: 'timeline' | 'cards' | 'split';
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 function formatTime(time: string): string {
@@ -14,8 +18,14 @@ function formatTime(time: string): string {
   return `${displayHour}:${m} ${period}`;
 }
 
-export default function Itinerary({ items, styleVariant = 'timeline' }: ItineraryProps) {
+export default function Itinerary({
+  items,
+  styleVariant = 'timeline',
+  copyOverrides,
+  previewEditMode = false,
+}: ItineraryProps) {
   if (!items || items.length === 0) return null;
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   const itemVariants = {
     hidden: { opacity: 0, x: -20 },
@@ -67,7 +77,12 @@ export default function Itinerary({ items, styleVariant = 'timeline' }: Itinerar
           marginBottom: '8px',
         }}
       >
-        Atur Cara
+        <EditableCopy
+          as="span"
+          value={copy('itinerary.eyebrow', 'Atur Cara')}
+          copyKey="itinerary.eyebrow"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       <motion.h3
@@ -83,7 +98,12 @@ export default function Itinerary({ items, styleVariant = 'timeline' }: Itinerar
           marginBottom: '36px',
         }}
       >
-        Tentatif Majlis
+        <EditableCopy
+          as="span"
+          value={copy('itinerary.title', 'Tentatif Majlis')}
+          copyKey="itinerary.title"
+          editMode={previewEditMode}
+        />
       </motion.h3>
 
       <div

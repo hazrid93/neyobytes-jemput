@@ -128,6 +128,7 @@ export interface ThemeConfig {
   border_style?: 'ornate' | 'thin' | 'double' | 'none' | 'deco' | 'dotted';
   divider_style?: 'diamond' | 'floral' | 'geometric' | 'line' | 'wave' | 'star' | 'islamic' | 'leaf';
   cover_style?: 'framed' | 'arch' | 'minimal' | 'full-bleed' | 'geometric' | 'botanical' | 'ornate';
+  copy_overrides?: Record<string, string>;
 }
 
 // ============================================================================

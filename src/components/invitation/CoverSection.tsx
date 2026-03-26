@@ -1,13 +1,17 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { getTemplateVisuals, buildThemeVars } from '../../lib/template-styles';
+import { getCopy } from '../../lib/invitation-copy';
 import type { Invitation } from '../../types';
+import EditableCopy from './EditableCopy';
 
 interface CoverSectionProps {
   invitation: Invitation;
   guestName?: string;
   onOpen: () => void;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -251,7 +255,14 @@ function CornerOrnaments({ svgFn, color }: { svgFn: (c: string) => string; color
   );
 }
 
-export default function CoverSection({ invitation, guestName, onOpen, templateId }: CoverSectionProps) {
+export default function CoverSection({
+  invitation,
+  guestName,
+  onOpen,
+  templateId,
+  copyOverrides,
+  previewEditMode = false,
+}: CoverSectionProps) {
   const groomFirst = invitation.groom_name.split(' ')[0];
   const brideFirst = invitation.bride_name.split(' ')[0];
 
@@ -261,6 +272,7 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
   const coverBgStyle = visuals.coverBackground(themeVars);
   const coverPatternStyle = visuals.coverPattern(themeVars);
   const buttonOverrides = visuals.buttonStyle(themeVars);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   return (
     <section
@@ -326,7 +338,12 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
             direction: 'rtl',
           }}
         >
-          بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
+          <EditableCopy
+            as="span"
+            value={copy('cover.bismillah_arabic', 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ')}
+            copyKey="cover.bismillah_arabic"
+            editMode={previewEditMode}
+          />
         </motion.p>
 
         <motion.p
@@ -342,7 +359,12 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
             marginBottom: '28px',
           }}
         >
-          Dengan Nama Allah Yang Maha Pemurah Lagi Maha Penyayang
+          <EditableCopy
+            as="span"
+            value={copy('cover.bismillah_translation', 'Dengan Nama Allah Yang Maha Pemurah Lagi Maha Penyayang')}
+            copyKey="cover.bismillah_translation"
+            editMode={previewEditMode}
+          />
         </motion.p>
 
         {/* Thin divider */}
@@ -372,7 +394,12 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
             marginBottom: '12px',
           }}
         >
-          Walimatul Urus
+          <EditableCopy
+            as="span"
+            value={copy('cover.heading_label', 'Walimatul Urus')}
+            copyKey="cover.heading_label"
+            editMode={previewEditMode}
+          />
         </motion.p>
 
         {/* Couple names */}
@@ -493,7 +520,12 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
                 marginBottom: '4px',
               }}
             >
-              Kepada
+              <EditableCopy
+                as="span"
+                value={copy('cover.guest_label', 'Kepada')}
+                copyKey="cover.guest_label"
+                editMode={previewEditMode}
+              />
             </p>
             <p
               style={{
@@ -515,7 +547,14 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
           transition={{ duration: 0.8, delay: 2.5 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={onOpen}
+          onClick={(event) => {
+            if ((event.target as HTMLElement).isContentEditable) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
+            onOpen();
+          }}
           style={{
             fontFamily: 'var(--font-body, "Poppins"), sans-serif',
             fontSize: '13px',
@@ -534,7 +573,12 @@ export default function CoverSection({ invitation, guestName, onOpen, templateId
             ...buttonOverrides,
           }}
         >
-          Buka Jemputan
+          <EditableCopy
+            as="span"
+            value={copy('cover.open_button', 'Buka Jemputan')}
+            copyKey="cover.open_button"
+            editMode={previewEditMode}
+          />
         </motion.button>
 
         {/* Bottom ornament — template-specific characters */}

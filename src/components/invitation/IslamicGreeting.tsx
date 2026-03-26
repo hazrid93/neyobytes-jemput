@@ -1,6 +1,15 @@
 import { motion } from 'framer-motion';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
-export default function IslamicGreeting() {
+interface IslamicGreetingProps {
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
+}
+
+export default function IslamicGreeting({ copyOverrides, previewEditMode = false }: IslamicGreetingProps) {
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
+
   return (
     <section
       style={{
@@ -42,7 +51,12 @@ export default function IslamicGreeting() {
           margin: '0 0 12px',
         }}
       >
-        السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
+        <EditableCopy
+          as="span"
+          value={copy('islamic_greeting.arabic', 'السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ')}
+          copyKey="islamic_greeting.arabic"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       {/* Romanized */}
@@ -60,7 +74,12 @@ export default function IslamicGreeting() {
           lineHeight: 1.6,
         }}
       >
-        Assalamualaikum Warahmatullahi Wabarakatuh
+        <EditableCopy
+          as="span"
+          value={copy('islamic_greeting.romanized', 'Assalamualaikum Warahmatullahi Wabarakatuh')}
+          copyKey="islamic_greeting.romanized"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       {/* Translation */}
@@ -78,7 +97,12 @@ export default function IslamicGreeting() {
           opacity: 0.8,
         }}
       >
-        Semoga Sejahtera Ke Atas Kamu Serta Rahmat Dan Berkat-Nya
+        <EditableCopy
+          as="span"
+          value={copy('islamic_greeting.translation', 'Semoga Sejahtera Ke Atas Kamu Serta Rahmat Dan Berkat-Nya')}
+          copyKey="islamic_greeting.translation"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       {/* Divider */}

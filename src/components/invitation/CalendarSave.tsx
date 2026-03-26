@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
 import { getActionButtonStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface CalendarSaveProps {
   invitation: Invitation;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 function formatDateForGoogle(date: string, time: string): string {
@@ -58,7 +62,9 @@ function downloadICS(invitation: Invitation): void {
   URL.revokeObjectURL(url);
 }
 
-export default function CalendarSave({ invitation, templateId }: CalendarSaveProps) {
+export default function CalendarSave({ invitation, templateId, copyOverrides, previewEditMode = false }: CalendarSaveProps) {
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
+
   return (
     <section
       style={{
@@ -83,7 +89,7 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
           marginBottom: '8px',
         }}
       >
-        Peringatan
+        <EditableCopy as="span" value={copy('calendar.eyebrow', 'Peringatan')} copyKey="calendar.eyebrow" editMode={previewEditMode} />
       </motion.p>
 
       <motion.h3
@@ -99,7 +105,7 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
           marginBottom: '8px',
         }}
       >
-        Save the Date
+        <EditableCopy as="span" value={copy('calendar.title', 'Save the Date')} copyKey="calendar.title" editMode={previewEditMode} />
       </motion.h3>
 
       <motion.p
@@ -115,7 +121,7 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
           marginBottom: '28px',
         }}
       >
-        Simpan tarikh ini dalam kalendar anda supaya tidak terlepas
+        <EditableCopy as="span" value={copy('calendar.description', 'Simpan tarikh ini dalam kalendar anda supaya tidak terlepas')} copyKey="calendar.description" editMode={previewEditMode} />
       </motion.p>
 
       {/* Calendar buttons */}
@@ -135,6 +141,7 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
           href={generateGoogleCalendarUrl(invitation)}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={previewEditMode ? (event) => event.preventDefault() : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -159,12 +166,23 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          Google Calendar
+          <EditableCopy as="span" value={copy('calendar.google', 'Google Calendar')} copyKey="calendar.google" editMode={previewEditMode} />
         </a>
 
         {/* Apple Calendar / ICS */}
         <button
-          onClick={() => downloadICS(invitation)}
+          onClick={(event) => {
+            if ((event.target as HTMLElement).isContentEditable) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
+            if (previewEditMode) {
+              event.preventDefault();
+              return;
+            }
+            downloadICS(invitation);
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -188,7 +206,7 @@ export default function CalendarSave({ invitation, templateId }: CalendarSavePro
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Apple Calendar (.ics)
+          <EditableCopy as="span" value={copy('calendar.apple', 'Apple Calendar (.ics)')} copyKey="calendar.apple" editMode={previewEditMode} />
         </button>
       </motion.div>
     </section>

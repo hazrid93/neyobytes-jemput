@@ -5,6 +5,7 @@ import { useInvitationStore } from '../stores/invitationStore';
 import { supabase } from '../lib/supabase';
 import { getTemplateVisuals, buildThemeVars } from '../lib/template-styles';
 import { resolveTemplateId } from '../lib/themes';
+import { getCopy } from '../lib/invitation-copy';
 import type { GuestbookMessage, Invitation, InvitationSection } from '../types';
 
 import CoverSection from '../components/invitation/CoverSection';
@@ -24,6 +25,7 @@ import CalendarSave from '../components/invitation/CalendarSave';
 import FooterSection from '../components/invitation/FooterSection';
 import MusicToggle from '../components/invitation/MusicToggle';
 import ChatbotWidget from '../components/invitation/ChatbotWidget';
+import EditableCopy from '../components/invitation/EditableCopy';
 
 // ---------------------------------------------------------------------------
 // Helper: build wedding context string for chatbot
@@ -123,10 +125,11 @@ function renderSection(
   invitation: Invitation,
   guestbook: GuestbookMessage[],
   templateId: string,
+  previewEditMode: boolean,
 ) {
   switch (section.type) {
     case 'islamic_greeting':
-      return <IslamicGreeting key={section.id} />;
+      return <IslamicGreeting key={section.id} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />;
 
     case 'invitation_text':
       return <InvitationText key={section.id} invitation={invitation} templateId={templateId} />;
@@ -141,6 +144,8 @@ function renderSection(
           invitation={invitation}
           templateId={templateId}
           styleVariant={((section.config as { style?: 'classic' | 'plaque' | 'editorial' } | undefined)?.style) || 'classic'}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       );
 
@@ -152,6 +157,8 @@ function renderSection(
           eventTime={invitation.event_time_start}
           templateId={templateId}
           styleVariant={((section.config as { style?: 'cards' | 'pill' | 'minimal' } | undefined)?.style) || 'cards'}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       );
 
@@ -161,11 +168,13 @@ function renderSection(
           key={section.id}
           items={invitation.itinerary}
           styleVariant={((section.config as { style?: 'timeline' | 'cards' | 'split' } | undefined)?.style) || 'timeline'}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       ) : null;
 
     case 'location':
-      return <LocationSection key={section.id} invitation={invitation} templateId={templateId} />;
+      return <LocationSection key={section.id} invitation={invitation} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />;
 
     case 'contact':
       return invitation.contacts.length > 0 ? (
@@ -174,6 +183,8 @@ function renderSection(
           contacts={invitation.contacts}
           templateId={templateId}
           styleVariant={((section.config as { style?: 'cards' | 'compact' } | undefined)?.style) || 'cards'}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       ) : null;
 
@@ -186,12 +197,14 @@ function renderSection(
           rsvpEnabled={invitation.rsvp_enabled}
           templateId={templateId}
           styleVariant={((section.config as { style?: 'form-card' | 'soft-panel' } | undefined)?.style) || 'form-card'}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       );
 
     case 'money_gift':
       return invitation.money_gift ? (
-        <MoneyGift key={section.id} moneyGift={invitation.money_gift} templateId={templateId} />
+        <MoneyGift key={section.id} moneyGift={invitation.money_gift} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />
       ) : null;
 
     case 'gallery':
@@ -211,14 +224,16 @@ function renderSection(
           invitationId={invitation.id}
           messages={guestbook}
           templateId={templateId}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       );
 
     case 'calendar_save':
-      return <CalendarSave key={section.id} invitation={invitation} templateId={templateId} />;
+      return <CalendarSave key={section.id} invitation={invitation} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />;
 
     case 'footer':
-      return <FooterSection key={section.id} invitation={invitation} templateId={templateId} />;
+      return <FooterSection key={section.id} invitation={invitation} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />;
 
     // ---- Custom section types ----
     case 'custom_text': {
@@ -369,6 +384,9 @@ export default function InvitationPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const guestName = searchParams.get('to') || undefined;
+  const previewEditMode = searchParams.get('previewEdit') === '1';
+  const [previewDrafts, setPreviewDrafts] = useState<Record<string, string>>({});
+  const [previewSaveState, setPreviewSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const { invitation, guestbook, loading, fetchInvitation, toggleMusic } =
     useInvitationStore();
@@ -472,6 +490,45 @@ export default function InvitationPage() {
     };
   }, [coverOpen]);
 
+  useEffect(() => {
+    if (!previewEditMode) {
+      setPreviewDrafts({});
+      setPreviewSaveState('idle');
+      return;
+    }
+
+    const handleLocalDraft = (event: Event) => {
+      const customEvent = event as CustomEvent<{ copyKey?: string; value?: string }>;
+      if (!customEvent.detail?.copyKey) return;
+      setPreviewDrafts((current) => ({
+        ...current,
+        [customEvent.detail.copyKey as string]: customEvent.detail.value || '',
+      }));
+      setPreviewSaveState('idle');
+    };
+
+    const handleParentMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string; success?: boolean };
+      if (data.type !== 'preview-copy-save-result') return;
+
+      if (data.success) {
+        setPreviewDrafts({});
+        setPreviewSaveState('saved');
+        window.setTimeout(() => setPreviewSaveState('idle'), 1600);
+      } else {
+        setPreviewSaveState('error');
+      }
+    };
+
+    window.addEventListener('preview-copy-local-change', handleLocalDraft as EventListener);
+    window.addEventListener('message', handleParentMessage);
+    return () => {
+      window.removeEventListener('preview-copy-local-change', handleLocalDraft as EventListener);
+      window.removeEventListener('message', handleParentMessage);
+    };
+  }, [previewEditMode]);
+
   const handleOpenCover = () => {
     setCoverOpen(true);
 
@@ -550,9 +607,83 @@ export default function InvitationPage() {
         ...pageBackgroundStyle,
         color: 'var(--text-color, #2C1810)',
         minHeight: '100dvh',
-        overflowX: 'hidden',
+      overflowX: 'hidden',
       }}
     >
+      {previewEditMode && (
+        <div
+          style={{
+            position: 'sticky',
+            top: 12,
+            zIndex: 30,
+            padding: '12px 16px 0',
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '10px 12px',
+              borderRadius: '999px',
+              background: 'rgba(253,248,240,0.92)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 28%, transparent)',
+              boxShadow: '0 10px 30px rgba(44,24,16,0.08)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+                fontSize: '11px',
+                letterSpacing: '1px',
+                color: previewSaveState === 'error' ? '#C92A2A' : 'var(--primary-color, #8B6F4E)',
+              }}
+            >
+              {previewSaveState === 'saving'
+                ? 'Menyimpan teks...'
+                : previewSaveState === 'saved'
+                  ? 'Teks disimpan'
+                  : previewSaveState === 'error'
+                    ? 'Gagal simpan teks'
+                    : Object.keys(previewDrafts).length > 0
+                      ? 'Perubahan belum disimpan'
+                      : 'Mod edit teks aktif'}
+            </span>
+            <button
+              type="button"
+              disabled={previewSaveState === 'saving' || Object.keys(previewDrafts).length === 0}
+              onClick={() => {
+                setPreviewSaveState('saving');
+                window.parent.postMessage({ type: 'preview-copy-save' }, window.location.origin);
+              }}
+              style={{
+                border: 'none',
+                borderRadius: '999px',
+                padding: '8px 14px',
+                background:
+                  previewSaveState === 'saving' || Object.keys(previewDrafts).length === 0
+                    ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 24%, transparent)'
+                    : 'linear-gradient(135deg, var(--secondary-color, #D4AF37), var(--primary-color, #8B6F4E))',
+                color: 'var(--bg-color, #FDF8F0)',
+                cursor:
+                  previewSaveState === 'saving' || Object.keys(previewDrafts).length === 0
+                    ? 'not-allowed'
+                    : 'pointer',
+                fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '1px',
+              }}
+            >
+              {previewSaveState === 'saving' ? 'Menyimpan...' : 'Simpan Teks'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Cover Section */}
       <AnimatePresence>
         {!coverOpen && (
@@ -561,12 +692,14 @@ export default function InvitationPage() {
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.6 }}
           >
-            <CoverSection
-              invitation={invitation}
-              guestName={guestName}
-              onOpen={handleOpenCover}
-              templateId={templateId}
-            />
+        <CoverSection
+          invitation={invitation}
+          guestName={guestName}
+          onOpen={handleOpenCover}
+          templateId={templateId}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
+        />
           </motion.div>
         )}
       </AnimatePresence>
@@ -601,7 +734,12 @@ export default function InvitationPage() {
                   marginBottom: '4px',
                 }}
               >
-                Kepada yang dihormati
+                <EditableCopy
+                  as="span"
+                  value={getCopy(invitation.theme_config.copy_overrides, 'cover.guest_heading', 'Kepada yang dihormati')}
+                  copyKey="cover.guest_heading"
+                  editMode={previewEditMode}
+                />
               </p>
               <p
                 style={{
@@ -650,7 +788,7 @@ export default function InvitationPage() {
                   secondaryColor={themeVars.secondary}
                 />
               )}
-              {renderSection(section, invitation, guestbook, templateId)}
+              {renderSection(section, invitation, guestbook, templateId, previewEditMode)}
             </div>
           ))}
         </motion.div>

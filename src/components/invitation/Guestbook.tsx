@@ -4,11 +4,15 @@ import { useInvitationStore } from '../../stores/invitationStore';
 import type { GuestbookMessage } from '../../types';
 import TemplateSectionShell from './TemplateSectionShell';
 import { getActionButtonStyle, getFieldStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface GuestbookProps {
   invitationId: string;
   messages: GuestbookMessage[];
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 function timeAgo(dateStr: string): string {
@@ -30,11 +34,12 @@ function timeAgo(dateStr: string): string {
   });
 }
 
-export default function Guestbook({ invitationId, messages, templateId }: GuestbookProps) {
+export default function Guestbook({ invitationId, messages, templateId, copyOverrides, previewEditMode = false }: GuestbookProps) {
   const submitGuestbook = useInvitationStore((s) => s.submitGuestbook);
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   const handleSubmit = async () => {
     if (!name.trim() || !message.trim()) return;
@@ -90,7 +95,7 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
           marginBottom: '8px',
         }}
       >
-        Buku Tetamu
+        <EditableCopy as="span" value={copy('guestbook.eyebrow', 'Buku Tetamu')} copyKey="guestbook.eyebrow" editMode={previewEditMode} />
       </motion.p>
 
       <motion.h3
@@ -106,7 +111,7 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
           marginBottom: '28px',
         }}
       >
-        Ucapan &amp; Doa
+        <EditableCopy as="span" value={copy('guestbook.title', 'Ucapan & Doa')} copyKey="guestbook.title" editMode={previewEditMode} />
       </motion.h3>
 
       {/* Form */}
@@ -121,7 +126,7 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
           <div style={{ marginBottom: '12px' }}>
             <input
               type="text"
-              placeholder="Nama anda"
+              placeholder={copy('guestbook.name_placeholder', 'Nama anda')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={inputStyle}
@@ -129,7 +134,7 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
           </div>
           <div style={{ marginBottom: '16px' }}>
             <textarea
-              placeholder="Tulis ucapan anda..."
+              placeholder={copy('guestbook.message_placeholder', 'Tulis ucapan anda...')}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
@@ -143,7 +148,18 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleSubmit}
+            onClick={(event) => {
+              if ((event.target as HTMLElement).isContentEditable) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              if (previewEditMode) {
+                event.preventDefault();
+                return;
+              }
+              handleSubmit();
+            }}
             disabled={!name.trim() || !message.trim() || loading}
             style={{
               width: '100%',
@@ -163,7 +179,7 @@ export default function Guestbook({ invitationId, messages, templateId }: Guestb
               ...getActionButtonStyle(templateId, 'solid'),
             }}
           >
-            {loading ? 'Menghantar...' : 'Hantar Ucapan'}
+            <EditableCopy as="span" value={loading ? copy('guestbook.submitting', 'Menghantar...') : copy('guestbook.submit', 'Hantar Ucapan')} copyKey={loading ? 'guestbook.submitting' : 'guestbook.submit'} editMode={previewEditMode} />
           </motion.button>
         </TemplateSectionShell>
       </motion.div>

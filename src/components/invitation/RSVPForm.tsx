@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../../stores/invitationStore';
 import TemplateSectionShell from './TemplateSectionShell';
 import { getActionButtonStyle, getFieldStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface RSVPFormProps {
   invitationId: string;
@@ -10,6 +12,8 @@ interface RSVPFormProps {
   rsvpEnabled: boolean;
   templateId: string;
   styleVariant?: 'form-card' | 'soft-panel';
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
 /**
@@ -52,7 +56,15 @@ function formatMalayDate(dateStr: string): string {
   }
 }
 
-export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, templateId, styleVariant = 'form-card' }: RSVPFormProps) {
+export default function RSVPForm({
+  invitationId,
+  rsvpDeadline,
+  rsvpEnabled,
+  templateId,
+  styleVariant = 'form-card',
+  copyOverrides,
+  previewEditMode = false,
+}: RSVPFormProps) {
   const submitRSVP = useInvitationStore((s) => s.submitRSVP);
 
   const [attending, setAttending] = useState<boolean | null>(null);
@@ -77,6 +89,8 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
     if (!rsvpDeadline) return null;
     return formatMalayDate(rsvpDeadline);
   }, [rsvpDeadline]);
+
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   const handleSubmit = async () => {
     if (attending === null || !name.trim()) return;
@@ -147,7 +161,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
           marginBottom: '8px',
         }}
       >
-        RSVP
+        <EditableCopy as="span" value={copy('rsvp.eyebrow', 'RSVP')} copyKey="rsvp.eyebrow" editMode={previewEditMode} />
       </motion.p>
 
       <motion.h3
@@ -163,7 +177,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
           marginBottom: '28px',
         }}
       >
-        Pengesahan Kehadiran
+        <EditableCopy as="span" value={copy('rsvp.title', 'Pengesahan Kehadiran')} copyKey="rsvp.title" editMode={previewEditMode} />
       </motion.h3>
 
       {/* ==================== CLOSED STATE ==================== */}
@@ -215,7 +229,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
               marginBottom: '8px',
             }}
           >
-            RSVP Ditutup
+            <EditableCopy as="span" value={copy('rsvp.closed_title', 'RSVP Ditutup')} copyKey="rsvp.closed_title" editMode={previewEditMode} />
           </p>
 
           <p
@@ -227,7 +241,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
               marginBottom: formattedDeadline ? '16px' : '0',
             }}
           >
-            Maaf, tempoh RSVP telah tamat.
+            <EditableCopy as="span" value={copy('rsvp.closed_message', 'Maaf, tempoh RSVP telah tamat.')} copyKey="rsvp.closed_message" editMode={previewEditMode} />
           </p>
 
           {formattedDeadline && (
@@ -240,7 +254,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                 opacity: 0.7,
               }}
             >
-              Tarikh tutup: {formattedDeadline}
+              <EditableCopy as="span" value={copy('rsvp.deadline_prefix', 'Tarikh tutup:')} copyKey="rsvp.deadline_prefix" editMode={previewEditMode} /> {formattedDeadline}
             </p>
           )}
           </TemplateSectionShell>
@@ -283,7 +297,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                   marginBottom: '8px',
                 }}
               >
-                Terima Kasih!
+                <EditableCopy as="span" value={copy('rsvp.success_title', 'Terima Kasih!')} copyKey="rsvp.success_title" editMode={previewEditMode} />
               </p>
               <p
                 style={{
@@ -293,9 +307,11 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                   lineHeight: 1.6,
                 }}
               >
-                {attending
-                  ? 'Pengesahan kehadiran anda telah direkodkan. Kami menantikan kehadiran anda!'
-                  : 'Terima kasih atas maklum balas anda. Semoga kita dapat bertemu di lain masa.'}
+                {attending ? (
+                  <EditableCopy as="span" value={copy('rsvp.success_yes', 'Pengesahan kehadiran anda telah direkodkan. Kami menantikan kehadiran anda!')} copyKey="rsvp.success_yes" editMode={previewEditMode} />
+                ) : (
+                  <EditableCopy as="span" value={copy('rsvp.success_no', 'Terima kasih atas maklum balas anda. Semoga kita dapat bertemu di lain masa.')} copyKey="rsvp.success_no" editMode={previewEditMode} />
+                )}
               </p>
               </TemplateSectionShell>
             </motion.div>
@@ -329,7 +345,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                       margin: 0,
                     }}
                   >
-                    Sila sahkan kehadiran anda sebelum{' '}
+                    <EditableCopy as="span" value={copy('rsvp.banner_prefix', 'Sila sahkan kehadiran anda sebelum')} copyKey="rsvp.banner_prefix" editMode={previewEditMode} />{' '}
                     <span
                       style={{
                       fontWeight: 600,
@@ -344,7 +360,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
 
               {/* Attendance toggle */}
               <div style={{ marginBottom: '24px' }}>
-                <p style={labelStyle}>Kehadiran</p>
+                <p style={labelStyle}>
+                  <EditableCopy as="span" value={copy('rsvp.attendance_label', 'Kehadiran')} copyKey="rsvp.attendance_label" editMode={previewEditMode} />
+                </p>
                 <div
                   style={{
                     display: 'grid',
@@ -354,7 +372,14 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                 >
                   <button
                     type="button"
-                    onClick={() => setAttending(true)}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).isContentEditable) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                      }
+                      setAttending(true);
+                    }}
                     style={{
                       padding: '14px 16px',
                       border: attending === true
@@ -374,11 +399,18 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                       ...getActionButtonStyle(templateId, 'outline'),
                     }}
                   >
-                    Hadir
+                    <EditableCopy as="span" value={copy('rsvp.attend_yes', 'Hadir')} copyKey="rsvp.attend_yes" editMode={previewEditMode} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAttending(false)}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).isContentEditable) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                      }
+                      setAttending(false);
+                    }}
                     style={{
                       padding: '14px 16px',
                       border: attending === false
@@ -398,17 +430,19 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                       ...getActionButtonStyle(templateId, 'outline'),
                     }}
                   >
-                    Tidak Hadir
+                    <EditableCopy as="span" value={copy('rsvp.attend_no', 'Tidak Hadir')} copyKey="rsvp.attend_no" editMode={previewEditMode} />
                   </button>
                 </div>
               </div>
 
               {/* Name */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={labelStyle}>Nama</label>
+                <label style={labelStyle}>
+                  <EditableCopy as="span" value={copy('rsvp.name_label', 'Nama')} copyKey="rsvp.name_label" editMode={previewEditMode} />
+                </label>
                 <input
                   type="text"
-                  placeholder="Nama penuh anda"
+                  placeholder={copy('rsvp.name_placeholder', 'Nama penuh anda')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   style={inputStyle}
@@ -417,10 +451,12 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
 
               {/* Phone */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={labelStyle}>No. Telefon</label>
+                <label style={labelStyle}>
+                  <EditableCopy as="span" value={copy('rsvp.phone_label', 'No. Telefon')} copyKey="rsvp.phone_label" editMode={previewEditMode} />
+                </label>
                 <input
                   type="tel"
-                  placeholder="012-345 6789"
+                  placeholder={copy('rsvp.phone_placeholder', '012-345 6789')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={inputStyle}
@@ -445,7 +481,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                   >
                     {/* Adults counter */}
                     <div>
-                      <label style={labelStyle}>Dewasa</label>
+                      <label style={labelStyle}>
+                        <EditableCopy as="span" value={copy('rsvp.adults_label', 'Dewasa')} copyKey="rsvp.adults_label" editMode={previewEditMode} />
+                      </label>
                       <div
                         style={{
                           display: 'flex',
@@ -510,7 +548,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
 
                     {/* Children counter */}
                     <div>
-                      <label style={labelStyle}>Kanak-kanak</label>
+                      <label style={labelStyle}>
+                        <EditableCopy as="span" value={copy('rsvp.children_label', 'Kanak-kanak')} copyKey="rsvp.children_label" editMode={previewEditMode} />
+                      </label>
                       <div
                         style={{
                           display: 'flex',
@@ -578,9 +618,11 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
 
               {/* Message */}
               <div style={{ marginBottom: '24px' }}>
-                <label style={labelStyle}>Ucapan (Pilihan)</label>
+                <label style={labelStyle}>
+                  <EditableCopy as="span" value={copy('rsvp.message_label', 'Ucapan (Pilihan)')} copyKey="rsvp.message_label" editMode={previewEditMode} />
+                </label>
                 <textarea
-                  placeholder="Tulis ucapan anda..."
+                  placeholder={copy('rsvp.message_placeholder', 'Tulis ucapan anda...')}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
@@ -596,7 +638,18 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).isContentEditable) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                  }
+                  if (previewEditMode) {
+                    event.preventDefault();
+                    return;
+                  }
+                  handleSubmit();
+                }}
                 disabled={attending === null || !name.trim() || loading}
                 style={{
                   width: '100%',
@@ -641,7 +694,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, temp
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </motion.svg>
                 )}
-                {loading ? 'Menghantar...' : 'Hantar RSVP'}
+                <EditableCopy as="span" value={loading ? copy('rsvp.submitting', 'Menghantar...') : copy('rsvp.submit', 'Hantar RSVP')} copyKey={loading ? 'rsvp.submitting' : 'rsvp.submit'} editMode={previewEditMode} />
               </motion.button>
               </TemplateSectionShell>
             </motion.div>

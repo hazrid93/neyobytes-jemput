@@ -1,13 +1,17 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
 import { getActionButtonStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface LocationSectionProps {
   invitation: Invitation;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
-export default function LocationSection({ invitation, templateId }: LocationSectionProps) {
+export default function LocationSection({ invitation, templateId, copyOverrides, previewEditMode = false }: LocationSectionProps) {
   const lat = invitation.venue_lat;
   const lng = invitation.venue_lng;
 
@@ -47,6 +51,7 @@ export default function LocationSection({ invitation, templateId }: LocationSect
     transition: 'all 0.3s ease',
     ...getActionButtonStyle(templateId, 'outline'),
   };
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   return (
     <section
@@ -72,7 +77,12 @@ export default function LocationSection({ invitation, templateId }: LocationSect
           marginBottom: '8px',
         }}
       >
-        Lokasi
+        <EditableCopy
+          as="span"
+          value={copy('location.eyebrow', 'Lokasi')}
+          copyKey="location.eyebrow"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       <motion.h3
@@ -151,12 +161,18 @@ export default function LocationSection({ invitation, templateId }: LocationSect
           href={googleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={previewEditMode ? (event) => event.preventDefault() : undefined}
           style={buttonStyle}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="1.5">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
           </svg>
-          Google Maps
+          <EditableCopy
+            as="span"
+            value={copy('location.google', 'Google Maps')}
+            copyKey="location.google"
+            editMode={previewEditMode}
+          />
         </a>
 
         {/* Waze */}
@@ -164,12 +180,18 @@ export default function LocationSection({ invitation, templateId }: LocationSect
           href={wazeUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={previewEditMode ? (event) => event.preventDefault() : undefined}
           style={buttonStyle}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="1.5">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
           </svg>
-          Waze
+          <EditableCopy
+            as="span"
+            value={copy('location.waze', 'Waze')}
+            copyKey="location.waze"
+            editMode={previewEditMode}
+          />
         </a>
 
         {/* Apple Maps */}
@@ -177,13 +199,19 @@ export default function LocationSection({ invitation, templateId }: LocationSect
           href={appleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={previewEditMode ? (event) => event.preventDefault() : undefined}
           style={buttonStyle}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="1.5">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
             <circle cx="12" cy="9" r="2.5" />
           </svg>
-          Apple Maps
+          <EditableCopy
+            as="span"
+            value={copy('location.apple', 'Apple Maps')}
+            copyKey="location.apple"
+            editMode={previewEditMode}
+          />
         </a>
       </motion.div>
     </section>

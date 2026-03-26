@@ -4,7 +4,6 @@ import {
   AppShell,
   Burger,
   Group,
-  Title,
   Text,
   NavLink,
   Button,
@@ -37,6 +36,7 @@ import GuestbookManager from '../components/dashboard/GuestbookManager';
 import SubscriptionPage from '../components/dashboard/SubscriptionPage';
 import CheckoutPage from '../components/dashboard/CheckoutPage';
 import CheckoutReturnPage from '../components/dashboard/CheckoutReturnPage';
+import Logo from '../components/common/Logo';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore();
@@ -163,19 +163,18 @@ export default function DashboardPage() {
                   Dashboard
                 </Button>
               )}
-              <Title
-                order={3}
-                style={{
-                  fontFamily: 'Playfair Display, serif',
-                  color: '#8B6F4E',
-                  cursor: 'pointer',
-                }}
+              <Box
                 onClick={() => navigate('/dashboard')}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
               >
-                Jemput
-              </Title>
+                <Logo size="sm" color="#8B6F4E" />
+              </Box>
               {!isMobile && (
-                <Text size="xs" c="dimmed" mt={4}>
+                <Text size="xs" c="dimmed">
                   Dashboard
                 </Text>
               )}

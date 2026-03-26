@@ -3,14 +3,19 @@ import { motion } from 'framer-motion';
 import type { MoneyGift as MoneyGiftType } from '../../types';
 import TemplateSectionShell from './TemplateSectionShell';
 import { getActionButtonStyle } from '../../lib/template-ui';
+import { getCopy } from '../../lib/invitation-copy';
+import EditableCopy from './EditableCopy';
 
 interface MoneyGiftProps {
   moneyGift: MoneyGiftType;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
-export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
+export default function MoneyGift({ moneyGift, templateId, copyOverrides, previewEditMode = false }: MoneyGiftProps) {
   const [copied, setCopied] = useState(false);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   const handleCopy = async () => {
     try {
@@ -54,7 +59,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
           marginBottom: '8px',
         }}
       >
-        Salam Kaut
+        <EditableCopy as="span" value={copy('money_gift.eyebrow', 'Salam Kaut')} copyKey="money_gift.eyebrow" editMode={previewEditMode} />
       </motion.p>
 
       <motion.h3
@@ -70,7 +75,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
           marginBottom: '8px',
         }}
       >
-        Hadiah Wang
+        <EditableCopy as="span" value={copy('money_gift.title', 'Hadiah Wang')} copyKey="money_gift.title" editMode={previewEditMode} />
       </motion.h3>
 
       <motion.p
@@ -86,7 +91,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
           marginBottom: '28px',
         }}
       >
-        Doa restu anda sudah cukup bermakna. Sekiranya ingin memberi sumbangan, boleh melalui:
+        <EditableCopy as="span" value={copy('money_gift.description', 'Doa restu anda sudah cukup bermakna. Sekiranya ingin memberi sumbangan, boleh melalui:')} copyKey="money_gift.description" editMode={previewEditMode} />
       </motion.p>
 
       {/* Money gift card */}
@@ -147,7 +152,18 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={handleCopy}
+            onClick={(event) => {
+              if ((event.target as HTMLElement).isContentEditable) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              if (previewEditMode) {
+                event.preventDefault();
+                return;
+              }
+              handleCopy();
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -174,7 +190,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                Disalin
+                <EditableCopy as="span" value={copy('money_gift.copied', 'Disalin')} copyKey="money_gift.copied" editMode={previewEditMode} />
               </>
             ) : (
               <>
@@ -182,7 +198,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                 </svg>
-                Salin
+                <EditableCopy as="span" value={copy('money_gift.copy', 'Salin')} copyKey="money_gift.copy" editMode={previewEditMode} />
               </>
             )}
           </motion.button>
@@ -208,7 +224,7 @@ export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
                   marginBottom: '12px',
                 }}
               >
-                Imbas Kod QR
+                <EditableCopy as="span" value={copy('money_gift.qr_label', 'Imbas Kod QR')} copyKey="money_gift.qr_label" editMode={previewEditMode} />
               </p>
               <img
                 src={moneyGift.qr_code_url}

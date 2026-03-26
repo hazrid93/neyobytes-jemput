@@ -61,15 +61,16 @@ import {
   IconLock,
   IconCrown,
   IconUserPlus,
-  IconArrowRight,
-  IconArrowLeft,
+  IconCompass,
 } from '@tabler/icons-react';
 import { uploadImage, deleteImage } from '../../lib/upload';
+import { COPY_FIELDS } from '../../lib/invitation-copy';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { supabase } from '../../lib/supabase';
 import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY, EDITOR_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
+import CoachmarkHints, { CoachmarkTour } from '../common/CoachmarkHints';
 import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate } from '../../types';
 
 interface InvitationEditorProps {
@@ -308,6 +309,14 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const [subModalOpen, setSubModalOpen] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(trialMode ? false : null);
   const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [previewEditMode, setPreviewEditMode] = useState(false);
+  const [tourReplayToken, setTourReplayToken] = useState<number | undefined>(undefined);
+  const previewDraftOverridesRef = useRef<Record<string, string>>({});
+  const previewEditButtonRef = useRef<HTMLButtonElement | null>(null);
+  const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  const copyAccordionRef = useRef<HTMLDivElement | null>(null);
+  const themeAccordionRef = useRef<HTMLDivElement | null>(null);
+  const sectionManagerRef = useRef<HTMLDivElement | null>(null);
   const [, setRenderTick] = useState(0);
 
   // In trial mode, use demo data as initial values directly
@@ -374,6 +383,105 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     syncEditorPreviewInvitation(form.getValues(), sourceInvitation, galleryUrls);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialMode, sourceInvitation?.id]);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      const data = event.data as { type?: string; copyKey?: string; value?: string };
+      if (!data?.type || !data.copyKey) return;
+      if (data.type !== 'preview-copy-draft') return;
+
+      previewDraftOverridesRef.current = {
+        ...previewDraftOverridesRef.current,
+        [data.copyKey]: data.value || '',
+      };
+    };
+
+    const saveHandler = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string };
+      if (data?.type !== 'preview-copy-save') return;
+
+      const draftOverrides = previewDraftOverridesRef.current;
+      if (Object.keys(draftOverrides).length === 0) {
+        previewRef.current?.contentWindow?.postMessage(
+          { type: 'preview-copy-save-result', success: true },
+          window.location.origin,
+        );
+        return;
+      }
+
+      const currentThemeConfig = (form.getValues().theme_config || sourceInvitation?.theme_config || demoInvitation.theme_config) as Invitation['theme_config'];
+      const nextCopyOverrides = {
+        ...(currentThemeConfig.copy_overrides || {}),
+        ...draftOverrides,
+      };
+
+      form.setFieldValue('theme_config', {
+        ...currentThemeConfig,
+        copy_overrides: nextCopyOverrides,
+      } as Invitation['theme_config']);
+      setRenderTick((t) => t + 1);
+
+      const nextValues = form.getValues();
+
+      try {
+        if (trialMode) {
+          syncTrialPreviewInvitation(nextValues, galleryUrls);
+          if (previewRef.current) {
+            previewRef.current.src = previewRef.current.src;
+          }
+        } else if (id) {
+          setSaveStatus('saving');
+          const galleryImages = galleryUrls.map((url, idx) => ({
+            id: `gallery-${idx}`,
+            invitation_id: currentInvitation?.id || id,
+            url,
+            sort_order: idx,
+          }));
+
+          await updateInvitation(id, {
+            ...nextValues,
+            gallery_images: galleryImages,
+            updated_at: new Date().toISOString(),
+          } as Partial<Invitation>);
+
+          if (sourceInvitation) {
+            syncEditorPreviewInvitation(nextValues, sourceInvitation, galleryUrls);
+          }
+          if (previewRef.current) {
+            previewRef.current.src = previewRef.current.src;
+          }
+          setSaveStatus('saved');
+          window.setTimeout(() => setSaveStatus('idle'), 2000);
+        } else {
+          throw new Error('Missing invitation id');
+        }
+
+        previewDraftOverridesRef.current = {};
+        previewRef.current?.contentWindow?.postMessage(
+          { type: 'preview-copy-save-result', success: true },
+          window.location.origin,
+        );
+      } catch {
+        setSaveStatus('error');
+        window.setTimeout(() => setSaveStatus('idle'), 3000);
+        previewRef.current?.contentWindow?.postMessage(
+          { type: 'preview-copy-save-result', success: false },
+          window.location.origin,
+        );
+      }
+    };
+
+    window.addEventListener('message', handler);
+    window.addEventListener('message', saveHandler);
+    return () => {
+      window.removeEventListener('message', handler);
+      window.removeEventListener('message', saveHandler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceInvitation?.id, trialMode, galleryUrls, id, currentInvitation?.id, updateInvitation]);
 
   // Debounced auto-save (in trial mode, just refresh preview)
   const debouncedSave = useDebouncedCallback(async (values: Partial<Invitation>) => {
@@ -606,57 +714,110 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     </Group>
   );
 
+  const coachmarkPrefix = trialMode ? 'trial' : 'editor';
+  const hintItems = trialMode
+    ? [
+        {
+          id: 'preview',
+          title: 'Edit terus dalam preview',
+          description: 'Klik `Edit Teks`, ubah teks pada kad, kemudian tekan `Simpan Teks` dalam preview supaya perubahan kekal.',
+          icon: <IconEye size={18} />,
+        },
+        {
+          id: 'template',
+          title: 'Pilih gaya kad dahulu',
+          description: 'Mulakan dengan `Template Kad`, kemudian ubah `Tema Warna & Font` untuk nampak hasil dengan cepat.',
+          icon: <IconPalette size={18} />,
+        },
+        {
+          id: 'trial',
+          title: 'Mod percubaan simpan secara tempatan',
+          description: 'Semua perubahan di `/cuba` hanya disimpan dalam pelayar. Daftar bila anda sudah bersedia untuk simpan kad sebenar.',
+          icon: <IconLock size={18} />,
+        },
+      ]
+    : [
+        {
+          id: 'save',
+          title: 'Simpan semasa mengubah',
+          description: 'Perubahan biasa disimpan automatik, tetapi anda juga boleh tekan butang simpan untuk pastikan semuanya terkini.',
+          icon: <IconDeviceFloppy size={18} />,
+        },
+        {
+          id: 'copy',
+          title: 'Gunakan Teks & Copy',
+          description: 'Bahagian ini memudahkan anda ubah label, tajuk, mesej RSVP dan teks sistem tanpa mencari satu-satu komponen.',
+          icon: <IconMessage size={18} />,
+        },
+        {
+          id: 'sections',
+          title: 'Susun ikut aliran majlis',
+          description: 'Seret bahagian yang penting ke atas supaya tetamu nampak maklumat paling utama dahulu.',
+          icon: <IconLayoutList size={18} />,
+        },
+      ];
+
+  const tourSteps = trialMode
+    ? [
+        {
+          id: 'trial-template',
+          targetRef: themeAccordionRef,
+          badge: 'Langkah 1',
+          title: 'Pilih template dan arah visual',
+          description: 'Bahagian ini paling sesuai untuk tetapkan gaya kad sebelum anda ubah warna, gambar, dan isi kandungan lain.',
+        },
+        {
+          id: 'trial-sections',
+          targetRef: sectionManagerRef,
+          badge: 'Langkah 2',
+          title: 'Susun perjalanan kad',
+          description: 'Ubah turutan bahagian supaya tetamu nampak info penting seperti tarikh, lokasi, dan RSVP dalam urutan yang jelas.',
+        },
+        {
+          id: 'trial-preview-edit',
+          targetRef: previewEditButtonRef,
+          badge: 'Langkah 3',
+          title: 'Edit teks terus pada preview',
+          description: 'Tukar ke tab Preview, klik `Edit Teks` untuk ubah teks terus pada kad. Tekan `Simpan Teks` untuk kekalkan perubahan.',
+        },
+      ]
+    : [
+        {
+          id: 'editor-save',
+          targetRef: saveButtonRef,
+          badge: 'Langkah 1',
+          title: 'Simpan bila selesai perubahan besar',
+          description: 'Walaupun ada simpan automatik, butang ini sesuai digunakan selepas anda menukar beberapa bahagian penting sekali gus.',
+        },
+        {
+          id: 'editor-copy',
+          targetRef: copyAccordionRef,
+          badge: 'Langkah 2',
+          title: 'Ubah copy tanpa cari satu-satu',
+          description: 'Bahagian `Teks & Copy` menghimpunkan label, mesej RSVP, dan teks utama supaya suntingan lebih cepat.',
+        },
+        {
+          id: 'editor-preview-edit',
+          targetRef: previewEditButtonRef,
+          badge: 'Langkah 3',
+          title: 'Semak hasil terus dalam preview',
+          description: 'Aktifkan mod edit preview untuk cuba ubah teks secara terus pada kad, kemudian semak pengalaman sebenar tetamu.',
+        },
+      ];
+
   // --- The Form Panel ---
   const FormPanel = (
     <ScrollArea h="calc(100vh - 130px)" offsetScrollbars>
       <Box p="md">
-        {/* Trial mode banner */}
-        {trialMode && (
-          <Box
-            mb="md"
-            p="sm"
-            style={{
-              background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
-              border: '1px solid #D4AF37',
-              borderRadius: 12,
-              textAlign: 'center',
-            }}
-          >
-            <Group justify="center" gap="xs" mb={6}>
-              <Badge
-                color="yellow"
-                variant="filled"
-                size="sm"
-                style={{ background: 'linear-gradient(135deg, #D4AF37, #C5A028)', textTransform: 'uppercase', letterSpacing: 1 }}
-              >
-                Mod Percubaan
-              </Badge>
-            </Group>
-            <Text size="sm" c="dimmed" mb={8}>
-              Cuba editor dengan data contoh. Daftar untuk simpan dan terbitkan kad anda.
-            </Text>
-            <Button
-              size="sm"
-              variant="subtle"
-              color="gray"
-              leftSection={<IconArrowLeft size={14} />}
-              onClick={() => navigate('/dashboard')}
-            >
-              Kembali ke Dashboard
-            </Button>
-            <Button
-              size="sm"
-              leftSection={<IconUserPlus size={16} />}
-              rightSection={<IconArrowRight size={14} />}
-              onClick={() => navigate('/login')}
-              style={{
-                background: 'linear-gradient(135deg, #D4AF37 0%, #C5A028 100%)',
-                border: 'none',
-              }}
-            >
-              Daftar Sekarang
-            </Button>
-          </Box>
+        {!trialMode && (
+          <CoachmarkHints
+            storageKey={`jemput-${coachmarkPrefix}-editor-hints`}
+            badge="Panduan Editor"
+            title="Petua cepat edit kad kahwin"
+            description="Gunakan panduan ini untuk bergerak lebih laju antara suntingan, preview, dan susunan bahagian."
+            items={hintItems}
+            collapsedLabel="Tunjuk panduan editor"
+          />
         )}
 
         {/* Top actions */}
@@ -672,6 +833,16 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             {!trialMode && <SaveIndicator />}
           </Group>
           <Group gap="sm">
+            <Tooltip label="Ulang panduan editor">
+              <ActionIcon
+                variant="light"
+                color="yellow"
+                size="lg"
+                onClick={() => setTourReplayToken((value) => (value ?? 0) + 1)}
+              >
+                <IconCompass size={18} />
+              </ActionIcon>
+            </Tooltip>
             {trialMode ? (
               <Button
                 size="sm"
@@ -686,6 +857,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
               <>
                 <Tooltip label="Simpan">
                   <ActionIcon
+                    ref={saveButtonRef}
                     variant="light"
                     color="blue"
                     size="lg"
@@ -720,7 +892,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         <Accordion
           variant="separated"
           multiple
-          defaultValue={['couple', 'event', 'text']}
+          defaultValue={trialMode ? [] : ['couple', 'event', 'text']}
           styles={{
             item: {
               borderRadius: 12,
@@ -1442,6 +1614,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           {/* Template */}
           <Accordion.Item value="template">
+            <div ref={themeAccordionRef}>
             <Accordion.Control icon={<IconPalette size={18} color="#8B6F4E" />}>
               <Text fw={600}>Template Kad</Text>
             </Accordion.Control>
@@ -1454,6 +1627,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 }}
               />
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Color Theme */}
@@ -1563,6 +1737,73 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 />
               </Stack>
             </Accordion.Panel>
+          </Accordion.Item>
+
+          <Accordion.Item value="copy-texts">
+            <div ref={copyAccordionRef}>
+            <Accordion.Control icon={<IconMessage size={18} color="#8B6F4E" />}>
+              <Text fw={600}>Teks & Copy</Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="md">
+                <Text size="sm" c="dimmed">
+                  Ubah semua teks utama yang muncul dalam preview, termasuk teks Arab, label bahagian, butang dan mesej sistem tetamu.
+                </Text>
+
+                {COPY_FIELDS.map((group) => (
+                  <Paper key={group.label} withBorder radius="md" p="md" style={{ borderColor: '#E8D5B7' }}>
+                    <Stack gap="sm">
+                      <Text fw={600} size="sm">{group.label}</Text>
+                      {group.fields.map((field) => {
+                        const currentThemeConfig = (form.getValues().theme_config || sourceInvitation!.theme_config) as Invitation['theme_config'];
+                        const copyOverrides = currentThemeConfig.copy_overrides || {};
+                        const value = copyOverrides[field.key] || '';
+                        const isMultiline = 'multiline' in field && field.multiline;
+
+                        if (isMultiline) {
+                          return (
+                            <Textarea
+                              key={field.key}
+                              label={field.label}
+                              minRows={2}
+                              autosize
+                              value={value}
+                              onChange={(e) =>
+                                handleFieldChange('theme_config', {
+                                  ...currentThemeConfig,
+                                  copy_overrides: {
+                                    ...copyOverrides,
+                                    [field.key]: e.currentTarget.value,
+                                  },
+                                })
+                              }
+                            />
+                          );
+                        }
+
+                        return (
+                          <TextInput
+                            key={field.key}
+                            label={field.label}
+                            value={value}
+                            onChange={(e) =>
+                              handleFieldChange('theme_config', {
+                                ...currentThemeConfig,
+                                copy_overrides: {
+                                  ...copyOverrides,
+                                  [field.key]: e.currentTarget.value,
+                                },
+                              })
+                            }
+                          />
+                        );
+                      })}
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Section Styles */}
@@ -1908,6 +2149,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           {/* Section Manager */}
           <Accordion.Item value="sections">
+            <div ref={sectionManagerRef}>
             <Accordion.Control icon={<IconLayoutList size={18} color="#8B6F4E" />}>
               <Text fw={600}>Susun Bahagian</Text>
             </Accordion.Control>
@@ -1917,6 +2159,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 onChange={(sections: InvitationSection[]) => handleFieldChange('sections', sections)}
               />
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Chatbot AI (hidden in trial mode) */}
@@ -2104,6 +2347,15 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </ActionIcon>
           </Tooltip>
         )}
+        <Button
+          ref={previewEditButtonRef}
+          size="xs"
+          variant={previewEditMode ? 'filled' : 'light'}
+          color="yellow"
+          onClick={() => setPreviewEditMode((value) => !value)}
+        >
+          {previewEditMode ? 'Mode Lihat' : 'Edit Teks'}
+        </Button>
       </Group>
 
       {/* Phone frame */}
@@ -2151,7 +2403,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           >
             <iframe
               ref={previewRef}
-              src={previewUrl}
+              src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}previewEdit=${previewEditMode ? '1' : '0'}`}
               style={{
                 width: '100%',
                 height: '100%',
@@ -2311,6 +2563,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     return (
       <>
         {trialMode ? SignupModal : SubscriptionModal}
+        <CoachmarkTour
+          storageKey={`jemput-${coachmarkPrefix}-editor-tour`}
+          steps={tourSteps}
+          showSpotlight
+          replayToken={tourReplayToken}
+        />
         <Box h="calc(100vh - 60px)">
           <Tabs value={mobileTab} onChange={setMobileTab}>
             <Tabs.List grow>
@@ -2344,6 +2602,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   return (
     <>
       {trialMode ? SignupModal : SubscriptionModal}
+      <CoachmarkTour
+        storageKey={`jemput-${coachmarkPrefix}-editor-tour`}
+        steps={tourSteps}
+        showSpotlight
+        replayToken={tourReplayToken}
+      />
       <Box style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
         {/* Left: Editor (60%) */}
         <Box style={{ width: '60%', borderRight: '1px solid #E8D5B7', overflow: 'hidden' }}>
