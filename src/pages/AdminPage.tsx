@@ -884,6 +884,93 @@ function SiteSettingsTab() {
             onChange={(e) => setForm({ ...form, x_url: e.currentTarget.value })}
           />
 
+          <Divider label="Chatbot & Pembantu AI" labelPosition="center" />
+
+          <Text size="sm" c="dimmed">
+            Kawal ciri chatbot dan pembantu AI untuk pelawat percubaan dan pengguna berdaftar.
+          </Text>
+
+          {/* /cuba preview chatbot */}
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+            <Stack gap="xs">
+              <Text fw={600} size="sm">Chatbot Pratonton /cuba</Text>
+              <Text size="xs" c="dimmed">Chatbot tetamu di pratonton halaman percubaan</Text>
+              <Group grow>
+                <Box pt={8}>
+                  <Switch
+                    label="Aktifkan"
+                    checked={form.cuba_preview_chat_enabled ?? true}
+                    onChange={(e) => setForm({ ...form, cuba_preview_chat_enabled: e.currentTarget.checked })}
+                    color={GOLD}
+                  />
+                </Box>
+                {form.cuba_preview_chat_enabled !== false && (
+                  <NumberInput
+                    label="Had harian"
+                    description="Soalan per pelawat sehari. 0 = tiada had"
+                    value={form.cuba_preview_chat_daily_limit ?? 10}
+                    onChange={(val) => setForm({ ...form, cuba_preview_chat_daily_limit: Number(val) || 0 })}
+                    min={0}
+                  />
+                )}
+              </Group>
+            </Stack>
+          </Card>
+
+          {/* /cuba editor AI assistant */}
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+            <Stack gap="xs">
+              <Text fw={600} size="sm">Pembantu AI Editor /cuba</Text>
+              <Text size="xs" c="dimmed">Pembantu AI dalam editor halaman percubaan</Text>
+              <Group grow>
+                <Box pt={8}>
+                  <Switch
+                    label="Aktifkan"
+                    checked={form.cuba_editor_chat_enabled ?? true}
+                    onChange={(e) => setForm({ ...form, cuba_editor_chat_enabled: e.currentTarget.checked })}
+                    color={GOLD}
+                  />
+                </Box>
+                {form.cuba_editor_chat_enabled !== false && (
+                  <NumberInput
+                    label="Had harian"
+                    description="Soalan per pelawat sehari. 0 = tiada had"
+                    value={form.cuba_editor_chat_daily_limit ?? 10}
+                    onChange={(val) => setForm({ ...form, cuba_editor_chat_daily_limit: Number(val) || 0 })}
+                    min={0}
+                  />
+                )}
+              </Group>
+            </Stack>
+          </Card>
+
+          {/* Signed-in editor AI assistant */}
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+            <Stack gap="xs">
+              <Text fw={600} size="sm">Pembantu AI Editor (Pengguna Berdaftar)</Text>
+              <Text size="xs" c="dimmed">Pembantu AI dalam editor untuk pengguna yang telah log masuk</Text>
+              <Group grow>
+                <Box pt={8}>
+                  <Switch
+                    label="Aktifkan"
+                    checked={form.editor_chat_enabled ?? true}
+                    onChange={(e) => setForm({ ...form, editor_chat_enabled: e.currentTarget.checked })}
+                    color={GOLD}
+                  />
+                </Box>
+                {form.editor_chat_enabled !== false && (
+                  <NumberInput
+                    label="Had harian"
+                    description="Soalan per pengguna sehari. 0 = tiada had"
+                    value={form.editor_chat_daily_limit ?? 20}
+                    onChange={(val) => setForm({ ...form, editor_chat_daily_limit: Number(val) || 0 })}
+                    min={0}
+                  />
+                )}
+              </Group>
+            </Stack>
+          </Card>
+
           <Group justify="flex-end">
             <Button onClick={handleSave} loading={loadingSiteSettings}>
               Simpan Tetapan

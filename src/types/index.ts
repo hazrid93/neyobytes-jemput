@@ -274,5 +274,14 @@ export interface SiteSettings {
   instagram_url?: string;
   facebook_url?: string;
   x_url?: string;
+  // Chat config — /cuba preview chatbot
+  cuba_preview_chat_enabled?: boolean;
+  cuba_preview_chat_daily_limit?: number;
+  // Chat config — /cuba editor AI assistant
+  cuba_editor_chat_enabled?: boolean;
+  cuba_editor_chat_daily_limit?: number;
+  // Chat config — signed-in editor AI assistant
+  editor_chat_enabled?: boolean;
+  editor_chat_daily_limit?: number;
   updated_at?: string;
 }

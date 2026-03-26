@@ -71,7 +71,9 @@ import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY, EDITOR_PREVIEW_STORAGE_KEY }
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
 import CoachmarkHints, { CoachmarkTour } from '../common/CoachmarkHints';
-import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate } from '../../types';
+import EditorChatAssistant from './EditorChatAssistant';
+import { fetchPublicSiteSettings } from '../../lib/site-settings';
+import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate, SiteSettings } from '../../types';
 
 interface InvitationEditorProps {
   trialMode?: boolean;
@@ -324,7 +326,21 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const eventAccordionRef = useRef<HTMLDivElement | null>(null);
   const rsvpAccordionRef = useRef<HTMLDivElement | null>(null);
   const moneyGiftAccordionRef = useRef<HTMLDivElement | null>(null);
+  const textAccordionRef = useRef<HTMLDivElement | null>(null);
+  const itineraryAccordionRef = useRef<HTMLDivElement | null>(null);
+  const contactsAccordionRef = useRef<HTMLDivElement | null>(null);
+  const wishlistAccordionRef = useRef<HTMLDivElement | null>(null);
+  const galleryAccordionRef = useRef<HTMLDivElement | null>(null);
+  const sectionStylesAccordionRef = useRef<HTMLDivElement | null>(null);
+  const mobileTabsRef = useRef<HTMLDivElement | null>(null);
+  const replayButtonRef = useRef<HTMLButtonElement | null>(null);
   const [, setRenderTick] = useState(0);
+
+  // Chat assistant — fetch site settings for enable/limit config
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  useEffect(() => {
+    fetchPublicSiteSettings().then(setSiteSettings);
+  }, []);
 
   // In trial mode, use demo data as initial values directly
   const form = useForm<Partial<Invitation>>({
@@ -776,137 +792,161 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         },
       ];
 
+  // Shared accordion steps (DOM order) for both trial and signed-in
+  const accordionSteps: { id: string; targetRef: React.RefObject<HTMLElement | null>; title: string; description: string }[] = [
+    {
+      id: 'step-couple',
+      targetRef: coupleAccordionRef,
+      title: 'Maklumat Pengantin',
+      description: 'Isi nama pengantin lelaki dan perempuan, nama keluarga, dan muat naik gambar. Ini bahagian pertama yang tetamu nampak.',
+    },
+    {
+      id: 'step-event',
+      targetRef: eventAccordionRef,
+      title: 'Maklumat Majlis',
+      description: 'Tetapkan tarikh, masa mula dan tamat, serta alamat lokasi majlis. Maklumat paling penting untuk tetamu anda.',
+    },
+    {
+      id: 'step-text',
+      targetRef: textAccordionRef,
+      title: 'Ayat Jemputan',
+      description: 'Tulis ayat jemputan peribadi anda. Ayat ini akan dipaparkan pada kad sebagai undangan rasmi.',
+    },
+    {
+      id: 'step-itinerary',
+      targetRef: itineraryAccordionRef,
+      title: 'Tentatif Majlis',
+      description: 'Susun atur cara majlis mengikut masa — jamuan makan, akad nikah, bersanding, dan lain-lain.',
+    },
+    {
+      id: 'step-contacts',
+      targetRef: contactsAccordionRef,
+      title: 'Kenalan',
+      description: 'Masukkan nombor telefon dan WhatsApp wakil keluarga supaya tetamu boleh menghubungi jika perlu.',
+    },
+    {
+      id: 'step-rsvp',
+      targetRef: rsvpAccordionRef,
+      title: 'Tetapan RSVP',
+      description: 'Aktifkan fungsi RSVP dan tetapkan tarikh tutup supaya tetamu boleh sahkan kehadiran terus daripada kad.',
+    },
+    {
+      id: 'step-moneygift',
+      targetRef: moneyGiftAccordionRef,
+      title: 'Salam Kaut',
+      description: 'Masukkan maklumat akaun bank dan muat naik kod QR untuk tetamu yang ingin memberi sumbangan secara digital.',
+    },
+    {
+      id: 'step-wishlist',
+      targetRef: wishlistAccordionRef,
+      title: 'Senarai Hadiah',
+      description: 'Tambah senarai hadiah yang anda harapkan. Tetamu boleh lihat dan pilih hadiah yang sesuai.',
+    },
+    {
+      id: 'step-gallery',
+      targetRef: galleryAccordionRef,
+      title: 'Galeri Foto',
+      description: 'Muat naik gambar untuk galeri kad anda. Pilih paparan karusel, grid, atau masonry.',
+    },
+    {
+      id: 'step-template',
+      targetRef: themeAccordionRef,
+      title: 'Template Kad',
+      description: 'Pilih reka bentuk kad yang sesuai dengan tema majlis anda. Setiap template ada gaya tersendiri.',
+    },
+    {
+      id: 'step-color-theme',
+      targetRef: colorThemeAccordionRef,
+      title: 'Tema Warna & Font',
+      description: 'Sesuaikan warna utama, aksen, latar belakang, dan pilih font paparan serta badan teks.',
+    },
+    {
+      id: 'step-copy',
+      targetRef: copyAccordionRef,
+      title: 'Teks & Copy',
+      description: 'Ubah semua teks label, butang, dan mesej dari satu tempat. Termasuk teks Arab, ucapan, dan mesej RSVP.',
+    },
+    {
+      id: 'step-section-styles',
+      targetRef: sectionStylesAccordionRef,
+      title: 'Gaya Bahagian',
+      description: 'Ubah gaya paparan untuk countdown, tentatif, galeri dan beberapa bahagian penting lain.',
+    },
+    {
+      id: 'step-sections',
+      targetRef: sectionManagerRef,
+      title: 'Susun Bahagian',
+      description: 'Seret untuk susun turutan bahagian kad. Letakkan maklumat utama di atas supaya tetamu nampak dahulu.',
+    },
+  ];
+
+  type TourStep = { id: string; targetRef: React.RefObject<HTMLElement | null>; title: string; description: string; badge?: string };
+
+  // Build badge labels dynamically
+  const addBadges = (steps: TourStep[]): TourStep[] =>
+    steps.map((s, i) => ({ ...s, badge: `Langkah ${i + 1}` }));
+
   const tourSteps = trialMode
-    ? [
+    ? addBadges([
+        ...accordionSteps,
         {
-          id: 'trial-couple',
-          targetRef: coupleAccordionRef,
-          badge: 'Langkah 1',
-          title: 'Isi maklumat pengantin',
-          description: 'Mulakan dengan nama pengantin, nama keluarga, dan gambar. Ini bahagian pertama yang tetamu nampak.',
-        },
-        {
-          id: 'trial-event',
-          targetRef: eventAccordionRef,
-          badge: 'Langkah 2',
-          title: 'Tetapkan tarikh dan tempat',
-          description: 'Masukkan tarikh, waktu, dan lokasi majlis. Maklumat ini paling penting untuk tetamu.',
-        },
-        {
-          id: 'trial-template',
-          targetRef: themeAccordionRef,
-          badge: 'Langkah 3',
-          title: 'Pilih template kad',
-          description: 'Pilih reka bentuk yang sesuai dengan tema majlis anda. Setiap template ada gaya warna dan susun atur tersendiri.',
-        },
-        {
-          id: 'trial-color-theme',
-          targetRef: colorThemeAccordionRef,
-          badge: 'Langkah 4',
-          title: 'Ubah suai warna dan font',
-          description: 'Sesuaikan warna utama, latar belakang, dan jenis font supaya kad padan dengan citarasa anda.',
-        },
-        {
-          id: 'trial-rsvp',
-          targetRef: rsvpAccordionRef,
-          badge: 'Langkah 5',
-          title: 'Aktifkan RSVP',
-          description: 'Hidupkan fungsi RSVP supaya tetamu boleh sahkan kehadiran terus daripada kad.',
-        },
-        {
-          id: 'trial-moneygift',
-          targetRef: moneyGiftAccordionRef,
-          badge: 'Langkah 6',
-          title: 'Sediakan Salam Kaut',
-          description: 'Masukkan nombor akaun bank dan muat naik kod QR untuk tetamu yang ingin beri sumbangan secara digital.',
-        },
-        {
-          id: 'trial-sections',
-          targetRef: sectionManagerRef,
-          badge: 'Langkah 7',
-          title: 'Susun bahagian kad',
-          description: 'Seret untuk susun turutan bahagian. Letakkan info penting seperti tarikh dan lokasi di atas.',
-        },
-        {
-          id: 'trial-preview-edit',
+          id: 'step-preview-edit',
           targetRef: previewEditButtonRef,
-          badge: 'Langkah 8',
           title: 'Edit teks terus pada preview',
-          description: 'Tukar ke tab Preview, klik Edit Teks untuk ubah teks terus pada kad. Tekan Simpan Teks untuk kekalkan perubahan.',
+          description: 'Klik butang ini pada panel preview untuk ubah teks secara terus pada kad. Tekan Simpan Teks untuk kekalkan.',
         },
         {
-          id: 'trial-signup',
+          id: 'step-tabs',
+          targetRef: mobileTabsRef,
+          title: 'Tab Edit & Preview',
+          description: 'Tukar antara tab Edit untuk ubah maklumat dan tab Preview untuk lihat hasil kad anda.',
+        },
+        {
+          id: 'step-signup',
           targetRef: signupButtonRef,
-          badge: 'Langkah 9',
           title: 'Daftar untuk simpan kad',
           description: 'Bila sudah puas hati, tekan Simpan dan daftar akaun untuk kekalkan kad anda dan dapatkan pautan kongsi.',
         },
-      ]
-    : [
         {
-          id: 'editor-couple',
-          targetRef: coupleAccordionRef,
-          badge: 'Langkah 1',
-          title: 'Maklumat pengantin',
-          description: 'Mulakan dengan nama, keluarga, dan gambar pengantin. Bahagian ini muncul pertama pada kad.',
+          id: 'step-replay',
+          targetRef: replayButtonRef,
+          title: 'Ulang panduan ini',
+          description: 'Tekan butang kompas ini pada bila-bila masa untuk memulakan semula panduan dari awal.',
         },
+      ])
+    : addBadges([
+        ...accordionSteps,
         {
-          id: 'editor-event',
-          targetRef: eventAccordionRef,
-          badge: 'Langkah 2',
-          title: 'Tarikh dan tempat majlis',
-          description: 'Tetapkan tarikh, waktu, dan alamat lokasi. Ini maklumat paling penting untuk tetamu.',
-        },
-        {
-          id: 'editor-template',
-          targetRef: themeAccordionRef,
-          badge: 'Langkah 3',
-          title: 'Pilih template kad',
-          description: 'Tukar template untuk ubah keseluruhan reka bentuk kad dalam satu klik.',
-        },
-        {
-          id: 'editor-color-theme',
-          targetRef: colorThemeAccordionRef,
-          badge: 'Langkah 4',
-          title: 'Sesuaikan warna dan font',
-          description: 'Ubah warna utama, aksen, latar belakang, dan pilih font paparan serta badan teks.',
-        },
-        {
-          id: 'editor-copy',
-          targetRef: copyAccordionRef,
-          badge: 'Langkah 5',
-          title: 'Ubah semua teks dari satu tempat',
-          description: 'Bahagian Teks & Copy menghimpunkan semua label dan mesej supaya suntingan lebih cepat.',
-        },
-        {
-          id: 'editor-sections',
-          targetRef: sectionManagerRef,
-          badge: 'Langkah 6',
-          title: 'Susun bahagian kad',
-          description: 'Seret untuk susun turutan. Letakkan maklumat utama di atas supaya tetamu nampak dahulu.',
-        },
-        {
-          id: 'editor-save',
-          targetRef: saveButtonRef,
-          badge: 'Langkah 7',
-          title: 'Simpan perubahan',
-          description: 'Perubahan disimpan automatik, tapi butang ini berguna selepas menukar banyak bahagian sekali gus.',
-        },
-        {
-          id: 'editor-publish',
-          targetRef: publishButtonRef,
-          badge: 'Langkah 8',
-          title: 'Terbitkan kad anda',
-          description: 'Tekan Terbitkan untuk buat kad boleh diakses oleh tetamu melalui pautan unik. Anda boleh nyahdraf bila-bila masa.',
-        },
-        {
-          id: 'editor-preview-edit',
+          id: 'step-preview-edit',
           targetRef: previewEditButtonRef,
-          badge: 'Langkah 9',
           title: 'Edit teks terus pada preview',
           description: 'Aktifkan mod edit preview untuk ubah teks secara terus pada kad dan semak pengalaman tetamu.',
         },
-      ];
+        {
+          id: 'step-tabs',
+          targetRef: mobileTabsRef,
+          title: 'Tab Edit & Preview',
+          description: 'Tukar antara tab Edit untuk ubah maklumat dan tab Preview untuk lihat hasil kad anda.',
+        },
+        {
+          id: 'step-save',
+          targetRef: saveButtonRef,
+          title: 'Simpan perubahan',
+          description: 'Tekan butang simpan untuk menyimpan semua perubahan. Gunakan selepas banyak suntingan sekali gus.',
+        },
+        {
+          id: 'step-publish',
+          targetRef: publishButtonRef,
+          title: 'Terbitkan kad anda',
+          description: 'Tekan Terbitkan untuk buat kad boleh diakses oleh tetamu melalui pautan unik. Boleh nyahdraf bila-bila masa.',
+        },
+        {
+          id: 'step-replay',
+          targetRef: replayButtonRef,
+          title: 'Ulang panduan ini',
+          description: 'Tekan butang kompas ini pada bila-bila masa untuk memulakan semula panduan dari awal.',
+        },
+      ]);
 
   // --- The Form Panel ---
   const FormPanel = (
@@ -936,6 +976,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           <Group gap="sm">
             <Tooltip label="Ulang panduan editor">
               <ActionIcon
+                ref={replayButtonRef}
                 variant="light"
                 color="yellow"
                 size="lg"
@@ -1195,6 +1236,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </div>
           </Accordion.Item>
           <Accordion.Item value="text">
+            <div ref={textAccordionRef}>
             <Accordion.Control icon={<IconMessage size={18} color="#8B6F4E" />}>
               <Text fw={600}>Ayat Jemputan</Text>
             </Accordion.Control>
@@ -1209,10 +1251,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 maxRows={10}
               />
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Itinerary */}
           <Accordion.Item value="itinerary">
+            <div ref={itineraryAccordionRef}>
             <Accordion.Control icon={<IconClock size={18} color="#8B6F4E" />}>
               <Group gap="xs">
                 <Text fw={600}>Tentatif Majlis</Text>
@@ -1263,10 +1307,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 </Button>
               </Stack>
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Contacts */}
           <Accordion.Item value="contacts">
+            <div ref={contactsAccordionRef}>
             <Accordion.Control icon={<IconPhone size={18} color="#8B6F4E" />}>
               <Group gap="xs">
                 <Text fw={600}>Kenalan</Text>
@@ -1326,6 +1372,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 </Button>
               </Stack>
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* RSVP */}
@@ -1498,6 +1545,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           {/* Wishlist */}
           <Accordion.Item value="wishlist">
+            <div ref={wishlistAccordionRef}>
             <Accordion.Control icon={<IconGift size={18} color="#8B6F4E" />}>
               <Group gap="xs">
                 <Text fw={600}>Senarai Hadiah</Text>
@@ -1543,9 +1591,11 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 </Button>
               </Stack>
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           <Accordion.Item value="gallery">
+            <div ref={galleryAccordionRef}>
             <Accordion.Control icon={<IconPhoto size={18} color="#8B6F4E" />}>
               <Text fw={600}>Galeri Foto</Text>
             </Accordion.Control>
@@ -1719,6 +1769,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 </Dropzone>
               </Stack>
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {/* Template */}
@@ -1922,6 +1973,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           {/* Section Styles */}
           <Accordion.Item value="section-styles">
+            <div ref={sectionStylesAccordionRef}>
             <Accordion.Control icon={<IconChecklist size={18} color="#8B6F4E" />}>
               <Text fw={600}>Gaya Bahagian</Text>
             </Accordion.Control>
@@ -1977,6 +2029,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 })}
               </Stack>
             </Accordion.Panel>
+            </div>
           </Accordion.Item>
 
           {customSections.length > 0 && (
@@ -2685,6 +2738,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         />
         <Box h="calc(100vh - 60px)">
           <Tabs value={mobileTab} onChange={setMobileTab}>
+            <div ref={mobileTabsRef}>
             <Tabs.List grow>
               <Tabs.Tab
                 value="edit"
@@ -2699,6 +2753,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 Preview
               </Tabs.Tab>
             </Tabs.List>
+            </div>
 
             <Tabs.Panel value="edit" style={{ height: 'calc(100vh - 120px)' }}>
               {FormPanel}
@@ -2708,6 +2763,19 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </Tabs.Panel>
           </Tabs>
         </Box>
+        <EditorChatAssistant
+          enabled={
+            trialMode
+              ? (siteSettings?.cuba_editor_chat_enabled ?? true)
+              : (siteSettings?.editor_chat_enabled ?? true)
+          }
+          dailyLimit={
+            trialMode
+              ? (siteSettings?.cuba_editor_chat_daily_limit ?? 10)
+              : (siteSettings?.editor_chat_daily_limit ?? 20)
+          }
+          contextKey={trialMode ? 'cuba_editor' : 'editor'}
+        />
       </>
     );
   }
@@ -2732,6 +2800,19 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {PhonePreview}
         </Box>
       </Box>
+      <EditorChatAssistant
+        enabled={
+          trialMode
+            ? (siteSettings?.cuba_editor_chat_enabled ?? true)
+            : (siteSettings?.editor_chat_enabled ?? true)
+        }
+        dailyLimit={
+          trialMode
+            ? (siteSettings?.cuba_editor_chat_daily_limit ?? 10)
+            : (siteSettings?.editor_chat_daily_limit ?? 20)
+        }
+        contextKey={trialMode ? 'cuba_editor' : 'editor'}
+      />
     </>
   );
 }

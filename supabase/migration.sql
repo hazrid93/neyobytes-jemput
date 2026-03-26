@@ -507,6 +507,14 @@ INSERT INTO public.site_settings (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Chat config columns for site_settings
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS cuba_preview_chat_enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS cuba_preview_chat_daily_limit integer NOT NULL DEFAULT 10;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS cuba_editor_chat_enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS cuba_editor_chat_daily_limit integer NOT NULL DEFAULT 10;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS editor_chat_enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS editor_chat_daily_limit integer NOT NULL DEFAULT 20;
+
 -- =============================================================================
 -- SEED DEFAULT PLANS
 -- =============================================================================

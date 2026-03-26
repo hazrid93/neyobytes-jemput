@@ -13,6 +13,12 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   instagram_url: '',
   facebook_url: '',
   x_url: '',
+  cuba_preview_chat_enabled: true,
+  cuba_preview_chat_daily_limit: 10,
+  cuba_editor_chat_enabled: true,
+  cuba_editor_chat_daily_limit: 10,
+  editor_chat_enabled: true,
+  editor_chat_daily_limit: 20,
 };
 
 export function normalizeSiteSettings(data?: Partial<SiteSettings> | null): SiteSettings {

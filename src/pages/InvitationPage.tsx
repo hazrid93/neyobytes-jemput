@@ -26,6 +26,8 @@ import FooterSection from '../components/invitation/FooterSection';
 import MusicToggle from '../components/invitation/MusicToggle';
 import ChatbotWidget from '../components/invitation/ChatbotWidget';
 import EditableCopy from '../components/invitation/EditableCopy';
+import { fetchPublicSiteSettings } from '../lib/site-settings';
+import type { SiteSettings } from '../types';
 
 // ---------------------------------------------------------------------------
 // Helper: build wedding context string for chatbot
@@ -425,6 +427,14 @@ export default function InvitationPage() {
     return () => { cancelled = true; };
   }, [invitation?.user_id, invitation?.chatbot_enabled]);
 
+  // Fetch site settings for /cuba preview chatbot admin config
+  const isDemoInvitation = invitation?.user_id === 'demo-user';
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  useEffect(() => {
+    if (!isDemoInvitation) return;
+    fetchPublicSiteSettings().then(setSiteSettings);
+  }, [isDemoInvitation]);
+
   // Resolve template ID and get visuals
   const templateId = useMemo(
     () => resolveTemplateId(invitation?.template ?? 'songket-emas'),
@@ -803,11 +813,23 @@ export default function InvitationPage() {
       {coverOpen && invitation.chatbot_enabled && (
         <ChatbotWidget
           invitationId={invitation.id}
-          enabled={invitation.chatbot_enabled}
+          enabled={
+            isDemoInvitation
+              ? (siteSettings?.cuba_preview_chat_enabled ?? true)
+              : invitation.chatbot_enabled
+          }
           weddingContext={buildWeddingContext(invitation)}
           extraContext={invitation.chatbot_context}
-          dailyLimit={20}
-          subscriptionActive={ownerHasSubscription}
+          dailyLimit={
+            isDemoInvitation
+              ? (siteSettings?.cuba_preview_chat_daily_limit ?? 10)
+              : 20
+          }
+          subscriptionActive={
+            isDemoInvitation
+              ? (siteSettings?.cuba_preview_chat_enabled ?? true)
+              : ownerHasSubscription
+          }
         />
       )}
     </div>
