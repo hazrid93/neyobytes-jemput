@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import { getActionButtonStyle } from '../../lib/template-ui';
 
 interface LocationSectionProps {
   invitation: Invitation;
+  templateId: string;
 }
 
-export default function LocationSection({ invitation }: LocationSectionProps) {
+export default function LocationSection({ invitation, templateId }: LocationSectionProps) {
   const lat = invitation.venue_lat;
   const lng = invitation.venue_lng;
 
@@ -43,6 +45,7 @@ export default function LocationSection({ invitation }: LocationSectionProps) {
     fontWeight: 500,
     letterSpacing: '1px',
     transition: 'all 0.3s ease',
+    ...getActionButtonStyle(templateId, 'outline'),
   };
 
   return (

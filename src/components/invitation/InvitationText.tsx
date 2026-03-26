@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import TemplateSectionShell from './TemplateSectionShell';
 
 interface InvitationTextProps {
   invitation: Invitation;
+  templateId: string;
 }
 
-export default function InvitationText({ invitation }: InvitationTextProps) {
+export default function InvitationText({ invitation, templateId }: InvitationTextProps) {
   return (
     <section
       style={{
@@ -123,58 +125,54 @@ export default function InvitationText({ invitation }: InvitationTextProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.5 }}
-        style={{
-          padding: '28px 20px',
-          borderTop: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
-          borderBottom: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
-          position: 'relative',
-        }}
+        style={{ position: 'relative' }}
       >
-        {/* Decorative quotes */}
-        <span
-          style={{
-            position: 'absolute',
-            top: '-8px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'var(--bg-color, #FDF8F0)',
-            padding: '0 12px',
-            color: 'var(--secondary-color, #D4AF37)',
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '24px',
-            lineHeight: 1,
-          }}
-        >
-          &#8220;
-        </span>
-        <p
-          style={{
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '13px',
-            lineHeight: 1.9,
-            color: 'var(--text-color, #2C1810)',
-            margin: 0,
-            fontWeight: 300,
-          }}
-        >
-          {invitation.invitation_text}
-        </p>
-        <span
-          style={{
-            position: 'absolute',
-            bottom: '-8px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'var(--bg-color, #FDF8F0)',
-            padding: '0 12px',
-            color: 'var(--secondary-color, #D4AF37)',
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '24px',
-            lineHeight: 1,
-          }}
-        >
-          &#8221;
-        </span>
+        <TemplateSectionShell templateId={templateId} padding="30px 24px">
+          <span
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'var(--bg-color, #FDF8F0)',
+              padding: '0 12px',
+              color: 'var(--secondary-color, #D4AF37)',
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              fontSize: '24px',
+              lineHeight: 1,
+            }}
+          >
+            &#8220;
+          </span>
+          <p
+            style={{
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              fontSize: '13px',
+              lineHeight: 1.9,
+              color: 'var(--text-color, #2C1810)',
+              margin: 0,
+              fontWeight: 300,
+            }}
+          >
+            {invitation.invitation_text}
+          </p>
+          <span
+            style={{
+              position: 'absolute',
+              bottom: '-8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'var(--bg-color, #FDF8F0)',
+              padding: '0 12px',
+              color: 'var(--secondary-color, #D4AF37)',
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              fontSize: '24px',
+              lineHeight: 1,
+            }}
+          >
+            &#8221;
+          </span>
+        </TemplateSectionShell>
       </motion.div>
     </section>
   );

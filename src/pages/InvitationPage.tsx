@@ -122,19 +122,20 @@ function renderSection(
   section: InvitationSection,
   invitation: Invitation,
   guestbook: GuestbookMessage[],
+  templateId: string,
 ) {
   switch (section.type) {
     case 'islamic_greeting':
       return <IslamicGreeting key={section.id} />;
 
     case 'invitation_text':
-      return <InvitationText key={section.id} invitation={invitation} />;
+      return <InvitationText key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'couple':
-      return <CoupleSection key={section.id} invitation={invitation} />;
+      return <CoupleSection key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'event_details':
-      return <EventDetails key={section.id} invitation={invitation} />;
+      return <EventDetails key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'countdown':
       return (
@@ -142,6 +143,7 @@ function renderSection(
           key={section.id}
           eventDate={invitation.event_date}
           eventTime={invitation.event_time_start}
+          templateId={templateId}
         />
       );
 
@@ -151,11 +153,11 @@ function renderSection(
       ) : null;
 
     case 'location':
-      return <LocationSection key={section.id} invitation={invitation} />;
+      return <LocationSection key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'contact':
       return invitation.contacts.length > 0 ? (
-        <ContactSection key={section.id} contacts={invitation.contacts} />
+        <ContactSection key={section.id} contacts={invitation.contacts} templateId={templateId} />
       ) : null;
 
     case 'rsvp':
@@ -165,12 +167,13 @@ function renderSection(
           invitationId={invitation.id}
           rsvpDeadline={invitation.rsvp_deadline}
           rsvpEnabled={invitation.rsvp_enabled}
+          templateId={templateId}
         />
       );
 
     case 'money_gift':
       return invitation.money_gift ? (
-        <MoneyGift key={section.id} moneyGift={invitation.money_gift} />
+        <MoneyGift key={section.id} moneyGift={invitation.money_gift} templateId={templateId} />
       ) : null;
 
     case 'gallery':
@@ -179,6 +182,7 @@ function renderSection(
           key={section.id}
           images={invitation.gallery_images}
           layout={((section.config as { layout?: 'carousel' | 'grid' | 'masonry' } | undefined)?.layout) || 'carousel'}
+          templateId={templateId}
         />
       );
 
@@ -188,14 +192,15 @@ function renderSection(
           key={section.id}
           invitationId={invitation.id}
           messages={guestbook}
+          templateId={templateId}
         />
       );
 
     case 'calendar_save':
-      return <CalendarSave key={section.id} invitation={invitation} />;
+      return <CalendarSave key={section.id} invitation={invitation} templateId={templateId} />;
 
     case 'footer':
-      return <FooterSection key={section.id} invitation={invitation} />;
+      return <FooterSection key={section.id} invitation={invitation} templateId={templateId} />;
 
     // ---- Custom section types ----
     case 'custom_text': {
@@ -586,7 +591,7 @@ export default function InvitationPage() {
                   secondaryColor={themeVars.secondary}
                 />
               )}
-              {renderSection(section, invitation, guestbook)}
+              {renderSection(section, invitation, guestbook, templateId)}
             </div>
           ))}
         </motion.div>

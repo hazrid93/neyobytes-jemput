@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../../stores/invitationStore';
+import TemplateSectionShell from './TemplateSectionShell';
+import { getActionButtonStyle, getFieldStyle } from '../../lib/template-ui';
 
 interface RSVPFormProps {
   invitationId: string;
   rsvpDeadline?: string;
   rsvpEnabled: boolean;
+  templateId: string;
 }
 
 /**
@@ -48,7 +51,7 @@ function formatMalayDate(dateStr: string): string {
   }
 }
 
-export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RSVPFormProps) {
+export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled, templateId }: RSVPFormProps) {
   const submitRSVP = useInvitationStore((s) => s.submitRSVP);
 
   const [attending, setAttending] = useState<boolean | null>(null);
@@ -105,6 +108,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
     outline: 'none',
     transition: 'border-color 0.3s ease',
     boxSizing: 'border-box',
+    ...getFieldStyle(templateId),
   };
 
   const labelStyle: React.CSSProperties = {
@@ -168,13 +172,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.6 }}
-          style={{
-            padding: '48px 24px',
-            border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
-            borderRadius: '4px',
-            background: 'rgba(255,255,255,0.3)',
-          }}
+          style={{}}
         >
+          <TemplateSectionShell templateId={templateId} padding="48px 24px">
           {/* Lock icon */}
           <div
             style={{
@@ -242,6 +242,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               Tarikh tutup: {formattedDeadline}
             </p>
           )}
+          </TemplateSectionShell>
         </motion.div>
       ) : (
         /* ==================== OPEN STATE ==================== */
@@ -253,13 +254,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.5 }}
-              style={{
-                padding: '40px 24px',
-                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                borderRadius: '4px',
-                background: 'rgba(255,255,255,0.3)',
-              }}
+              style={{}}
             >
+              <TemplateSectionShell templateId={templateId} padding="40px 24px">
               <div
                 style={{
                   width: '56px',
@@ -299,6 +296,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                   ? 'Pengesahan kehadiran anda telah direkodkan. Kami menantikan kehadiran anda!'
                   : 'Terima kasih atas maklum balas anda. Semoga kita dapat bertemu di lain masa.'}
               </p>
+              </TemplateSectionShell>
             </motion.div>
           ) : (
             <motion.div
@@ -307,13 +305,9 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              style={{
-                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                borderRadius: '4px',
-                padding: '28px 20px',
-                background: 'rgba(255,255,255,0.3)',
-              }}
+              style={{}}
             >
+              <TemplateSectionShell templateId={templateId} padding="28px 20px">
               {/* Deadline banner */}
               {formattedDeadline && (
                 <div
@@ -337,8 +331,8 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                     Sila sahkan kehadiran anda sebelum{' '}
                     <span
                       style={{
-                        fontWeight: 600,
-                        color: 'var(--secondary-color, #D4AF37)',
+                      fontWeight: 600,
+                      color: 'var(--secondary-color, #D4AF37)',
                       }}
                     >
                       {formattedDeadline}
@@ -365,7 +359,6 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                       border: attending === true
                         ? '2px solid var(--secondary-color, #D4AF37)'
                         : '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                      borderRadius: '4px',
                       background: attending === true
                         ? 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent), color-mix(in srgb, var(--secondary-color, #D4AF37) 5%, transparent))'
                         : 'transparent',
@@ -377,6 +370,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                         : 'var(--primary-color, #8B6F4E)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
+                      ...getActionButtonStyle(templateId, 'outline'),
                     }}
                   >
                     Hadir
@@ -389,7 +383,6 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                       border: attending === false
                         ? '2px solid var(--secondary-color, #D4AF37)'
                         : '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                      borderRadius: '4px',
                       background: attending === false
                         ? 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent), color-mix(in srgb, var(--secondary-color, #D4AF37) 5%, transparent))'
                         : 'transparent',
@@ -401,6 +394,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                         : 'var(--primary-color, #8B6F4E)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
+                      ...getActionButtonStyle(templateId, 'outline'),
                     }}
                   >
                     Tidak Hadir
@@ -456,8 +450,8 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                           display: 'flex',
                           alignItems: 'center',
                           border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                          borderRadius: '4px',
                           overflow: 'hidden',
+                          ...getFieldStyle(templateId),
                         }}
                       >
                         <button
@@ -521,8 +515,8 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                           display: 'flex',
                           alignItems: 'center',
                           border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-                          borderRadius: '4px',
                           overflow: 'hidden',
+                          ...getFieldStyle(templateId),
                         }}
                       >
                         <button
@@ -607,7 +601,6 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                   width: '100%',
                   padding: '14px 24px',
                   border: 'none',
-                  borderRadius: '4px',
                   background:
                     attending === null || !name.trim()
                       ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)'
@@ -628,6 +621,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
+                  ...getActionButtonStyle(templateId, 'solid'),
                 }}
               >
                 {loading && (
@@ -648,6 +642,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                 )}
                 {loading ? 'Menghantar...' : 'Hantar RSVP'}
               </motion.button>
+              </TemplateSectionShell>
             </motion.div>
           )}
         </AnimatePresence>

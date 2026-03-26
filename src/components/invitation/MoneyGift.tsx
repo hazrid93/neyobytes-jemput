@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { MoneyGift as MoneyGiftType } from '../../types';
+import TemplateSectionShell from './TemplateSectionShell';
+import { getActionButtonStyle } from '../../lib/template-ui';
 
 interface MoneyGiftProps {
   moneyGift: MoneyGiftType;
+  templateId: string;
 }
 
-export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
+export default function MoneyGift({ moneyGift, templateId }: MoneyGiftProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -92,51 +95,43 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        style={{
-          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-          borderRadius: '4px',
-          padding: '28px 20px',
-          background: 'rgba(255,255,255,0.3)',
-          position: 'relative',
-        }}
+        style={{ position: 'relative' }}
       >
-        {/* Bank name */}
-        <p
-          style={{
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '11px',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            color: 'var(--secondary-color, #D4AF37)',
-            marginBottom: '12px',
-          }}
-        >
-          {moneyGift.bank_name}
-        </p>
+        <TemplateSectionShell templateId={templateId} padding="28px 20px">
+          <p
+            style={{
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              fontSize: '11px',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              color: 'var(--secondary-color, #D4AF37)',
+              marginBottom: '12px',
+            }}
+          >
+            {moneyGift.bank_name}
+          </p>
 
-        {/* Account name */}
-        <p
-          style={{
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '17px',
-            fontWeight: 500,
-            color: 'var(--text-color, #2C1810)',
-            marginBottom: '8px',
-          }}
-        >
-          {moneyGift.account_name}
-        </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              fontSize: '17px',
+              fontWeight: 500,
+              color: 'var(--text-color, #2C1810)',
+              marginBottom: '8px',
+            }}
+          >
+            {moneyGift.account_name}
+          </p>
 
-        {/* Account number with copy */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            marginBottom: moneyGift.qr_code_url ? '24px' : '0',
-          }}
-        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              marginBottom: moneyGift.qr_code_url ? '24px' : '0',
+            }}
+          >
           <p
             style={{
               fontFamily: 'var(--font-body, "Poppins"), sans-serif',
@@ -171,6 +166,7 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
               color: 'var(--secondary-color, #D4AF37)',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
+              ...getActionButtonStyle(templateId, 'outline'),
             }}
           >
             {copied ? (
@@ -190,45 +186,45 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
               </>
             )}
           </motion.button>
-        </div>
-
-        {/* QR code if available */}
-        {moneyGift.qr_code_url && moneyGift.qr_code_url.length > 0 && (
-          <div>
-            <div
-              style={{
-                width: '60px',
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
-                margin: '0 auto 20px',
-              }}
-            />
-            <p
-              style={{
-                fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-                fontSize: '10px',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                color: 'var(--primary-color, #8B6F4E)',
-                marginBottom: '12px',
-              }}
-            >
-              Imbas Kod QR
-            </p>
-            <img
-              src={moneyGift.qr_code_url}
-              alt="QR Code"
-              style={{
-                width: '160px',
-                height: '160px',
-                objectFit: 'contain',
-                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)',
-                borderRadius: '4px',
-                padding: '8px',
-              }}
-            />
           </div>
-        )}
+
+          {moneyGift.qr_code_url && moneyGift.qr_code_url.length > 0 && (
+            <div>
+              <div
+                style={{
+                  width: '60px',
+                  height: '1px',
+                  background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
+                  margin: '0 auto 20px',
+                }}
+              />
+              <p
+                style={{
+                  fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+                  fontSize: '10px',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  color: 'var(--primary-color, #8B6F4E)',
+                  marginBottom: '12px',
+                }}
+              >
+                Imbas Kod QR
+              </p>
+              <img
+                src={moneyGift.qr_code_url}
+                alt="QR Code"
+                style={{
+                  width: '160px',
+                  height: '160px',
+                  objectFit: 'contain',
+                  border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)',
+                  borderRadius: '4px',
+                  padding: '8px',
+                }}
+              />
+            </div>
+          )}
+        </TemplateSectionShell>
       </motion.div>
     </section>
   );

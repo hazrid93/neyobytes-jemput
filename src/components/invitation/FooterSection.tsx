@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import { getActionButtonStyle } from '../../lib/template-ui';
 
 interface FooterSectionProps {
   invitation: Invitation;
+  templateId: string;
 }
 
-export default function FooterSection({ invitation }: FooterSectionProps) {
+export default function FooterSection({ invitation, templateId }: FooterSectionProps) {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const groomFirst = invitation.groom_name.split(' ')[0];
@@ -152,6 +154,7 @@ export default function FooterSection({ invitation }: FooterSectionProps) {
             fontSize: '11px',
             fontWeight: 500,
             color: 'var(--text-color, #2C1810)',
+            ...getActionButtonStyle(templateId, 'outline'),
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--secondary-color, #D4AF37)">
@@ -176,6 +179,7 @@ export default function FooterSection({ invitation }: FooterSectionProps) {
             fontWeight: 500,
             color: 'var(--text-color, #2C1810)',
             cursor: 'pointer',
+            ...getActionButtonStyle(templateId, 'outline'),
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="2">

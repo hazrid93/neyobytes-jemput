@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import { getPhotoFrameStyles } from '../../lib/template-ui';
 
 interface CoupleSectionProps {
   invitation: Invitation;
+  templateId: string;
 }
 
-export default function CoupleSection({ invitation }: CoupleSectionProps) {
+export default function CoupleSection({ invitation, templateId }: CoupleSectionProps) {
   const hasPhoto = invitation.couple_photo_url && invitation.couple_photo_url.length > 0;
+  const photoFrame = getPhotoFrameStyles(templateId);
 
   return (
     <section
@@ -26,57 +29,32 @@ export default function CoupleSection({ invitation }: CoupleSectionProps) {
         style={{
           width: '180px',
           height: '180px',
-          borderRadius: '50%',
           margin: '0 auto 32px',
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          ...photoFrame.wrapper,
         }}
       >
-        {/* Gold ring border */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: '-4px',
-            borderRadius: '50%',
-            border: '2px solid var(--secondary-color, #D4AF37)',
-            opacity: 0.6,
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            inset: '-10px',
-            borderRadius: '50%',
-            border: '1px solid var(--secondary-color, #D4AF37)',
-            opacity: 0.3,
-          }}
-        />
-
         {hasPhoto ? (
           <img
             src={invitation.couple_photo_url}
             alt={`${invitation.groom_name} & ${invitation.bride_name}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              objectFit: 'cover',
-            }}
+            style={photoFrame.image}
           />
         ) : (
           <div
             style={{
               width: '100%',
               height: '100%',
-              borderRadius: '50%',
               background: 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 10%, transparent), color-mix(in srgb, var(--primary-color, #8B6F4E) 10%, transparent))',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '4px',
+              ...photoFrame.image,
             }}
           >
             {/* Decorative heart/ring placeholder */}

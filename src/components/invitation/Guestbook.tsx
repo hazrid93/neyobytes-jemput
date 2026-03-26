@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../../stores/invitationStore';
 import type { GuestbookMessage } from '../../types';
+import TemplateSectionShell from './TemplateSectionShell';
+import { getActionButtonStyle, getFieldStyle } from '../../lib/template-ui';
 
 interface GuestbookProps {
   invitationId: string;
   messages: GuestbookMessage[];
+  templateId: string;
 }
 
 function timeAgo(dateStr: string): string {
@@ -27,7 +30,7 @@ function timeAgo(dateStr: string): string {
   });
 }
 
-export default function Guestbook({ invitationId, messages }: GuestbookProps) {
+export default function Guestbook({ invitationId, messages, templateId }: GuestbookProps) {
   const submitGuestbook = useInvitationStore((s) => s.submitGuestbook);
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
@@ -60,6 +63,7 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
     color: 'var(--text-color, #2C1810)',
     outline: 'none',
     boxSizing: 'border-box' as const,
+    ...getFieldStyle(templateId),
   };
 
   return (
@@ -111,66 +115,57 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.2 }}
-        style={{
-          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-          borderRadius: '4px',
-          padding: '24px 20px',
-          background: 'rgba(255,255,255,0.3)',
-          marginBottom: '24px',
-          textAlign: 'left',
-        }}
+        style={{ marginBottom: '24px', textAlign: 'left' }}
       >
-        <div style={{ marginBottom: '12px' }}>
-          <input
-            type="text"
-            placeholder="Nama anda"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ marginBottom: '16px' }}>
-          <textarea
-            placeholder="Tulis ucapan anda..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={3}
+        <TemplateSectionShell templateId={templateId} padding="24px 20px" contentStyle={{ textAlign: 'left' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <input
+              type="text"
+              placeholder="Nama anda"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <textarea
+              placeholder="Tulis ucapan anda..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+              style={{
+                ...inputStyle,
+                resize: 'vertical' as const,
+                minHeight: '80px',
+              }}
+            />
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleSubmit}
+            disabled={!name.trim() || !message.trim() || loading}
             style={{
-              ...inputStyle,
-              resize: 'vertical' as const,
-              minHeight: '80px',
+              width: '100%',
+              padding: '12px 24px',
+              border: 'none',
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              fontSize: '12px',
+              fontWeight: 500,
+              letterSpacing: '2px',
+              textTransform: 'uppercase' as const,
+              color:
+                !name.trim() || !message.trim()
+                  ? 'var(--primary-color, #8B6F4E)'
+                  : 'var(--bg-color, #FDF8F0)',
+              cursor: !name.trim() || !message.trim() ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              ...getActionButtonStyle(templateId, 'solid'),
             }}
-          />
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSubmit}
-          disabled={!name.trim() || !message.trim() || loading}
-          style={{
-            width: '100%',
-            padding: '12px 24px',
-            border: 'none',
-            borderRadius: '4px',
-            background:
-              !name.trim() || !message.trim()
-                ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)'
-                : 'linear-gradient(135deg, var(--secondary-color, #D4AF37), #C5A028)',
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '12px',
-            fontWeight: 500,
-            letterSpacing: '2px',
-            textTransform: 'uppercase' as const,
-            color:
-              !name.trim() || !message.trim()
-                ? 'var(--primary-color, #8B6F4E)'
-                : 'var(--bg-color, #FDF8F0)',
-            cursor: !name.trim() || !message.trim() ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-          }}
-        >
-          {loading ? 'Menghantar...' : 'Hantar Ucapan'}
-        </motion.button>
+          >
+            {loading ? 'Menghantar...' : 'Hantar Ucapan'}
+          </motion.button>
+        </TemplateSectionShell>
       </motion.div>
 
       {/* Messages list */}

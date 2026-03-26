@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import TemplateSectionShell from './TemplateSectionShell';
+import { getEventDateStyles } from '../../lib/template-ui';
 
 interface EventDetailsProps {
   invitation: Invitation;
+  templateId: string;
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -23,7 +26,7 @@ function formatTime(time: string): string {
   return `${displayHour}:${m} ${period}`;
 }
 
-export default function EventDetails({ invitation }: EventDetailsProps) {
+export default function EventDetails({ invitation, templateId }: EventDetailsProps) {
   const dateObj = new Date(invitation.event_date + 'T00:00:00');
   const dayNum = dateObj.getDate().toString().padStart(2, '0');
   const months = [
@@ -32,6 +35,7 @@ export default function EventDetails({ invitation }: EventDetailsProps) {
   ];
   const monthName = months[dateObj.getMonth()];
   const year = dateObj.getFullYear();
+  const dateStyles = getEventDateStyles(templateId);
 
   return (
     <section
@@ -66,118 +70,89 @@ export default function EventDetails({ invitation }: EventDetailsProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.2 }}
-        style={{
-          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-          borderRadius: '4px',
-          padding: '36px 24px',
-          position: 'relative',
-          background: 'rgba(255,255,255,0.3)',
-        }}
+        style={{ position: 'relative' }}
       >
-        {/* Corner dots */}
-        {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((pos) => (
-          <div
-            key={pos}
+        <TemplateSectionShell templateId={templateId} padding="36px 24px">
+          <p
             style={{
-              position: 'absolute',
-              [pos.includes('top') ? 'top' : 'bottom']: '-3px',
-              [pos.includes('left') ? 'left' : 'right']: '-3px',
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--secondary-color, #D4AF37)',
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              color: 'var(--primary-color, #8B6F4E)',
+              margin: '0 0 8px',
+              ...dateStyles.day,
+            }}
+          >
+            {formatMalayDate(invitation.event_date).split(',')[0]}
+          </p>
+
+          <p
+            style={{
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              color: 'var(--secondary-color, #D4AF37)',
+              lineHeight: 1,
+              margin: '0 0 4px',
+              ...dateStyles.number,
+            }}
+          >
+            {dayNum}
+          </p>
+
+          <p
+            style={{
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              fontWeight: 500,
+              color: 'var(--text-color, #2C1810)',
+              margin: '0 0 20px',
+              ...dateStyles.month,
+            }}
+          >
+            {monthName} {year}
+          </p>
+
+          <div
+            style={{
+              height: '1px',
+              background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
+              margin: '0 auto 20px',
+              ...dateStyles.divider,
             }}
           />
-        ))}
 
-        {/* Day name */}
-        <p
-          style={{
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '11px',
-            letterSpacing: '3px',
-            textTransform: 'uppercase',
-            color: 'var(--primary-color, #8B6F4E)',
-            margin: '0 0 8px',
-          }}
-        >
-          {formatMalayDate(invitation.event_date).split(',')[0]}
-        </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              fontSize: '15px',
+              fontWeight: 500,
+              color: 'var(--text-color, #2C1810)',
+              margin: '0 0 6px',
+            }}
+          >
+            {formatTime(invitation.event_time_start)} &mdash; {formatTime(invitation.event_time_end)}
+          </p>
 
-        {/* Large date number */}
-        <p
-          style={{
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '64px',
-            fontWeight: 700,
-            color: 'var(--secondary-color, #D4AF37)',
-            lineHeight: 1,
-            margin: '0 0 4px',
-          }}
-        >
-          {dayNum}
-        </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-display, "Playfair Display"), serif',
+              fontSize: '18px',
+              fontWeight: 600,
+              color: 'var(--text-color, #2C1810)',
+              margin: '16px 0 8px',
+            }}
+          >
+            {invitation.venue_name}
+          </p>
 
-        {/* Month and year */}
-        <p
-          style={{
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '18px',
-            fontWeight: 500,
-            color: 'var(--text-color, #2C1810)',
-            margin: '0 0 20px',
-          }}
-        >
-          {monthName} {year}
-        </p>
-
-        {/* Divider */}
-        <div
-          style={{
-            width: '60px',
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
-            margin: '0 auto 20px',
-          }}
-        />
-
-        {/* Time */}
-        <p
-          style={{
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '15px',
-            fontWeight: 500,
-            color: 'var(--text-color, #2C1810)',
-            margin: '0 0 6px',
-          }}
-        >
-          {formatTime(invitation.event_time_start)} &mdash; {formatTime(invitation.event_time_end)}
-        </p>
-
-        {/* Venue */}
-        <p
-          style={{
-            fontFamily: 'var(--font-display, "Playfair Display"), serif',
-            fontSize: '18px',
-            fontWeight: 600,
-            color: 'var(--text-color, #2C1810)',
-            margin: '16px 0 8px',
-          }}
-        >
-          {invitation.venue_name}
-        </p>
-
-        <p
-          style={{
-            fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-            fontSize: '12px',
-            color: 'var(--primary-color, #8B6F4E)',
-            lineHeight: 1.7,
-            margin: 0,
-          }}
-        >
-          {invitation.venue_address}
-        </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+              fontSize: '12px',
+              color: 'var(--primary-color, #8B6F4E)',
+              lineHeight: 1.7,
+              margin: 0,
+            }}
+          >
+            {invitation.venue_address}
+          </p>
+        </TemplateSectionShell>
       </motion.div>
     </section>
   );

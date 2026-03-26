@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getCountdownUnitStyle } from '../../lib/template-ui';
 
 interface CountdownTimerProps {
   eventDate: string;
   eventTime: string;
+  templateId: string;
 }
 
 interface TimeLeft {
@@ -33,7 +35,7 @@ const units: { key: keyof TimeLeft; label: string }[] = [
   { key: 'seconds', label: 'Saat' },
 ];
 
-export default function CountdownTimer({ eventDate, eventTime }: CountdownTimerProps) {
+export default function CountdownTimer({ eventDate, eventTime, templateId }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
     calculateTimeLeft(eventDate, eventTime)
   );
@@ -119,9 +121,9 @@ export default function CountdownTimer({ eventDate, eventTime }: CountdownTimerP
               minWidth: '68px',
               padding: '16px 8px',
               border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
-              borderRadius: '4px',
               background: 'rgba(255,255,255,0.4)',
               position: 'relative',
+              ...getCountdownUnitStyle(templateId, index),
             }}
           >
             <p

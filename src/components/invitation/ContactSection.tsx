@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion';
 import type { ContactPerson } from '../../types';
+import TemplateSectionShell from './TemplateSectionShell';
+import { getActionButtonStyle } from '../../lib/template-ui';
 
 interface ContactSectionProps {
   contacts: ContactPerson[];
+  templateId: string;
 }
 
-export default function ContactSection({ contacts }: ContactSectionProps) {
+export default function ContactSection({ contacts, templateId }: ContactSectionProps) {
   if (!contacts || contacts.length === 0) return null;
 
   return (
@@ -61,47 +64,42 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
             viewport={{ once: true, margin: '-30px' }}
             transition={{ duration: 0.6, delay: index * 0.15 }}
             style={{
-              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
-              borderRadius: '4px',
-              padding: '20px',
-              background: 'rgba(255,255,255,0.3)',
+              padding: '0',
             }}
           >
-            {/* Role badge */}
-            <p
-              style={{
-                fontFamily: 'var(--font-body, "Poppins"), sans-serif',
-                fontSize: '9px',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                color: 'var(--secondary-color, #D4AF37)',
-                marginBottom: '6px',
-              }}
-            >
-              {contact.role}
-            </p>
+            <TemplateSectionShell templateId={templateId} padding="20px">
+              <p
+                style={{
+                  fontFamily: 'var(--font-body, "Poppins"), sans-serif',
+                  fontSize: '9px',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  color: 'var(--secondary-color, #D4AF37)',
+                  marginBottom: '6px',
+                }}
+              >
+                {contact.role}
+              </p>
 
-            {/* Name */}
-            <p
-              style={{
-                fontFamily: 'var(--font-display, "Playfair Display"), serif',
-                fontSize: '16px',
-                fontWeight: 500,
-                color: 'var(--text-color, #2C1810)',
-                marginBottom: '14px',
-              }}
-            >
-              {contact.name}
-            </p>
+              <p
+                style={{
+                  fontFamily: 'var(--font-display, "Playfair Display"), serif',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  color: 'var(--text-color, #2C1810)',
+                  marginBottom: '14px',
+                }}
+              >
+                {contact.name}
+              </p>
 
-            {/* Action buttons */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '10px',
-                justifyContent: 'center',
-              }}
-            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  justifyContent: 'center',
+                }}
+              >
               {/* Phone call */}
               <a
                 href={`tel:${contact.phone}`}
@@ -118,6 +116,7 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
                   fontFamily: 'var(--font-body, "Poppins"), sans-serif',
                   fontSize: '11px',
                   fontWeight: 500,
+                  ...getActionButtonStyle(templateId, 'outline'),
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="2">
@@ -144,6 +143,7 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
                   fontFamily: 'var(--font-body, "Poppins"), sans-serif',
                   fontSize: '11px',
                   fontWeight: 500,
+                  ...getActionButtonStyle(templateId, 'outline'),
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--secondary-color, #D4AF37)">
@@ -151,7 +151,8 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
                 </svg>
                 WhatsApp
               </a>
-            </div>
+              </div>
+            </TemplateSectionShell>
           </motion.div>
         ))}
       </div>

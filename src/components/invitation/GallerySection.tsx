@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import type { GalleryImage } from '../../types';
+import { getGalleryFrameStyle } from '../../lib/template-ui';
 
 interface GallerySectionProps {
   images: GalleryImage[];
   layout?: 'carousel' | 'grid' | 'masonry';
+  templateId: string;
 }
 
-export default function GallerySection({ images, layout = 'carousel' }: GallerySectionProps) {
+export default function GallerySection({ images, layout = 'carousel', templateId }: GallerySectionProps) {
   const hasImages = images && images.length > 0;
   const sortedImages = [...images].sort((a, b) => a.sort_order - b.sort_order);
 
@@ -90,10 +92,10 @@ export default function GallerySection({ images, layout = 'carousel' }: GalleryS
                         : index % 3 === 0
                           ? '240px'
                           : '180px',
-                  borderRadius: '4px',
                   overflow: 'hidden',
                   border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)',
                   scrollSnapAlign: layout === 'carousel' ? 'center' : undefined,
+                  ...getGalleryFrameStyle(templateId, index),
                 }}
               >
                 <img

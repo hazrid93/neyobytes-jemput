@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
+import { getActionButtonStyle } from '../../lib/template-ui';
 
 interface CalendarSaveProps {
   invitation: Invitation;
+  templateId: string;
 }
 
 function formatDateForGoogle(date: string, time: string): string {
@@ -56,7 +58,7 @@ function downloadICS(invitation: Invitation): void {
   URL.revokeObjectURL(url);
 }
 
-export default function CalendarSave({ invitation }: CalendarSaveProps) {
+export default function CalendarSave({ invitation, templateId }: CalendarSaveProps) {
   return (
     <section
       style={{
@@ -148,6 +150,7 @@ export default function CalendarSave({ invitation }: CalendarSaveProps) {
             fontSize: '13px',
             fontWeight: 500,
             letterSpacing: '1px',
+            ...getActionButtonStyle(templateId, 'outline'),
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="1.5">
@@ -177,6 +180,7 @@ export default function CalendarSave({ invitation }: CalendarSaveProps) {
             fontWeight: 500,
             letterSpacing: '1px',
             cursor: 'pointer',
+            ...getActionButtonStyle(templateId, 'outline'),
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color, #D4AF37)" strokeWidth="1.5">
