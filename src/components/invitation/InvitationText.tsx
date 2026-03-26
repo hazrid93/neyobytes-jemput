@@ -125,8 +125,8 @@ export default function InvitationText({ invitation }: InvitationTextProps) {
         transition={{ duration: 0.8, delay: 0.5 }}
         style={{
           padding: '28px 20px',
-          borderTop: '1px solid rgba(212,175,55,0.25)',
-          borderBottom: '1px solid rgba(212,175,55,0.25)',
+          borderTop: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
+          borderBottom: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
           position: 'relative',
         }}
       >

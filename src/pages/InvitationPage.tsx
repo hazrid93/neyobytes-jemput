@@ -1,7 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../stores/invitationStore';
+import { supabase } from '../lib/supabase';
+import { getTemplateVisuals, buildThemeVars } from '../lib/template-styles';
+import { resolveTemplateId } from '../lib/themes';
 import type { GuestbookMessage, Invitation, InvitationSection } from '../types';
 
 import CoverSection from '../components/invitation/CoverSection';
@@ -74,25 +77,27 @@ function buildWeddingContext(inv: Invitation): string {
 }
 
 // ---------------------------------------------------------------------------
-// Ornament divider used between sections
+// Template-aware ornament divider
 // ---------------------------------------------------------------------------
-function OrnamentDivider() {
+function OrnamentDivider({ templateId, secondaryColor }: { templateId: string; secondaryColor: string }) {
+  const visuals = getTemplateVisuals(templateId);
+  const svgString = visuals.dividerSvg(secondaryColor);
+
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '0 24px',
+        padding: '8px 24px',
         maxWidth: '480px',
         margin: '0 auto',
       }}
     >
-      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.25))' }} />
-      <span style={{ padding: '0 12px', color: 'var(--secondary-color, #D4AF37)', fontSize: '12px', opacity: 0.5 }}>
-        &#9674; &#9674; &#9674;
-      </span>
-      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.25), transparent)' }} />
+      <div
+        dangerouslySetInnerHTML={{ __html: svgString }}
+        style={{ width: '200px', height: '24px' }}
+      />
     </div>
   );
 }
@@ -169,7 +174,13 @@ function renderSection(
       ) : null;
 
     case 'gallery':
-      return <GallerySection key={section.id} images={invitation.gallery_images} />;
+      return (
+        <GallerySection
+          key={section.id}
+          images={invitation.gallery_images}
+          layout={((section.config as { layout?: 'carousel' | 'grid' | 'masonry' } | undefined)?.layout) || 'carousel'}
+        />
+      );
 
     case 'guestbook':
       return (
@@ -299,13 +310,52 @@ export default function InvitationPage() {
     useInvitationStore();
 
   const [coverOpen, setCoverOpen] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [ownerHasSubscription, setOwnerHasSubscription] = useState(false);
 
   useEffect(() => {
     if (slug) {
       fetchInvitation(slug);
     }
   }, [slug, fetchInvitation]);
+
+  // Check if the invitation owner has an active subscription (for chatbot gating)
+  // Skip for demo data — no real user to query
+  useEffect(() => {
+    if (!invitation?.user_id || !invitation.chatbot_enabled) return;
+    if (invitation.user_id === 'demo-user') {
+      setOwnerHasSubscription(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('user_id', invitation.user_id)
+          .eq('status', 'succeeded')
+          .limit(1);
+        if (!cancelled) setOwnerHasSubscription((data ?? []).length > 0);
+      } catch {
+        if (!cancelled) setOwnerHasSubscription(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [invitation?.user_id, invitation?.chatbot_enabled]);
+
+  // Resolve template ID and get visuals
+  const templateId = useMemo(
+    () => resolveTemplateId(invitation?.template ?? 'songket-emas'),
+    [invitation?.template],
+  );
+  const visuals = useMemo(() => getTemplateVisuals(templateId), [templateId]);
+  const themeVars = useMemo(
+    () =>
+      invitation
+        ? buildThemeVars(invitation.theme_config)
+        : { primary: '#8B6F4E', secondary: '#D4AF37', accent: '#F5E6D3', bg: '#FDF8F0', text: '#2C1810' },
+    [invitation],
+  );
 
   // Set CSS variables from theme config
   useEffect(() => {
@@ -320,12 +370,14 @@ export default function InvitationPage() {
     root.style.setProperty('--font-display', t.font_display);
     root.style.setProperty('--font-body', t.font_body);
     root.style.setProperty('--font-arabic', t.font_arabic);
+    // Additional variables consumed by section components
+    root.style.setProperty('--border-color', t.secondary_color);
+    root.style.setProperty('--template-id', templateId);
 
     // Set page title
     document.title = `${invitation.groom_name} & ${invitation.bride_name} | Jemput`;
 
     return () => {
-      // Cleanup CSS variables
       root.style.removeProperty('--primary-color');
       root.style.removeProperty('--secondary-color');
       root.style.removeProperty('--accent-color');
@@ -334,8 +386,27 @@ export default function InvitationPage() {
       root.style.removeProperty('--font-display');
       root.style.removeProperty('--font-body');
       root.style.removeProperty('--font-arabic');
+      root.style.removeProperty('--border-color');
+      root.style.removeProperty('--template-id');
     };
-  }, [invitation]);
+  }, [invitation, templateId]);
+
+  useEffect(() => {
+    if (!coverOpen) return;
+
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+
+    scrollToTop();
+    const rafId = window.requestAnimationFrame(scrollToTop);
+    const timeoutId = window.setTimeout(scrollToTop, 120);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [coverOpen]);
 
   const handleOpenCover = () => {
     setCoverOpen(true);
@@ -344,11 +415,6 @@ export default function InvitationPage() {
     if (invitation?.music_url && invitation.music_url.length > 0) {
       toggleMusic();
     }
-
-    // Smooth scroll to content
-    setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
   };
 
   // Loading screen
@@ -394,6 +460,16 @@ export default function InvitationPage() {
   }
 
   // -----------------------------------------------------------------------
+  // Template-aware page background
+  // -----------------------------------------------------------------------
+  const pageBackgroundStyle = visuals.pageBackground(themeVars);
+
+  // -----------------------------------------------------------------------
+  // Template-aware top ornament divider SVG
+  // -----------------------------------------------------------------------
+  const topDividerSvg = visuals.dividerSvg(themeVars.secondary);
+
+  // -----------------------------------------------------------------------
   // Determine which sections to render (dynamic or fallback)
   // -----------------------------------------------------------------------
   const sectionsToRender: InvitationSection[] =
@@ -407,7 +483,7 @@ export default function InvitationPage() {
     <div
       className="invitation-page"
       style={{
-        background: 'var(--bg-color, #FDF8F0)',
+        ...pageBackgroundStyle,
         color: 'var(--text-color, #2C1810)',
         minHeight: '100dvh',
         overflowX: 'hidden',
@@ -425,6 +501,7 @@ export default function InvitationPage() {
               invitation={invitation}
               guestName={guestName}
               onOpen={handleOpenCover}
+              templateId={templateId}
             />
           </motion.div>
         )}
@@ -433,7 +510,6 @@ export default function InvitationPage() {
       {/* Main Content - Only visible after cover is opened */}
       {coverOpen && (
         <motion.div
-          ref={contentRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.3 }}
@@ -484,7 +560,7 @@ export default function InvitationPage() {
             </motion.div>
           )}
 
-          {/* Gold top border ornament */}
+          {/* Template-aware top ornament divider */}
           <div
             style={{
               display: 'flex',
@@ -496,34 +572,20 @@ export default function InvitationPage() {
             }}
           >
             <div
-              style={{
-                flex: 1,
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37))',
-              }}
-            />
-            <span
-              style={{
-                padding: '0 16px',
-                color: 'var(--secondary-color, #D4AF37)',
-                fontSize: '16px',
-              }}
-            >
-              &#10022;
-            </span>
-            <div
-              style={{
-                flex: 1,
-                height: '1px',
-                background: 'linear-gradient(90deg, var(--secondary-color, #D4AF37), transparent)',
-              }}
+              dangerouslySetInnerHTML={{ __html: topDividerSvg }}
+              style={{ width: '200px', height: '24px' }}
             />
           </div>
 
           {/* Dynamic sections */}
           {sectionsToRender.map((section) => (
             <div key={section.id}>
-              {DIVIDER_BEFORE.has(section.type) && <OrnamentDivider />}
+              {DIVIDER_BEFORE.has(section.type) && (
+                <OrnamentDivider
+                  templateId={templateId}
+                  secondaryColor={themeVars.secondary}
+                />
+              )}
               {renderSection(section, invitation, guestbook)}
             </div>
           ))}
@@ -543,6 +605,7 @@ export default function InvitationPage() {
           weddingContext={buildWeddingContext(invitation)}
           extraContext={invitation.chatbot_context}
           dailyLimit={20}
+          subscriptionActive={ownerHasSubscription}
         />
       )}
     </div>

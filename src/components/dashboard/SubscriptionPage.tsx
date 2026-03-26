@@ -49,7 +49,8 @@ export default function SubscriptionPage() {
     fetchPlans();
     fetchMyInvitations();
     fetchPayments();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchPlans, fetchMyInvitations]);
 
   async function fetchPayments() {
     setPaymentsLoading(true);
@@ -93,16 +94,40 @@ export default function SubscriptionPage() {
   async function createPortalSession() {
     setPortalLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: {
-          return_url: `${window.location.origin}/dashboard/subscription`,
-        },
+      // Get user's stripe_customer_id from profile
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.stripe_customer_id) {
+        notifications.show({
+          title: 'Stripe Portal',
+          message: 'Tiada akaun Stripe dikaitkan. Sila buat pembayaran terlebih dahulu.',
+          color: 'yellow',
+        });
+        return;
+      }
+
+      const API_URL = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${API_URL}/stripe/portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: profile.stripe_customer_id }),
       });
 
-      if (error) throw error;
+      if (!res.ok) throw new Error('Portal request failed');
 
-      if (data?.portal_url) {
-        window.location.href = data.portal_url;
+      const data = await res.json();
+
+      if (data?.url) {
+        window.location.href = data.url;
       } else {
         notifications.show({
           title: 'Stripe Portal',

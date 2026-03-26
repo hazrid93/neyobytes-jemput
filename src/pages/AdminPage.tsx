@@ -39,10 +39,12 @@ import {
   IconFileInvoice,
   IconCalendarEvent,
   IconChevronRight,
+  IconSettings,
 } from '@tabler/icons-react';
 import { useAdminStore } from '../stores/adminStore';
 import { useAuthStore } from '../stores/authStore';
-import type { Plan } from '../types';
+import type { Plan, SiteSettings } from '../types';
+import { DEFAULT_SITE_SETTINGS } from '../lib/site-settings';
 
 // ---------------------------------------------------------------------------
 // Theme constants
@@ -113,7 +115,7 @@ function StatCard({
 // Dashboard Tab
 // ---------------------------------------------------------------------------
 function DashboardTab() {
-  const { stats, payments, loading, fetchStats, fetchPayments } =
+  const { stats, payments, loadingStats, fetchStats, fetchPayments } =
     useAdminStore();
 
   useEffect(() => {
@@ -121,7 +123,7 @@ function DashboardTab() {
     fetchPayments();
   }, [fetchStats, fetchPayments]);
 
-  if (loading && !stats) {
+  if (loadingStats && !stats) {
     return (
       <Center py={60}>
         <Loader color={GOLD} />
@@ -240,7 +242,7 @@ const EMPTY_PLAN_FORM = {
 };
 
 function PlansTab() {
-  const { plans, loading, fetchPlans, createPlan, updatePlan, deletePlan } =
+  const { plans, loadingPlans, fetchPlans, createPlan, updatePlan, deletePlan } =
     useAdminStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -334,7 +336,7 @@ function PlansTab() {
         </Button>
       </Group>
 
-      {loading && plans.length === 0 ? (
+      {loadingPlans && plans.length === 0 ? (
         <Center py={40}>
           <Loader color={GOLD} />
         </Center>
@@ -541,11 +543,7 @@ function PlansTab() {
             </Button>
             <Button
               onClick={handleSubmit}
-              loading={loading}
-              style={{
-                background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_LIGHT} 100%)`,
-                border: 'none',
-              }}
+              loading={loadingPlans}
             >
               {editingPlan ? 'Simpan' : 'Cipta'}
             </Button>
@@ -571,7 +569,7 @@ function PlansTab() {
           <Button
             color="red"
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-            loading={loading}
+            loading={loadingPlans}
           >
             Padam
           </Button>
@@ -585,13 +583,13 @@ function PlansTab() {
 // Users Tab
 // ---------------------------------------------------------------------------
 function UsersTab() {
-  const { users, loading, fetchUsers } = useAdminStore();
+  const { users, loadingUsers, fetchUsers } = useAdminStore();
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  if (loading && users.length === 0) {
+  if (loadingUsers && users.length === 0) {
     return (
       <Center py={60}>
         <Loader color={GOLD} />
@@ -660,7 +658,7 @@ function UsersTab() {
 // Payments Tab
 // ---------------------------------------------------------------------------
 function PaymentsTab() {
-  const { payments, loading, fetchPayments } = useAdminStore();
+  const { payments, loadingPayments, fetchPayments } = useAdminStore();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   useEffect(() => {
@@ -671,7 +669,7 @@ function PaymentsTab() {
     ? payments.filter((p) => p.status === statusFilter)
     : payments;
 
-  if (loading && payments.length === 0) {
+  if (loadingPayments && payments.length === 0) {
     return (
       <Center py={60}>
         <Loader color={GOLD} />
@@ -774,12 +772,145 @@ function PaymentsTab() {
   );
 }
 
+function SiteSettingsTab() {
+  const {
+    siteSettings,
+    loadingSiteSettings,
+    fetchSiteSettings,
+    updateSiteSettings,
+  } = useAdminStore();
+  const [form, setForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+
+  useEffect(() => {
+    fetchSiteSettings();
+  }, [fetchSiteSettings]);
+
+  useEffect(() => {
+    setForm(siteSettings);
+  }, [siteSettings]);
+
+  const handleSave = async () => {
+    try {
+      await updateSiteSettings(form);
+    } catch (err) {
+      console.error('Failed to save site settings:', err);
+    }
+  };
+
+  if (loadingSiteSettings && form.id === DEFAULT_SITE_SETTINGS.id && form.company_name === DEFAULT_SITE_SETTINGS.company_name) {
+    return (
+      <Center py={60}>
+        <Loader color={GOLD} />
+      </Center>
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Title order={4} style={{ color: DARK }}>
+        Tetapan Laman
+      </Title>
+
+      <Card
+        padding="lg"
+        radius="md"
+        style={{
+          border: '1px solid rgba(176,141,91,0.15)',
+          background: '#fff',
+        }}
+      >
+        <Stack gap="md">
+          <Group grow>
+            <TextInput
+              label="Nama Syarikat / Jenama"
+              value={form.company_name}
+              onChange={(e) => setForm({ ...form, company_name: e.currentTarget.value })}
+            />
+            <TextInput
+              label="E-mel Hubungan"
+              value={form.contact_email}
+              onChange={(e) => setForm({ ...form, contact_email: e.currentTarget.value })}
+            />
+          </Group>
+
+          <TextInput
+            label="Telefon"
+            value={form.contact_phone || ''}
+            onChange={(e) => setForm({ ...form, contact_phone: e.currentTarget.value })}
+          />
+
+          <Textarea
+            label="Tagline Footer"
+            value={form.company_tagline}
+            onChange={(e) => setForm({ ...form, company_tagline: e.currentTarget.value })}
+            minRows={2}
+            autosize
+          />
+
+          <Textarea
+            label="Ringkasan Tentang Kami"
+            value={form.about_short}
+            onChange={(e) => setForm({ ...form, about_short: e.currentTarget.value })}
+            minRows={4}
+            autosize
+          />
+
+          <Textarea
+            label="Alamat"
+            value={form.address || ''}
+            onChange={(e) => setForm({ ...form, address: e.currentTarget.value })}
+            minRows={2}
+            autosize
+          />
+
+          <Divider label="Media Sosial" labelPosition="center" />
+
+          <TextInput
+            label="Instagram URL"
+            placeholder="https://instagram.com/..."
+            value={form.instagram_url || ''}
+            onChange={(e) => setForm({ ...form, instagram_url: e.currentTarget.value })}
+          />
+          <TextInput
+            label="Facebook URL"
+            placeholder="https://facebook.com/..."
+            value={form.facebook_url || ''}
+            onChange={(e) => setForm({ ...form, facebook_url: e.currentTarget.value })}
+          />
+          <TextInput
+            label="X / Twitter URL"
+            placeholder="https://x.com/..."
+            value={form.x_url || ''}
+            onChange={(e) => setForm({ ...form, x_url: e.currentTarget.value })}
+          />
+
+          <Group justify="flex-end">
+            <Button onClick={handleSave} loading={loadingSiteSettings}>
+              Simpan Tetapan
+            </Button>
+          </Group>
+        </Stack>
+      </Card>
+    </Stack>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Admin Page
 // ---------------------------------------------------------------------------
 export default function AdminPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+
+  // Wait for auth to initialize before showing access denied
+  if (!initialized) {
+    return (
+      <Center style={{ minHeight: '100vh', background: CREAM }}>
+        <Loader color={GOLD} />
+      </Center>
+    );
+  }
 
   // Protect: only admin can access
   if (!user) {
@@ -916,6 +1047,12 @@ export default function AdminPage() {
               >
                 Bayaran
               </Tabs.Tab>
+              <Tabs.Tab
+                value="site-settings"
+                leftSection={<IconSettings size={16} />}
+              >
+                Tetapan Laman
+              </Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="dashboard">
@@ -932,6 +1069,10 @@ export default function AdminPage() {
 
             <Tabs.Panel value="payments">
               <PaymentsTab />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="site-settings">
+              <SiteSettingsTab />
             </Tabs.Panel>
           </Tabs>
         </Container>

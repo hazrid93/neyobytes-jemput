@@ -15,6 +15,7 @@ interface DashboardState {
   rsvps: RSVP[];
   guestbook: GuestbookMessage[];
   loading: boolean;
+  loadingDetails: boolean;
 
   fetchMyInvitations: () => Promise<void>;
   fetchInvitationDetails: (id: string) => Promise<void>;
@@ -30,29 +31,43 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   rsvps: [],
   guestbook: [],
   loading: false,
+  loadingDetails: false,
 
   fetchMyInvitations: async () => {
     set({ loading: true });
-    const { data } = await supabase
-      .from('invitations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    set({ invitations: (data as Invitation[]) || [], loading: false });
+    try {
+      const { data, error } = await supabase
+        .from('invitations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      set({ invitations: (data as Invitation[]) || [] });
+    } catch (err) {
+      console.error('Failed to fetch invitations:', err);
+    } finally {
+      set({ loading: false });
+    }
   },
 
   fetchInvitationDetails: async (id: string) => {
-    set({ loading: true });
-    const [invRes, rsvpRes, gbRes] = await Promise.all([
-      supabase.from('invitations').select('*').eq('id', id).single(),
-      supabase.from('rsvps').select('*').eq('invitation_id', id).order('created_at', { ascending: false }),
-      supabase.from('guestbook_messages').select('*').eq('invitation_id', id).order('created_at', { ascending: false }),
-    ]);
-    set({
-      currentInvitation: invRes.data as Invitation,
-      rsvps: (rsvpRes.data as RSVP[]) || [],
-      guestbook: (gbRes.data as GuestbookMessage[]) || [],
-      loading: false,
-    });
+    set({ loadingDetails: true });
+    try {
+      const [invRes, rsvpRes, gbRes] = await Promise.all([
+        supabase.from('invitations').select('*').eq('id', id).single(),
+        supabase.from('rsvps').select('*').eq('invitation_id', id).order('created_at', { ascending: false }),
+        supabase.from('guestbook_messages').select('*').eq('invitation_id', id).order('created_at', { ascending: false }),
+      ]);
+      if (invRes.error) throw invRes.error;
+      set({
+        currentInvitation: invRes.data as Invitation,
+        rsvps: (rsvpRes.data as RSVP[]) || [],
+        guestbook: (gbRes.data as GuestbookMessage[]) || [],
+      });
+    } catch (err) {
+      console.error('Failed to fetch invitation details:', err);
+    } finally {
+      set({ loadingDetails: false });
+    }
   },
 
   createInvitation: async (inv) => {
@@ -104,12 +119,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   deleteInvitation: async (id) => {
-    await supabase.from('invitations').delete().eq('id', id);
+    const { error } = await supabase.from('invitations').delete().eq('id', id);
+    if (error) throw error;
     set({ invitations: get().invitations.filter((inv) => inv.id !== id) });
   },
 
   deleteGuestbookMessage: async (id) => {
-    await supabase.from('guestbook_messages').delete().eq('id', id);
+    const { error } = await supabase.from('guestbook_messages').delete().eq('id', id);
+    if (error) throw error;
     set({ guestbook: get().guestbook.filter((msg) => msg.id !== id) });
   },
 }));

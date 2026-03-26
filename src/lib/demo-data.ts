@@ -1,11 +1,13 @@
 import type { Invitation, RSVP, GuestbookMessage } from '../types';
 
+export const TRIAL_PREVIEW_STORAGE_KEY = 'jemput_trial_preview_invitation';
+
 export const demoInvitation: Invitation = {
   id: 'demo-001',
   user_id: 'demo-user',
   slug: 'aiman-nadia',
   status: 'published',
-  template: 'elegant-gold',
+  template: 'songket-emas',
 
   bride_name: 'Nadia binti Ahmad',
   groom_name: 'Aiman bin Ibrahim',
@@ -71,6 +73,10 @@ export const demoInvitation: Invitation = {
     font_body: 'Poppins',
     font_arabic: 'Amiri',
     ornament_style: 'classic',
+    bg_pattern: 'songket-weave',
+    border_style: 'ornate',
+    divider_style: 'diamond',
+    cover_style: 'ornate',
   },
 
   sections: [

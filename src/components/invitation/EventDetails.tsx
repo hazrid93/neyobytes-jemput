@@ -67,7 +67,7 @@ export default function EventDetails({ invitation }: EventDetailsProps) {
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.2 }}
         style={{
-          border: '1px solid rgba(212,175,55,0.3)',
+          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
           borderRadius: '4px',
           padding: '36px 24px',
           position: 'relative',

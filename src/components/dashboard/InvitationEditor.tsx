@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Group,
@@ -24,6 +24,7 @@ import {
   ScrollArea,
   Image,
   SimpleGrid,
+  Modal,
 } from '@mantine/core';
 import { TimeInput, DatePickerInput } from '@mantine/dates';
 import { Dropzone, IMAGE_MIME_TYPE } from '@mantine/dropzone';
@@ -58,12 +59,24 @@ import {
   IconEye,
   IconRobot,
   IconLayoutList,
+  IconLock,
+  IconCrown,
+  IconUserPlus,
+  IconArrowRight,
 } from '@tabler/icons-react';
 import { uploadImage, deleteImage } from '../../lib/upload';
 import { useDashboardStore } from '../../stores/dashboardStore';
+import { supabase } from '../../lib/supabase';
+import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
 import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate } from '../../types';
+
+interface InvitationEditorProps {
+  trialMode?: boolean;
+}
+
+const MAX_GALLERY_IMAGES = 6;
 
 const FONT_OPTIONS = [
   { value: 'Playfair Display', label: 'Playfair Display' },
@@ -88,11 +101,99 @@ const FONT_ARABIC_OPTIONS = [
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-export default function InvitationEditor() {
+// Helper to populate form values from an invitation object
+function invitationToFormValues(inv: Invitation): Partial<Invitation> {
+  return {
+    bride_name: inv.bride_name,
+    groom_name: inv.groom_name,
+    bride_parent_names: inv.bride_parent_names,
+    groom_parent_names: inv.groom_parent_names,
+    couple_photo_url: inv.couple_photo_url,
+    cover_photo_url: inv.cover_photo_url,
+    event_date: inv.event_date,
+    event_time_start: inv.event_time_start,
+    event_time_end: inv.event_time_end,
+    venue_name: inv.venue_name,
+    venue_address: inv.venue_address,
+    venue_lat: inv.venue_lat,
+    venue_lng: inv.venue_lng,
+    venue_google_maps_embed: inv.venue_google_maps_embed,
+    invitation_text: inv.invitation_text,
+    music_url: inv.music_url,
+    music_type: inv.music_type,
+    rsvp_enabled: inv.rsvp_enabled,
+    rsvp_deadline: inv.rsvp_deadline,
+    itinerary: inv.itinerary || [],
+    contacts: inv.contacts || [],
+    money_gift: inv.money_gift,
+    wishlist: inv.wishlist || [],
+    theme_config: inv.theme_config,
+    sections: inv.sections || [],
+    template: inv.template,
+    chatbot_enabled: inv.chatbot_enabled ?? false,
+    chatbot_context: inv.chatbot_context || '',
+    slug: inv.slug,
+    status: inv.status,
+  };
+}
+
+function buildTrialPreviewInvitation(values: Partial<Invitation>, galleryUrls: string[]): Invitation {
+  return {
+    ...demoInvitation,
+    ...values,
+    id: demoInvitation.id,
+    user_id: demoInvitation.user_id,
+    slug: demoInvitation.slug,
+    status: demoInvitation.status,
+    itinerary: (values.itinerary || demoInvitation.itinerary),
+    contacts: (values.contacts || demoInvitation.contacts),
+    money_gift: values.money_gift || demoInvitation.money_gift,
+    wishlist: (values.wishlist || demoInvitation.wishlist),
+    theme_config: values.theme_config || demoInvitation.theme_config,
+    sections: (values.sections || demoInvitation.sections),
+    gallery_images: galleryUrls.map((url, idx) => ({
+      id: `gallery-${idx}`,
+      invitation_id: demoInvitation.id,
+      url,
+      sort_order: idx,
+    })),
+    updated_at: new Date().toISOString(),
+  } as Invitation;
+}
+
+function syncTrialPreviewInvitation(values: Partial<Invitation>, galleryUrls: string[]) {
+  if (typeof window === 'undefined') return;
+  const invitation = buildTrialPreviewInvitation(values, galleryUrls);
+  window.localStorage.setItem(TRIAL_PREVIEW_STORAGE_KEY, JSON.stringify(invitation));
+}
+
+function getGallerySectionConfig(sections: InvitationSection[] | undefined) {
+  const gallerySection = (sections || []).find((section) => section.type === 'gallery');
+  return (gallerySection?.config || {}) as { layout?: 'carousel' | 'grid' | 'masonry' };
+}
+
+function updateGallerySectionConfig(
+  sections: InvitationSection[] | undefined,
+  updates: { layout?: 'carousel' | 'grid' | 'masonry' }
+) {
+  return (sections || []).map((section) => {
+    if (section.type !== 'gallery') return section;
+    return {
+      ...section,
+      config: {
+        ...(section.config || {}),
+        ...updates,
+      },
+    };
+  });
+}
+
+export default function InvitationEditor({ trialMode = false }: InvitationEditorProps) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const {
     currentInvitation,
-    loading,
+    loadingDetails: loading,
     fetchInvitationDetails,
     updateInvitation,
   } = useDashboardStore();
@@ -103,70 +204,94 @@ export default function InvitationEditor() {
   const [mobileTab, setMobileTab] = useState<string | null>('edit');
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const previewRef = useRef<HTMLIFrameElement>(null);
+  const [subModalOpen, setSubModalOpen] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(trialMode ? false : null);
+  const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [, setRenderTick] = useState(0);
 
+  // In trial mode, use demo data as initial values directly
   const form = useForm<Partial<Invitation>>({
-    initialValues: {},
+    initialValues: trialMode ? invitationToFormValues(demoInvitation) : {},
   });
 
-  // Load invitation data
+  // The "source" invitation for deriving values — demo data in trial, DB record otherwise
+  const sourceInvitation = trialMode ? demoInvitation : currentInvitation;
+
+  // Check if user has an active subscription (skip in trial mode)
   useEffect(() => {
+    if (trialMode) return;
+    async function checkSubscription() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setHasActiveSubscription(false); return; }
+
+        const { data, error } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'succeeded')
+          .limit(1);
+
+        if (error) { setHasActiveSubscription(false); return; }
+        setHasActiveSubscription((data ?? []).length > 0);
+      } catch {
+        setHasActiveSubscription(false);
+      }
+    }
+    checkSubscription();
+  }, [trialMode]);
+
+  // Load invitation data (skip in trial mode)
+  useEffect(() => {
+    if (trialMode) return;
     if (id) {
       fetchInvitationDetails(id);
     }
-  }, [id, fetchInvitationDetails]);
+  }, [id, fetchInvitationDetails, trialMode]);
 
-  // Populate form when data loads
+  // Populate form when data loads (skip in trial mode — already set via initialValues)
   useEffect(() => {
+    if (trialMode) return;
     if (currentInvitation) {
-      form.setValues({
-        bride_name: currentInvitation.bride_name,
-        groom_name: currentInvitation.groom_name,
-        bride_parent_names: currentInvitation.bride_parent_names,
-        groom_parent_names: currentInvitation.groom_parent_names,
-        couple_photo_url: currentInvitation.couple_photo_url,
-        cover_photo_url: currentInvitation.cover_photo_url,
-        event_date: currentInvitation.event_date,
-        event_time_start: currentInvitation.event_time_start,
-        event_time_end: currentInvitation.event_time_end,
-        venue_name: currentInvitation.venue_name,
-        venue_address: currentInvitation.venue_address,
-        venue_lat: currentInvitation.venue_lat,
-        venue_lng: currentInvitation.venue_lng,
-        venue_google_maps_embed: currentInvitation.venue_google_maps_embed,
-        invitation_text: currentInvitation.invitation_text,
-        music_url: currentInvitation.music_url,
-        music_type: currentInvitation.music_type,
-        rsvp_enabled: currentInvitation.rsvp_enabled,
-        rsvp_deadline: currentInvitation.rsvp_deadline,
-        itinerary: currentInvitation.itinerary || [],
-        contacts: currentInvitation.contacts || [],
-        money_gift: currentInvitation.money_gift,
-        wishlist: currentInvitation.wishlist || [],
-        theme_config: currentInvitation.theme_config,
-        sections: currentInvitation.sections || [],
-        template: currentInvitation.template,
-        chatbot_enabled: currentInvitation.chatbot_enabled ?? false,
-        chatbot_context: currentInvitation.chatbot_context || '',
-        slug: currentInvitation.slug,
-        status: currentInvitation.status,
-      });
+      form.setValues(invitationToFormValues(currentInvitation));
       // Populate gallery URLs from existing images
       if (currentInvitation.gallery_images?.length) {
         setGalleryUrls(currentInvitation.gallery_images.map((img) => img.url));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentInvitation?.id]);
+  }, [currentInvitation?.id, trialMode]);
 
-  // Debounced auto-save
+  useEffect(() => {
+    if (!trialMode) return;
+    syncTrialPreviewInvitation(form.getValues(), galleryUrls);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trialMode]);
+
+  // Debounced auto-save (in trial mode, just refresh preview)
   const debouncedSave = useDebouncedCallback(async (values: Partial<Invitation>) => {
+    if (trialMode) {
+      syncTrialPreviewInvitation(values, galleryUrls);
+      if (previewRef.current) {
+        previewRef.current.src = previewRef.current.src;
+      }
+      return;
+    }
     if (!id) return;
     setSaveStatus('saving');
     try {
+      // Include gallery_images from local state
+      const galleryImages = galleryUrls.map((url, idx) => ({
+        id: `gallery-${idx}`,
+        invitation_id: currentInvitation?.id || id,
+        url,
+        sort_order: idx,
+      }));
       await updateInvitation(id, {
         ...values,
+        gallery_images: galleryImages,
         updated_at: new Date().toISOString(),
-      });
+      } as Partial<Invitation>);
       setSaveStatus('saved');
       // Update preview
       if (previewRef.current) {
@@ -177,7 +302,7 @@ export default function InvitationEditor() {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  }, 1500);
+  }, trialMode ? 300 : 1500);
 
   const triggerSave = useCallback(() => {
     debouncedSave(form.getValues());
@@ -188,12 +313,34 @@ export default function InvitationEditor() {
     value: Invitation[K]
   ) => {
     form.setFieldValue(field as string, value);
+    setRenderTick((t) => t + 1);
+
+    if (trialMode && field === 'sections') {
+      const nextValues = form.getValues();
+      syncTrialPreviewInvitation(nextValues, galleryUrls);
+      if (previewRef.current) {
+        previewRef.current.src = previewRef.current.src;
+      }
+      return;
+    }
+
     triggerSave();
   };
 
   const handlePublish = async () => {
+    if (trialMode) {
+      setSignupModalOpen(true);
+      return;
+    }
     if (!id) return;
     const newStatus = currentInvitation?.status === 'published' ? 'draft' : 'published';
+
+    // Block publishing if user has no active subscription
+    if (newStatus === 'published' && !hasActiveSubscription) {
+      setSubModalOpen(true);
+      return;
+    }
+
     try {
       await updateInvitation(id, { status: newStatus });
       form.setFieldValue('status', newStatus);
@@ -211,13 +358,25 @@ export default function InvitationEditor() {
   };
 
   const handleManualSave = async () => {
+    if (trialMode) {
+      setSignupModalOpen(true);
+      return;
+    }
     if (!id) return;
     setSaveStatus('saving');
     try {
+      // Include gallery_images from local state
+      const galleryImages = galleryUrls.map((url, idx) => ({
+        id: `gallery-${idx}`,
+        invitation_id: currentInvitation?.id || id,
+        url,
+        sort_order: idx,
+      }));
       await updateInvitation(id, {
         ...form.getValues(),
+        gallery_images: galleryImages,
         updated_at: new Date().toISOString(),
-      });
+      } as Partial<Invitation>);
       setSaveStatus('saved');
       if (previewRef.current) {
         previewRef.current.src = previewRef.current.src;
@@ -282,8 +441,8 @@ export default function InvitationEditor() {
     handleFieldChange('wishlist', current as WishlistItem[]);
   };
 
-  // --- Loading state ---
-  if (loading || !currentInvitation) {
+  // --- Loading state (skip in trial mode — demo data is immediate) ---
+  if (!trialMode && (loading || !currentInvitation)) {
     return (
       <Center h="60vh">
         <Stack align="center" gap="md">
@@ -295,13 +454,14 @@ export default function InvitationEditor() {
   }
 
   const formValues = form.getValues();
-  const themeConfig = (formValues.theme_config || currentInvitation.theme_config) as Invitation['theme_config'];
+  const themeConfig = (formValues.theme_config || sourceInvitation!.theme_config) as Invitation['theme_config'];
   const itinerary = (formValues.itinerary || []) as ItineraryItem[];
   const contacts = (formValues.contacts || []) as ContactPerson[];
   const wishlist = (formValues.wishlist || []) as WishlistItem[];
-  const moneyGift = formValues.money_gift || currentInvitation.money_gift;
+  const moneyGift = formValues.money_gift || sourceInvitation!.money_gift;
+  const gallerySectionConfig = getGallerySectionConfig((formValues.sections || sourceInvitation!.sections) as InvitationSection[]);
 
-  const previewUrl = `/${formValues.slug || currentInvitation.slug}`;
+  const previewUrl = trialMode ? '/aiman-nadia' : `/${formValues.slug || sourceInvitation!.slug}`;
 
   // Save status indicator
   const SaveIndicator = () => (
@@ -331,45 +491,101 @@ export default function InvitationEditor() {
   const FormPanel = (
     <ScrollArea h="calc(100vh - 130px)" offsetScrollbars>
       <Box p="md">
+        {/* Trial mode banner */}
+        {trialMode && (
+          <Box
+            mb="md"
+            p="sm"
+            style={{
+              background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
+              border: '1px solid #D4AF37',
+              borderRadius: 12,
+              textAlign: 'center',
+            }}
+          >
+            <Group justify="center" gap="xs" mb={6}>
+              <Badge
+                color="yellow"
+                variant="filled"
+                size="sm"
+                style={{ background: 'linear-gradient(135deg, #D4AF37, #C5A028)', textTransform: 'uppercase', letterSpacing: 1 }}
+              >
+                Mod Percubaan
+              </Badge>
+            </Group>
+            <Text size="sm" c="dimmed" mb={8}>
+              Cuba editor dengan data contoh. Daftar untuk simpan dan terbitkan kad anda.
+            </Text>
+            <Button
+              size="sm"
+              leftSection={<IconUserPlus size={16} />}
+              rightSection={<IconArrowRight size={14} />}
+              onClick={() => navigate('/login')}
+              style={{
+                background: 'linear-gradient(135deg, #D4AF37 0%, #C5A028 100%)',
+                border: 'none',
+              }}
+            >
+              Daftar Sekarang
+            </Button>
+          </Box>
+        )}
+
         {/* Top actions */}
         <Group justify="space-between" mb="md">
           <Group gap="sm">
             <Badge
-              color={formValues.status === 'published' ? 'green' : 'yellow'}
+              color={trialMode ? 'orange' : formValues.status === 'published' ? 'green' : 'yellow'}
               variant="light"
               size="lg"
             >
-              {formValues.status === 'published' ? 'Diterbitkan' : 'Draf'}
+              {trialMode ? 'Percubaan' : formValues.status === 'published' ? 'Diterbitkan' : 'Draf'}
             </Badge>
-            <SaveIndicator />
+            {!trialMode && <SaveIndicator />}
           </Group>
           <Group gap="sm">
-            <Tooltip label="Simpan">
-              <ActionIcon
+            {trialMode ? (
+              <Button
+                size="sm"
+                leftSection={<IconLock size={16} />}
+                color="gray"
                 variant="light"
-                color="blue"
-                size="lg"
-                onClick={handleManualSave}
-                loading={saveStatus === 'saving'}
+                onClick={() => setSignupModalOpen(true)}
               >
-                <IconDeviceFloppy size={18} />
-              </ActionIcon>
-            </Tooltip>
-            <Button
-              size="sm"
-              leftSection={
-                formValues.status === 'published' ? (
-                  <IconEdit size={16} />
-                ) : (
-                  <IconRocket size={16} />
-                )
-              }
-              color={formValues.status === 'published' ? 'yellow' : 'green'}
-              variant="light"
-              onClick={handlePublish}
-            >
-              {formValues.status === 'published' ? 'Nyahdraf' : 'Terbitkan'}
-            </Button>
+                Simpan
+              </Button>
+            ) : (
+              <>
+                <Tooltip label="Simpan">
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    size="lg"
+                    onClick={handleManualSave}
+                    loading={saveStatus === 'saving'}
+                  >
+                    <IconDeviceFloppy size={18} />
+                  </ActionIcon>
+                </Tooltip>
+                <Button
+                  size="sm"
+                  leftSection={
+                    formValues.status === 'published' ? (
+                      <IconEdit size={16} />
+                    ) : hasActiveSubscription === false ? (
+                      <IconLock size={16} />
+                    ) : (
+                      <IconRocket size={16} />
+                    )
+                  }
+                  color={formValues.status === 'published' ? 'yellow' : hasActiveSubscription === false ? 'gray' : 'green'}
+                  variant="light"
+                  onClick={handlePublish}
+                >
+                  {formValues.status === 'published' ? 'Nyahdraf' : 'Terbitkan'}
+                </Button>
+              </>
+            )}
           </Group>
         </Group>
 
@@ -420,6 +636,23 @@ export default function InvitationEditor() {
                   <Text size="sm" fw={500} mb={4}>
                     Gambar Pengantin
                   </Text>
+                  {trialMode ? (
+                    <Box
+                      p="sm"
+                      style={{
+                        border: '1px dashed #ccc',
+                        borderRadius: 8,
+                        background: '#f9f9f9',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <IconLock size={20} color="#999" />
+                      <Text size="xs" c="dimmed" mt={4}>
+                        Muat naik gambar memerlukan akaun
+                      </Text>
+                    </Box>
+                  ) : (
+                    <>
                   {formValues.couple_photo_url && (
                     <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
                       <Image
@@ -482,6 +715,8 @@ export default function InvitationEditor() {
                       </Stack>
                     </Center>
                   </Dropzone>
+                    </>
+                  )}
                 </div>
               </Stack>
             </Accordion.Panel>
@@ -773,6 +1008,23 @@ export default function InvitationEditor() {
                   <Text size="sm" fw={500} mb={4}>
                     QR Code
                   </Text>
+                  {trialMode ? (
+                    <Box
+                      p="sm"
+                      style={{
+                        border: '1px dashed #ccc',
+                        borderRadius: 8,
+                        background: '#f9f9f9',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <IconLock size={20} color="#999" />
+                      <Text size="xs" c="dimmed" mt={4}>
+                        Muat naik QR code memerlukan akaun
+                      </Text>
+                    </Box>
+                  ) : (
+                    <>
                   {moneyGift?.qr_code_url && (
                     <Box mb="xs" pos="relative" style={{ display: 'inline-block' }}>
                       <Image
@@ -841,6 +1093,8 @@ export default function InvitationEditor() {
                       </Group>
                     </Center>
                   </Dropzone>
+                    </>
+                  )}
                 </div>
               </Stack>
             </Accordion.Panel>
@@ -895,13 +1149,39 @@ export default function InvitationEditor() {
             </Accordion.Panel>
           </Accordion.Item>
 
-          {/* Gallery */}
           <Accordion.Item value="gallery">
             <Accordion.Control icon={<IconPhoto size={18} color="#8B6F4E" />}>
               <Text fw={600}>Galeri Foto</Text>
             </Accordion.Control>
             <Accordion.Panel>
-              {galleryUrls.length > 0 && (
+              <Stack gap="sm">
+                <Select
+                  label="Jenis Paparan Galeri"
+                  value={gallerySectionConfig.layout || 'carousel'}
+                  onChange={(value) => {
+                    const currentSections = (form.getValues().sections || sourceInvitation!.sections || []) as InvitationSection[];
+                    handleFieldChange(
+                      'sections',
+                      updateGallerySectionConfig(currentSections, {
+                        layout: (value || 'carousel') as 'carousel' | 'grid' | 'masonry',
+                      }) as InvitationSection[]
+                    );
+                  }}
+                  data={[
+                    { value: 'carousel', label: 'Carousel / Leret' },
+                    { value: 'grid', label: 'Grid Kemas' },
+                    { value: 'masonry', label: 'Kolaj / Masonry' },
+                  ]}
+                  size="sm"
+                />
+
+                {!trialMode && (
+                  <Text size="xs" c="dimmed">
+                    Maksimum {MAX_GALLERY_IMAGES} gambar untuk setiap kad jemputan.
+                  </Text>
+                )}
+
+              {!trialMode && galleryUrls.length > 0 && (
                 <SimpleGrid cols={3} spacing="xs" mb="sm">
                   {galleryUrls.map((url, i) => (
                     <Box key={i} pos="relative">
@@ -926,7 +1206,21 @@ export default function InvitationEditor() {
                           } catch {
                             // ignore delete errors for external URLs
                           }
-                          setGalleryUrls((prev) => prev.filter((_, idx) => idx !== i));
+                          const newUrls = galleryUrls.filter((_, idx) => idx !== i);
+                          setGalleryUrls(newUrls);
+                          // Persist gallery_images to database
+                          if (id) {
+                            const galleryImages = newUrls.map((u, idx) => ({
+                              id: `gallery-${idx}`,
+                              invitation_id: currentInvitation?.id || id,
+                              url: u,
+                              sort_order: idx,
+                            }));
+                            updateInvitation(id, {
+                              gallery_images: galleryImages,
+                              updated_at: new Date().toISOString(),
+                            } as Partial<Invitation>).catch(() => {});
+                          }
                         }}
                       >
                         <IconX size={10} />
@@ -935,45 +1229,102 @@ export default function InvitationEditor() {
                   ))}
                 </SimpleGrid>
               )}
-              <Dropzone
-                onDrop={async (files) => {
-                  if (!currentInvitation) return;
-                  try {
-                    const uploadedUrls: string[] = [];
-                    for (const file of files) {
-                      const url = await uploadImage(file, currentInvitation.user_id, 'gallery');
-                      uploadedUrls.push(url);
+              {trialMode ? (
+                <Box
+                  p="md"
+                  style={{
+                    border: '1px dashed #ccc',
+                    borderRadius: 10,
+                    background: '#f9f9f9',
+                    textAlign: 'center',
+                  }}
+                >
+                  <IconLock size={22} color="#999" />
+                  <Text size="sm" mt={6} fw={500}>
+                    Muat naik galeri memerlukan akaun
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={4} mb={10}>
+                    Daftar untuk tambah gambar pasangan dan galeri majlis anda.
+                  </Text>
+                  <Button size="xs" variant="light" color="yellow" onClick={() => setSignupModalOpen(true)}>
+                    Daftar Untuk Guna Galeri
+                  </Button>
+                </Box>
+              ) : (
+                <Dropzone
+                  onDrop={async (files) => {
+                    if (!currentInvitation) return;
+                    const remainingSlots = MAX_GALLERY_IMAGES - galleryUrls.length;
+                    if (remainingSlots <= 0) {
+                      notifications.show({
+                        title: 'Had Galeri Dicapai',
+                        message: `Maksimum ${MAX_GALLERY_IMAGES} gambar dibenarkan dalam galeri.`,
+                        color: 'yellow',
+                      });
+                      return;
                     }
-                    setGalleryUrls((prev) => [...prev, ...uploadedUrls]);
-                    notifications.show({ title: 'Berjaya!', message: `${files.length} gambar dimuat naik`, color: 'green' });
-                  } catch {
-                    notifications.show({ title: 'Ralat', message: 'Gagal memuat naik gambar', color: 'red' });
-                  }
-                }}
-                accept={IMAGE_MIME_TYPE}
-                maxSize={5 * 1024 ** 2}
-                multiple
-                styles={{
-                  root: {
-                    borderColor: '#D4AF37',
-                    borderStyle: 'dashed',
-                    background: 'rgba(253, 248, 240, 0.5)',
-                    minHeight: 120,
-                  },
-                }}
-              >
-                <Center p="lg">
-                  <Stack align="center" gap="xs">
-                    <IconPhoto size={32} color="#8B6F4E" />
-                    <Text size="sm" c="dimmed" ta="center">
-                      Seret gambar atau klik untuk muat naik
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      Maksimum 5MB setiap gambar
-                    </Text>
-                  </Stack>
-                </Center>
-              </Dropzone>
+
+                    const filesToUpload = files.slice(0, remainingSlots);
+
+                    try {
+                      const uploadedUrls: string[] = [];
+                      for (const file of filesToUpload) {
+                        const url = await uploadImage(file, currentInvitation.user_id, 'gallery');
+                        uploadedUrls.push(url);
+                      }
+                      const newUrls = [...galleryUrls, ...uploadedUrls];
+                      setGalleryUrls(newUrls);
+                      // Persist gallery_images to database
+                      if (id) {
+                        const galleryImages = newUrls.map((u, idx) => ({
+                          id: `gallery-${idx}`,
+                          invitation_id: currentInvitation.id,
+                          url: u,
+                          sort_order: idx,
+                        }));
+                        await updateInvitation(id, {
+                          gallery_images: galleryImages,
+                          updated_at: new Date().toISOString(),
+                        } as Partial<Invitation>);
+                      }
+                      notifications.show({
+                        title: 'Berjaya!',
+                        message:
+                          filesToUpload.length < files.length
+                            ? `${filesToUpload.length} gambar dimuat naik. Had maksimum galeri ialah ${MAX_GALLERY_IMAGES} gambar.`
+                            : `${filesToUpload.length} gambar dimuat naik`,
+                        color: 'green',
+                      });
+                    } catch {
+                      notifications.show({ title: 'Ralat', message: 'Gagal memuat naik gambar', color: 'red' });
+                    }
+                  }}
+                  accept={IMAGE_MIME_TYPE}
+                  maxSize={5 * 1024 ** 2}
+                  multiple
+                  styles={{
+                    root: {
+                      borderColor: '#D4AF37',
+                      borderStyle: 'dashed',
+                      background: 'rgba(253, 248, 240, 0.5)',
+                      minHeight: 120,
+                    },
+                  }}
+                >
+                  <Center p="lg">
+                    <Stack align="center" gap="xs">
+                      <IconPhoto size={32} color="#8B6F4E" />
+                      <Text size="sm" c="dimmed" ta="center">
+                        Seret gambar atau klik untuk muat naik
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Maksimum 5MB setiap gambar
+                      </Text>
+                    </Stack>
+                  </Center>
+                </Dropzone>
+              )}
+              </Stack>
             </Accordion.Panel>
           </Accordion.Item>
 
@@ -986,7 +1337,7 @@ export default function InvitationEditor() {
               <Stack gap="md">
                 {/* Theme Selector */}
                 <ThemeSelector
-                  currentTemplate={formValues.template || currentInvitation.template}
+                  currentTemplate={formValues.template || sourceInvitation!.template}
                   onSelect={(template: ThemeTemplate) => {
                     handleFieldChange('template', template.id);
                     handleFieldChange('theme_config', template.theme_config);
@@ -1111,13 +1462,14 @@ export default function InvitationEditor() {
             </Accordion.Control>
             <Accordion.Panel>
               <SectionManager
-                sections={(formValues.sections || currentInvitation.sections || []) as InvitationSection[]}
+                sections={(formValues.sections || sourceInvitation!.sections || []) as InvitationSection[]}
                 onChange={(sections: InvitationSection[]) => handleFieldChange('sections', sections)}
               />
             </Accordion.Panel>
           </Accordion.Item>
 
-          {/* Chatbot AI */}
+          {/* Chatbot AI (hidden in trial mode) */}
+          {!trialMode && (
           <Accordion.Item value="chatbot">
             <Accordion.Control icon={<IconRobot size={18} color="#8B6F4E" />}>
               <Text fw={600}>Chatbot AI</Text>
@@ -1152,8 +1504,10 @@ export default function InvitationEditor() {
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
+          )}
 
-          {/* Settings */}
+          {/* Settings (hidden in trial mode) */}
+          {!trialMode && (
           <Accordion.Item value="settings">
             <Accordion.Control icon={<IconSettings size={18} color="#8B6F4E" />}>
               <Text fw={600}>Tetapan</Text>
@@ -1182,12 +1536,17 @@ export default function InvitationEditor() {
                       : 'Kad anda dalam mod draf'
                   }
                   checked={formValues.status === 'published'}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const wantsPublish = e.currentTarget.checked;
+                    if (wantsPublish && !hasActiveSubscription) {
+                      setSubModalOpen(true);
+                      return;
+                    }
                     handleFieldChange(
                       'status',
-                      e.currentTarget.checked ? 'published' : 'draft'
-                    )
-                  }
+                      wantsPublish ? 'published' : 'draft'
+                    );
+                  }}
                   color="green"
                   size="md"
                 />
@@ -1221,6 +1580,7 @@ export default function InvitationEditor() {
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
+          )}
         </Accordion>
 
         {/* Bottom spacer */}
@@ -1280,17 +1640,19 @@ export default function InvitationEditor() {
             <IconZoomIn size={16} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Buka di tab baru">
-          <ActionIcon
-            variant="light"
-            size="sm"
-            component="a"
-            href={previewUrl}
-            target="_blank"
-          >
-            <IconExternalLink size={16} />
-          </ActionIcon>
-        </Tooltip>
+        {formValues.status === 'published' && (
+          <Tooltip label="Buka di tab baru">
+            <ActionIcon
+              variant="light"
+              size="sm"
+              component="a"
+              href={previewUrl}
+              target="_blank"
+            >
+              <IconExternalLink size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </Group>
 
       {/* Phone frame */}
@@ -1365,48 +1727,182 @@ export default function InvitationEditor() {
     </Box>
   );
 
+  const SubscriptionModal = (
+    <Modal
+      opened={subModalOpen}
+      onClose={() => setSubModalOpen(false)}
+      title={
+        <Group gap="xs">
+          <IconLock size={20} color="#D4AF37" />
+          <Text fw={700} style={{ color: '#2C1810' }}>Langganan Diperlukan</Text>
+        </Group>
+      }
+      centered
+      radius="md"
+      styles={{
+        header: { borderBottom: '1px solid #E8D5B7' },
+        body: { padding: '1.5rem' },
+      }}
+    >
+      <Stack gap="md">
+        <Box
+          style={{
+            background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
+            border: '1px solid #E8D5B7',
+            borderRadius: 12,
+            padding: '1.25rem',
+            textAlign: 'center',
+          }}
+        >
+          <IconCrown size={40} color="#D4AF37" style={{ marginBottom: 8 }} />
+          <Text fw={600} size="lg" style={{ color: '#2C1810' }}>
+            Terbitkan Kad Anda
+          </Text>
+          <Text size="sm" c="dimmed" mt={4}>
+            Anda perlu melanggan pelan untuk menerbitkan kad jemputan dan berkongsi pautan
+            dengan tetamu anda.
+          </Text>
+        </Box>
+
+        <Button
+          fullWidth
+          size="md"
+          leftSection={<IconCrown size={18} />}
+          onClick={() => {
+            setSubModalOpen(false);
+            navigate('/dashboard/subscription');
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #D4AF37 0%, #C5A028 100%)',
+            border: 'none',
+          }}
+        >
+          Lihat Pelan Langganan
+        </Button>
+        <Button
+          fullWidth
+          variant="default"
+          size="md"
+          onClick={() => setSubModalOpen(false)}
+        >
+          Kembali ke Editor
+        </Button>
+      </Stack>
+    </Modal>
+  );
+
+  // --- Signup Modal (trial mode only) ---
+  const SignupModal = (
+    <Modal
+      opened={signupModalOpen}
+      onClose={() => setSignupModalOpen(false)}
+      title={
+        <Group gap="xs">
+          <IconUserPlus size={20} color="#D4AF37" />
+          <Text fw={700} style={{ color: '#2C1810' }}>Daftar Akaun</Text>
+        </Group>
+      }
+      centered
+      radius="md"
+      styles={{
+        header: { borderBottom: '1px solid #E8D5B7' },
+        body: { padding: '1.5rem' },
+      }}
+    >
+      <Stack gap="md">
+        <Box
+          style={{
+            background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
+            border: '1px solid #E8D5B7',
+            borderRadius: 12,
+            padding: '1.25rem',
+            textAlign: 'center',
+          }}
+        >
+          <IconCrown size={40} color="#D4AF37" style={{ marginBottom: 8 }} />
+          <Text fw={600} size="lg" style={{ color: '#2C1810' }}>
+            Simpan Kad Anda
+          </Text>
+          <Text size="sm" c="dimmed" mt={4}>
+            Daftar akaun percuma untuk menyimpan, menyunting, dan menerbitkan kad jemputan digital anda.
+          </Text>
+        </Box>
+
+        <Button
+          fullWidth
+          size="md"
+          leftSection={<IconUserPlus size={18} />}
+          onClick={() => {
+            setSignupModalOpen(false);
+            navigate('/login');
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #D4AF37 0%, #C5A028 100%)',
+            border: 'none',
+          }}
+        >
+          Daftar Sekarang
+        </Button>
+        <Button
+          fullWidth
+          variant="default"
+          size="md"
+          onClick={() => setSignupModalOpen(false)}
+        >
+          Kembali ke Editor
+        </Button>
+      </Stack>
+    </Modal>
+  );
+
   // --- Mobile: Tabbed layout ---
   if (isMobile) {
     return (
-      <Box h="calc(100vh - 60px)">
-        <Tabs value={mobileTab} onChange={setMobileTab}>
-          <Tabs.List grow>
-            <Tabs.Tab
-              value="edit"
-              leftSection={<IconEdit size={16} />}
-            >
-              Edit
-            </Tabs.Tab>
-            <Tabs.Tab
-              value="preview"
-              leftSection={<IconEye size={16} />}
-            >
-              Preview
-            </Tabs.Tab>
-          </Tabs.List>
+      <>
+        {trialMode ? SignupModal : SubscriptionModal}
+        <Box h="calc(100vh - 60px)">
+          <Tabs value={mobileTab} onChange={setMobileTab}>
+            <Tabs.List grow>
+              <Tabs.Tab
+                value="edit"
+                leftSection={<IconEdit size={16} />}
+              >
+                Edit
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="preview"
+                leftSection={<IconEye size={16} />}
+              >
+                Preview
+              </Tabs.Tab>
+            </Tabs.List>
 
-          <Tabs.Panel value="edit" style={{ height: 'calc(100vh - 120px)' }}>
-            {FormPanel}
-          </Tabs.Panel>
-          <Tabs.Panel value="preview" style={{ height: 'calc(100vh - 120px)' }}>
-            {PhonePreview}
-          </Tabs.Panel>
-        </Tabs>
-      </Box>
+            <Tabs.Panel value="edit" style={{ height: 'calc(100vh - 120px)' }}>
+              {FormPanel}
+            </Tabs.Panel>
+            <Tabs.Panel value="preview" style={{ height: 'calc(100vh - 120px)' }}>
+              {PhonePreview}
+            </Tabs.Panel>
+          </Tabs>
+        </Box>
+      </>
     );
   }
 
   // --- Desktop: Split pane ---
   return (
-    <Box style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
-      {/* Left: Editor (60%) */}
-      <Box style={{ width: '60%', borderRight: '1px solid #E8D5B7', overflow: 'hidden' }}>
-        {FormPanel}
+    <>
+      {trialMode ? SignupModal : SubscriptionModal}
+      <Box style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
+        {/* Left: Editor (60%) */}
+        <Box style={{ width: '60%', borderRight: '1px solid #E8D5B7', overflow: 'hidden' }}>
+          {FormPanel}
+        </Box>
+        {/* Right: Preview (40%) */}
+        <Box style={{ width: '40%', overflow: 'hidden' }}>
+          {PhonePreview}
+        </Box>
       </Box>
-      {/* Right: Preview (40%) */}
-      <Box style={{ width: '40%', overflow: 'hidden' }}>
-        {PhonePreview}
-      </Box>
-    </Box>
+    </>
   );
 }

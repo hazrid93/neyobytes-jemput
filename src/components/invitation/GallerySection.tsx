@@ -3,10 +3,12 @@ import type { GalleryImage } from '../../types';
 
 interface GallerySectionProps {
   images: GalleryImage[];
+  layout?: 'carousel' | 'grid' | 'masonry';
 }
 
-export default function GallerySection({ images }: GallerySectionProps) {
+export default function GallerySection({ images, layout = 'carousel' }: GallerySectionProps) {
   const hasImages = images && images.length > 0;
+  const sortedImages = [...images].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <section
@@ -58,20 +60,19 @@ export default function GallerySection({ images }: GallerySectionProps) {
           viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.8, delay: 0.2 }}
           style={{
-            display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-            paddingBottom: '12px',
-            /* Hide scrollbar */
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
+            display: layout === 'carousel' ? 'flex' : layout === 'grid' ? 'grid' : 'grid',
+            gridTemplateColumns: layout === 'grid' ? 'repeat(2, minmax(0, 1fr))' : layout === 'masonry' ? 'repeat(2, minmax(0, 1fr))' : undefined,
+            gap: '10px',
+            overflowX: layout === 'carousel' ? 'auto' : 'visible',
+            scrollSnapType: layout === 'carousel' ? 'x mandatory' : undefined,
+            WebkitOverflowScrolling: layout === 'carousel' ? 'touch' : undefined,
+            paddingBottom: layout === 'carousel' ? '12px' : '0',
+            scrollbarWidth: layout === 'carousel' ? 'none' : undefined,
+            msOverflowStyle: layout === 'carousel' ? 'none' : undefined,
+            alignItems: layout === 'masonry' ? 'start' : undefined,
           }}
         >
-          {images
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((image, index) => (
+          {sortedImages.map((image, index) => (
               <motion.div
                 key={image.id}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -79,13 +80,20 @@ export default function GallerySection({ images }: GallerySectionProps) {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 style={{
-                  flexShrink: 0,
-                  width: '280px',
-                  height: '360px',
+                  flexShrink: layout === 'carousel' ? 0 : undefined,
+                  width: layout === 'carousel' ? '280px' : '100%',
+                  height:
+                    layout === 'carousel'
+                      ? '360px'
+                      : layout === 'grid'
+                        ? '180px'
+                        : index % 3 === 0
+                          ? '240px'
+                          : '180px',
                   borderRadius: '4px',
                   overflow: 'hidden',
-                  border: '1px solid rgba(212,175,55,0.2)',
-                  scrollSnapAlign: 'center',
+                  border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)',
+                  scrollSnapAlign: layout === 'carousel' ? 'center' : undefined,
                 }}
               >
                 <img
@@ -108,7 +116,7 @@ export default function GallerySection({ images }: GallerySectionProps) {
           viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.8, delay: 0.2 }}
           style={{
-            border: '1px solid rgba(212,175,55,0.25)',
+            border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
             borderRadius: '4px',
             padding: '48px 24px',
             background: 'rgba(255,255,255,0.3)',
@@ -175,7 +183,7 @@ export default function GallerySection({ images }: GallerySectionProps) {
       )}
 
       {/* Swipe hint for mobile */}
-      {hasImages && images.length > 1 && (
+      {hasImages && layout === 'carousel' && images.length > 1 && (
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}

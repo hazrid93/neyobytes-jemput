@@ -144,7 +144,7 @@ export default function FooterSection({ invitation }: FooterSectionProps) {
             alignItems: 'center',
             gap: '6px',
             padding: '10px 18px',
-            border: '1px solid rgba(212,175,55,0.3)',
+            border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
             borderRadius: '4px',
             background: 'transparent',
             textDecoration: 'none',
@@ -168,9 +168,9 @@ export default function FooterSection({ invitation }: FooterSectionProps) {
             alignItems: 'center',
             gap: '6px',
             padding: '10px 18px',
-            border: '1px solid rgba(212,175,55,0.3)',
+            border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
             borderRadius: '4px',
-            background: linkCopied ? 'rgba(212,175,55,0.1)' : 'transparent',
+            background: linkCopied ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 10%, transparent)' : 'transparent',
             fontFamily: 'var(--font-body, "Poppins"), sans-serif',
             fontSize: '11px',
             fontWeight: 500,
@@ -200,7 +200,7 @@ export default function FooterSection({ invitation }: FooterSectionProps) {
         transition={{ duration: 1, delay: 0.5 }}
         style={{
           paddingTop: '20px',
-          borderTop: '1px solid rgba(212,175,55,0.15)',
+          borderTop: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
         }}
       >
         <p

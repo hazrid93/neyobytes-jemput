@@ -93,7 +93,7 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.3 }}
         style={{
-          border: '1px solid rgba(212,175,55,0.3)',
+          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
           borderRadius: '4px',
           padding: '28px 20px',
           background: 'rgba(255,255,255,0.3)',
@@ -158,10 +158,10 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
               alignItems: 'center',
               gap: '4px',
               padding: '6px 12px',
-              border: '1px solid rgba(212,175,55,0.4)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent)',
               borderRadius: '4px',
               background: copied
-                ? 'rgba(212,175,55,0.15)'
+                ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)'
                 : 'transparent',
               fontFamily: 'var(--font-body, "Poppins"), sans-serif',
               fontSize: '10px',
@@ -222,7 +222,7 @@ export default function MoneyGift({ moneyGift }: MoneyGiftProps) {
                 width: '160px',
                 height: '160px',
                 objectFit: 'contain',
-                border: '1px solid rgba(212,175,55,0.2)',
+                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent)',
                 borderRadius: '4px',
                 padding: '8px',
               }}

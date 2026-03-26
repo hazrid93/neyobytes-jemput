@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Container,
   Title,
@@ -34,6 +35,8 @@ import {
 } from '@tabler/icons-react';
 import { cubicBezier, motion, type Variants } from 'framer-motion';
 import Logo from '../components/common/Logo';
+import { fetchPublicSiteSettings } from '../lib/site-settings';
+import type { SiteSettings } from '../types';
 
 // ---------------------------------------------------------------------------
 // Animation helpers
@@ -252,9 +255,7 @@ function Hero() {
               size="lg"
               radius="xl"
               variant="outline"
-              onClick={() => {
-                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => navigate('/cuba')}
               style={{
                 borderColor: GOLD,
                 color: GOLD,
@@ -263,7 +264,7 @@ function Hero() {
                 padding: '0 32px',
               }}
             >
-              Ketahui Lebih Lanjut
+              Cuba Sekarang
             </Button>
           </Group>
         </motion.div>
@@ -860,23 +861,40 @@ function CTASection() {
             Sertai ribuan pasangan Malaysia yang telah memilih Jemput
             untuk menjadikan majlis mereka lebih istimewa.
           </Text>
-          <Button
-            size="lg"
-            radius="xl"
-            rightSection={<IconArrowRight size={18} />}
-            onClick={() => navigate('/login')}
-            style={{
-              background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_LIGHT} 100%)`,
-              border: 'none',
-              fontWeight: 600,
-              fontSize: '1rem',
-              padding: '0 40px',
-              height: 54,
-              boxShadow: '0 4px 24px rgba(176,141,91,0.4)',
-            }}
-          >
-            Mula Sekarang — Percuma
-          </Button>
+          <Group justify="center" gap="md">
+            <Button
+              size="lg"
+              radius="xl"
+              rightSection={<IconArrowRight size={18} />}
+              onClick={() => navigate('/login')}
+              style={{
+                background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_LIGHT} 100%)`,
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                padding: '0 40px',
+                height: 54,
+                boxShadow: '0 4px 24px rgba(176,141,91,0.4)',
+              }}
+            >
+              Mula Sekarang — Percuma
+            </Button>
+            <Button
+              size="lg"
+              radius="xl"
+              variant="outline"
+              onClick={() => navigate('/cuba')}
+              style={{
+                borderColor: 'rgba(253,248,240,0.4)',
+                color: CREAM,
+                fontWeight: 500,
+                height: 54,
+                padding: '0 36px',
+              }}
+            >
+              Cuba Editor
+            </Button>
+          </Group>
         </motion.div>
       </Container>
     </Box>
@@ -887,6 +905,12 @@ function CTASection() {
 // FOOTER
 // ---------------------------------------------------------------------------
 function Footer() {
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    fetchPublicSiteSettings().then(setSettings);
+  }, []);
+
   return (
     <Box
       component="footer"
@@ -902,7 +926,7 @@ function Footer() {
           <Stack gap={12}>
             <Logo size="sm" color={CREAM_ALT} />
             <Text size="sm" style={{ color: 'rgba(253,248,240,0.5)', lineHeight: 1.7 }}>
-              Platform kad kahwin digital premium untuk pasangan Malaysia moden.
+              {settings?.company_tagline || 'Platform kad kahwin digital premium untuk pasangan Malaysia moden.'}
             </Text>
           </Stack>
 
@@ -911,16 +935,16 @@ function Footer() {
             <Text fw={600} size="sm" mb={4} style={{ color: CREAM_ALT }}>
               Pautan
             </Text>
-            <Anchor href="#features" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor href="/#features" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Ciri-ciri
             </Anchor>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor href="/#pricing" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Harga
             </Anchor>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor component={Link} to="/tentang-kami" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Tentang Kami
             </Anchor>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor component={Link} to="/hubungi-kami" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Hubungi Kami
             </Anchor>
           </Stack>
@@ -930,13 +954,13 @@ function Footer() {
             <Text fw={600} size="sm" mb={4} style={{ color: CREAM_ALT }}>
               Undang-undang
             </Text>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor component={Link} to="/terma" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Terma & Syarat
             </Anchor>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor component={Link} to="/privasi" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Dasar Privasi
             </Anchor>
-            <Anchor href="#" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
+            <Anchor component={Link} to="/polisi-bayaran-balik" size="sm" style={{ color: 'rgba(253,248,240,0.5)' }} underline="hover">
               Polisi Bayaran Balik
             </Anchor>
           </Stack>
@@ -947,18 +971,24 @@ function Footer() {
               Ikuti Kami
             </Text>
             <Group gap={12}>
-              <Anchor href="#" style={{ color: 'rgba(253,248,240,0.5)' }}>
-                <IconBrandInstagram size={22} stroke={1.5} />
-              </Anchor>
-              <Anchor href="#" style={{ color: 'rgba(253,248,240,0.5)' }}>
-                <IconBrandFacebook size={22} stroke={1.5} />
-              </Anchor>
-              <Anchor href="#" style={{ color: 'rgba(253,248,240,0.5)' }}>
-                <IconBrandTwitter size={22} stroke={1.5} />
-              </Anchor>
+              {(settings?.instagram_url || '').trim() && (
+                <Anchor href={settings?.instagram_url} target="_blank" rel="noreferrer" style={{ color: 'rgba(253,248,240,0.5)' }}>
+                  <IconBrandInstagram size={22} stroke={1.5} />
+                </Anchor>
+              )}
+              {(settings?.facebook_url || '').trim() && (
+                <Anchor href={settings?.facebook_url} target="_blank" rel="noreferrer" style={{ color: 'rgba(253,248,240,0.5)' }}>
+                  <IconBrandFacebook size={22} stroke={1.5} />
+                </Anchor>
+              )}
+              {(settings?.x_url || '').trim() && (
+                <Anchor href={settings?.x_url} target="_blank" rel="noreferrer" style={{ color: 'rgba(253,248,240,0.5)' }}>
+                  <IconBrandTwitter size={22} stroke={1.5} />
+                </Anchor>
+              )}
             </Group>
             <Text size="sm" mt={8} style={{ color: 'rgba(253,248,240,0.35)' }}>
-              hello@jemput.neyobytes.com
+              {settings?.contact_email || 'hello@jemput.neyobytes.com'}
             </Text>
           </Stack>
         </SimpleGrid>

@@ -33,7 +33,7 @@ export default function LocationSection({ invitation }: LocationSectionProps) {
     alignItems: 'center',
     gap: '8px',
     padding: '12px 20px',
-    border: '1px solid rgba(212,175,55,0.4)',
+    border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent)',
     borderRadius: '4px',
     background: 'rgba(255,255,255,0.4)',
     textDecoration: 'none',
@@ -118,7 +118,7 @@ export default function LocationSection({ invitation }: LocationSectionProps) {
             width="100%"
             height="250"
             style={{
-              border: '1px solid rgba(212,175,55,0.4)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent)',
               borderRadius: '8px',
               display: 'block',
             }}

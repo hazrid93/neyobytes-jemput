@@ -91,39 +91,88 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// POST /api/stripe/checkout - Creates a Stripe checkout session
-app.post('/api/stripe/checkout', async (req, res) => {
-  const { planId, invitationId, userId, priceId, email } = req.body;
+// ---------------------------------------------------------------------------
+// Stripe - resolve keys based on STRIPE_MODE (production | sandbox)
+// ---------------------------------------------------------------------------
+const stripeMode = process.env.STRIPE_MODE || 'sandbox';
+const isStripeLive = stripeMode === 'production';
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ error: 'Stripe not configured' });
+const STRIPE_CONFIG = {
+  secretKey: isStripeLive ? process.env.STRIPE_LIVE_SECRET_KEY : process.env.STRIPE_TEST_SECRET_KEY,
+  publishableKey: isStripeLive ? process.env.STRIPE_LIVE_PUBLISHABLE_KEY : process.env.STRIPE_TEST_PUBLISHABLE_KEY,
+  webhookSecret: isStripeLive ? process.env.STRIPE_LIVE_WEBHOOK_SECRET : process.env.STRIPE_TEST_WEBHOOK_SECRET,
+};
+
+const stripe = STRIPE_CONFIG.secretKey ? new Stripe(STRIPE_CONFIG.secretKey) : null;
+console.log(`Stripe mode: ${stripeMode} (${isStripeLive ? 'LIVE' : 'TEST'})`);
+
+// GET /api/stripe/config - Returns publishable key to the frontend
+app.get('/api/stripe/config', (req, res) => {
+  res.json({
+    publishableKey: STRIPE_CONFIG.publishableKey || null,
+    mode: stripeMode,
+  });
+});
+
+// POST /api/stripe/checkout - Creates an embedded checkout session
+app.post('/api/stripe/checkout', async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+
+  const { planId, invitationId, userId, priceId, email } = req.body;
+  const appUrl = process.env.APP_URL || 'https://jemput.neyobytes.com';
 
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      ui_mode: 'embedded',
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'payment', // one-time, NOT subscription
-      success_url: `${process.env.APP_URL || 'https://jemput.neyobytes.com'}/dashboard/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL || 'https://jemput.neyobytes.com'}/pricing?canceled=true`,
+      mode: 'payment',
+      return_url: `${appUrl}/dashboard/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       customer_email: email,
-      metadata: { user_id: userId, invitation_id: invitationId, plan_id: planId },
+      metadata: {
+        user_id: userId,
+        invitation_id: invitationId || '',
+        plan_id: planId,
+      },
     });
 
-    res.json({ url: session.url, sessionId: session.id });
+    res.json({ clientSecret: session.client_secret });
   } catch (err) {
+    console.error('Stripe checkout error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/stripe/session-status - Returns session status for the return page
+app.get('/api/stripe/session-status', async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+
+  const { session_id } = req.query;
+  if (!session_id) return res.status(400).json({ error: 'session_id is required' });
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    res.json({
+      status: session.status,
+      payment_status: session.payment_status,
+      customer_email: session.customer_details?.email || session.customer_email,
+    });
+  } catch (err) {
+    console.error('Session status error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 // POST /api/stripe/webhook - Handles Stripe webhook events
 app.post('/api/stripe/webhook', async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+
   const sig = req.headers['stripe-signature'];
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_CONFIG.webhookSecret);
   } catch (err) {
+    console.error('Webhook signature failed:', err.message);
     return res.status(400).json({ error: 'Webhook signature failed' });
   }
 
@@ -132,61 +181,73 @@ app.post('/api/stripe/webhook', async (req, res) => {
       const session = event.data.object;
       const { user_id, invitation_id, plan_id } = session.metadata;
 
-      // Update invitation payment status and expiry via Supabase REST API
-      // Using service role key for server-side operations
       const supabaseUrl = process.env.SUPABASE_URL;
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       if (supabaseUrl && supabaseServiceKey) {
-        // Get plan duration
-        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?id=eq.${plan_id}&select=duration_days`, {
-          headers: { 'apikey': supabaseServiceKey, 'Authorization': `Bearer ${supabaseServiceKey}` },
-        });
-        const plans = await planRes.json();
-        const durationDays = plans[0]?.duration_days || 60;
+        const sbHeaders = {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        };
 
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + durationDays);
+        try {
+          // Get plan duration
+          const planRes = await fetch(
+            `${supabaseUrl}/rest/v1/plans?id=eq.${plan_id}&select=duration_days`,
+            { headers: sbHeaders }
+          );
+          const plans = await planRes.json();
+          const durationDays = plans[0]?.duration_days || 60;
 
-        // Update invitation
-        await fetch(`${supabaseUrl}/rest/v1/invitations?id=eq.${invitation_id}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify({
-            payment_status: 'paid',
-            expires_at: expiresAt.toISOString(),
-          }),
-        });
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + durationDays);
 
-        // Record payment
-        await fetch(`${supabaseUrl}/rest/v1/payments`, {
-          method: 'POST',
-          headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id,
-            invitation_id,
-            plan_id,
-            amount: session.amount_total / 100,
-            currency: session.currency || 'myr',
-            stripe_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent,
-            status: 'succeeded',
-          }),
-        });
+          // Update invitation (only if invitation_id was provided)
+          if (invitation_id) {
+            await fetch(`${supabaseUrl}/rest/v1/invitations?id=eq.${invitation_id}`, {
+              method: 'PATCH',
+              headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({
+                payment_status: 'paid',
+                expires_at: expiresAt.toISOString(),
+              }),
+            });
+          }
+
+          // Record payment
+          await fetch(`${supabaseUrl}/rest/v1/payments`, {
+            method: 'POST',
+            headers: sbHeaders,
+            body: JSON.stringify({
+              user_id,
+              invitation_id: invitation_id || null,
+              plan_id,
+              amount: session.amount_total / 100,
+              currency: session.currency || 'myr',
+              stripe_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent,
+              status: 'succeeded',
+            }),
+          });
+
+          // Store Stripe customer ID on user profile (for billing portal)
+          if (session.customer) {
+            await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user_id}`, {
+              method: 'PATCH',
+              headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({
+                stripe_customer_id: session.customer,
+              }),
+            });
+          }
+
+          console.log(`Payment succeeded: user=${user_id}, plan=${plan_id}, amount=${session.amount_total / 100} ${session.currency}`);
+        } catch (dbErr) {
+          console.error('Webhook DB error:', dbErr.message);
+          // Still return 200 so Stripe doesn't retry
+        }
       }
-      break;
-    }
-    case 'payment_intent.payment_failed': {
-      console.log('Payment failed:', event.data.object.id);
       break;
     }
   }
@@ -196,16 +257,19 @@ app.post('/api/stripe/webhook', async (req, res) => {
 
 // POST /api/stripe/portal - Creates Stripe billing portal
 app.post('/api/stripe/portal', async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+
   const { customerId } = req.body;
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  if (!customerId) return res.status(400).json({ error: 'customerId is required' });
 
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.APP_URL}/dashboard/subscription`,
+      return_url: `${process.env.APP_URL || 'https://jemput.neyobytes.com'}/dashboard/subscription`,
     });
     res.json({ url: session.url });
   } catch (err) {
+    console.error('Portal error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

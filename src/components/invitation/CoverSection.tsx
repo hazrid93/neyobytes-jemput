@@ -1,10 +1,13 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { getTemplateVisuals, buildThemeVars } from '../../lib/template-styles';
 import type { Invitation } from '../../types';
 
 interface CoverSectionProps {
   invitation: Invitation;
   guestName?: string;
   onOpen: () => void;
+  templateId: string;
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -21,9 +24,243 @@ function formatMalayDate(dateStr: string): string {
   return `${day}, ${d} ${month} ${year}`;
 }
 
-export default function CoverSection({ invitation, guestName, onOpen }: CoverSectionProps) {
+// ---------------------------------------------------------------------------
+// Cover frame renderer — different visual frames per template
+// ---------------------------------------------------------------------------
+function CoverFrame({ frameType, color }: { frameType: string; color: string }) {
+  switch (frameType) {
+    case 'double-border':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: '16px',
+              border: `1px solid ${color}`,
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              opacity: 0.4,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '22px',
+              border: `1px solid ${color}`,
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              opacity: 0.2,
+            }}
+          />
+        </>
+      );
+
+    case 'arch-top':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              top: '16px',
+              left: '16px',
+              right: '16px',
+              bottom: '16px',
+              border: `1px solid ${color}`,
+              borderRadius: '50% 50% 2px 2px / 20% 20% 2px 2px',
+              pointerEvents: 'none',
+              opacity: 0.35,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: '22px',
+              left: '22px',
+              right: '22px',
+              bottom: '22px',
+              border: `1px solid ${color}`,
+              borderRadius: '50% 50% 2px 2px / 18% 18% 2px 2px',
+              pointerEvents: 'none',
+              opacity: 0.15,
+            }}
+          />
+        </>
+      );
+
+    case 'thin-line':
+      return (
+        <div
+          style={{
+            position: 'absolute',
+            inset: '20px',
+            border: `1px solid ${color}`,
+            borderRadius: '0',
+            pointerEvents: 'none',
+            opacity: 0.25,
+          }}
+        />
+      );
+
+    case 'deco-corners':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: '16px',
+              border: `1px solid ${color}`,
+              borderRadius: '0',
+              pointerEvents: 'none',
+              opacity: 0.3,
+            }}
+          />
+          {/* Art deco corner squares */}
+          {['topLeft', 'topRight', 'bottomLeft', 'bottomRight'].map((corner) => {
+            const isTop = corner.includes('top');
+            const isLeft = corner.includes('Left');
+            return (
+              <div
+                key={corner}
+                style={{
+                  position: 'absolute',
+                  [isTop ? 'top' : 'bottom']: '12px',
+                  [isLeft ? 'left' : 'right']: '12px',
+                  width: '16px',
+                  height: '16px',
+                  border: `2px solid ${color}`,
+                  pointerEvents: 'none',
+                  opacity: 0.5,
+                }}
+              />
+            );
+          })}
+        </>
+      );
+
+    case 'botanical-frame':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: '18px',
+              border: `1px solid ${color}`,
+              borderRadius: '8px',
+              pointerEvents: 'none',
+              opacity: 0.3,
+            }}
+          />
+        </>
+      );
+
+    case 'geometric-frame':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: '16px',
+              border: `1.5px solid ${color}`,
+              borderRadius: '0',
+              pointerEvents: 'none',
+              opacity: 0.4,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '24px',
+              border: `0.5px solid ${color}`,
+              borderRadius: '0',
+              pointerEvents: 'none',
+              opacity: 0.15,
+            }}
+          />
+        </>
+      );
+
+    case 'ornate-frame':
+      return (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: '14px',
+              border: `2px solid ${color}`,
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              opacity: 0.5,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '20px',
+              border: `1px solid ${color}`,
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              opacity: 0.2,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '26px',
+              border: `0.5px solid ${color}`,
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              opacity: 0.1,
+            }}
+          />
+        </>
+      );
+
+    default: // 'none'
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Corner ornaments rendered from template SVG
+// ---------------------------------------------------------------------------
+function CornerOrnaments({ svgFn, color }: { svgFn: (c: string) => string; color: string }) {
+  const svgString = svgFn(color);
+  const corners = [
+    { top: '24px', left: '24px', transform: 'none' },
+    { top: '24px', right: '24px', transform: 'scaleX(-1)' },
+    { bottom: '24px', left: '24px', transform: 'scaleY(-1)' },
+    { bottom: '24px', right: '24px', transform: 'scale(-1, -1)' },
+  ];
+
+  return (
+    <>
+      {corners.map((pos, i) => (
+        <div
+          key={i}
+          dangerouslySetInnerHTML={{ __html: svgString }}
+          style={{
+            position: 'absolute',
+            width: '50px',
+            height: '50px',
+            pointerEvents: 'none',
+            ...pos,
+          } as React.CSSProperties}
+        />
+      ))}
+    </>
+  );
+}
+
+export default function CoverSection({ invitation, guestName, onOpen, templateId }: CoverSectionProps) {
   const groomFirst = invitation.groom_name.split(' ')[0];
   const brideFirst = invitation.bride_name.split(' ')[0];
+
+  const visuals = useMemo(() => getTemplateVisuals(templateId), [templateId]);
+  const themeVars = useMemo(() => buildThemeVars(invitation.theme_config), [invitation.theme_config]);
+
+  const coverBgStyle = visuals.coverBackground(themeVars);
+  const coverPatternStyle = visuals.coverPattern(themeVars);
+  const buttonOverrides = visuals.buttonStyle(themeVars);
 
   return (
     <section
@@ -35,78 +272,17 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
-        background: `
-          radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.08) 0%, transparent 60%),
-          radial-gradient(ellipse at 50% 80%, rgba(139,111,78,0.05) 0%, transparent 50%),
-          var(--bg-color, #FDF8F0)
-        `,
+        ...coverBgStyle,
       }}
     >
-      {/* Geometric pattern overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.03,
-          backgroundImage: `
-            linear-gradient(30deg, var(--secondary-color, #D4AF37) 12%, transparent 12.5%, transparent 87%, var(--secondary-color, #D4AF37) 87.5%, var(--secondary-color, #D4AF37)),
-            linear-gradient(150deg, var(--secondary-color, #D4AF37) 12%, transparent 12.5%, transparent 87%, var(--secondary-color, #D4AF37) 87.5%, var(--secondary-color, #D4AF37)),
-            linear-gradient(30deg, var(--secondary-color, #D4AF37) 12%, transparent 12.5%, transparent 87%, var(--secondary-color, #D4AF37) 87.5%, var(--secondary-color, #D4AF37)),
-            linear-gradient(150deg, var(--secondary-color, #D4AF37) 12%, transparent 12.5%, transparent 87%, var(--secondary-color, #D4AF37) 87.5%, var(--secondary-color, #D4AF37)),
-            linear-gradient(60deg, rgba(139,111,78,0.5) 25%, transparent 25.5%, transparent 75%, rgba(139,111,78,0.5) 75%, rgba(139,111,78,0.5)),
-            linear-gradient(60deg, rgba(139,111,78,0.5) 25%, transparent 25.5%, transparent 75%, rgba(139,111,78,0.5) 75%, rgba(139,111,78,0.5))
-          `,
-          backgroundSize: '80px 140px',
-          backgroundPosition: '0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px',
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Template-specific pattern overlay */}
+      <div style={coverPatternStyle} />
 
-      {/* Ornamental gold border frame */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: '16px',
-          border: '1px solid var(--secondary-color, #D4AF37)',
-          borderRadius: '2px',
-          pointerEvents: 'none',
-          opacity: 0.4,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          inset: '22px',
-          border: '1px solid var(--secondary-color, #D4AF37)',
-          borderRadius: '2px',
-          pointerEvents: 'none',
-          opacity: 0.2,
-        }}
-      />
+      {/* Template-specific frame */}
+      <CoverFrame frameType={visuals.coverFrame} color={themeVars.secondary} />
 
-      {/* Corner ornaments */}
-      {['topLeft', 'topRight', 'bottomLeft', 'bottomRight'].map((corner) => {
-        const isTop = corner.includes('top');
-        const isLeft = corner.includes('Left');
-        return (
-          <div
-            key={corner}
-            style={{
-              position: 'absolute',
-              [isTop ? 'top' : 'bottom']: '30px',
-              [isLeft ? 'left' : 'right']: '30px',
-              width: '40px',
-              height: '40px',
-              borderTop: isTop ? '2px solid var(--secondary-color, #D4AF37)' : 'none',
-              borderBottom: !isTop ? '2px solid var(--secondary-color, #D4AF37)' : 'none',
-              borderLeft: isLeft ? '2px solid var(--secondary-color, #D4AF37)' : 'none',
-              borderRight: !isLeft ? '2px solid var(--secondary-color, #D4AF37)' : 'none',
-              opacity: 0.6,
-              pointerEvents: 'none',
-            }}
-          />
-        );
-      })}
+      {/* Template-specific corner ornaments */}
+      <CornerOrnaments svgFn={visuals.cornerSvg} color={themeVars.secondary} />
 
       {/* Content */}
       <div
@@ -121,7 +297,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           maxWidth: '480px',
         }}
       >
-        {/* Top ornament */}
+        {/* Top ornament — template-specific characters */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -133,7 +309,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
             letterSpacing: '8px',
           }}
         >
-          &#10022; &#10022; &#10022;
+          {visuals.coverTopOrnament}
         </motion.div>
 
         {/* Bismillah */}
@@ -169,7 +345,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           Dengan Nama Allah Yang Maha Pemurah Lagi Maha Penyayang
         </motion.p>
 
-        {/* Thin gold divider */}
+        {/* Thin divider */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -177,7 +353,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           style={{
             width: '120px',
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
+            background: `linear-gradient(90deg, transparent, ${themeVars.secondary}, transparent)`,
             marginBottom: '28px',
           }}
         />
@@ -248,7 +424,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           {brideFirst}
         </motion.h1>
 
-        {/* Gold divider */}
+        {/* Divider */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -256,7 +432,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           style={{
             width: '80px',
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, var(--secondary-color, #D4AF37), transparent)',
+            background: `linear-gradient(90deg, transparent, ${themeVars.secondary}, transparent)`,
             marginBottom: '20px',
           }}
         />
@@ -302,8 +478,9 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
             style={{
               marginBottom: '28px',
               padding: '12px 24px',
-              borderTop: '1px solid rgba(212,175,55,0.3)',
-              borderBottom: '1px solid rgba(212,175,55,0.3)',
+              borderTop: `1px solid var(--border-color, ${themeVars.secondary})`,
+              borderBottom: `1px solid var(--border-color, ${themeVars.secondary})`,
+              opacity: 0.6,
             }}
           >
             <p
@@ -331,7 +508,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
           </motion.div>
         )}
 
-        {/* Open button */}
+        {/* Open button — template-styled */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -346,21 +523,21 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
             letterSpacing: '3px',
             textTransform: 'uppercase',
             color: 'var(--bg-color, #FDF8F0)',
-            background: 'linear-gradient(135deg, var(--secondary-color, #D4AF37), #C5A028, var(--secondary-color, #D4AF37))',
+            background: `linear-gradient(135deg, ${themeVars.secondary}, ${themeVars.primary})`,
             backgroundSize: '200% 200%',
             animation: 'shimmer 3s ease-in-out infinite',
             border: 'none',
             padding: '14px 40px',
-            borderRadius: '2px',
             cursor: 'pointer',
             position: 'relative',
             overflow: 'hidden',
+            ...buttonOverrides,
           }}
         >
           Buka Jemputan
         </motion.button>
 
-        {/* Bottom ornament */}
+        {/* Bottom ornament — template-specific characters */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -373,7 +550,7 @@ export default function CoverSection({ invitation, guestName, onOpen }: CoverSec
             opacity: 0.5,
           }}
         >
-          &#9674; &#9674; &#9674;
+          {visuals.coverBottomOrnament}
         </motion.div>
       </div>
 

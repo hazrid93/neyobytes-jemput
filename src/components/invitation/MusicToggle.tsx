@@ -250,7 +250,7 @@ export default function MusicToggle({ musicUrl, musicType = 'direct' }: MusicTog
               width: '48px',
               height: '48px',
               borderRadius: '50%',
-              border: '1px solid rgba(212,175,55,0.4)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 40%, transparent)',
               background: 'rgba(253,248,240,0.95)',
               backdropFilter: 'blur(8px)',
               display: 'flex',

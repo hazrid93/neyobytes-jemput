@@ -55,7 +55,7 @@ export default function CreateInvitationModal({ opened, onClose }: Props) {
   const [eventDate, setEventDate] = useState<string | null>(null);
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('elegant-gold');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('songket-emas');
 
   const autoSlug = generateSlug(brideName, groomName);
 

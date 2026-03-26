@@ -122,7 +122,12 @@ export interface ThemeConfig {
   font_display: string;
   font_body: string;
   font_arabic: string;
-  ornament_style?: 'classic' | 'floral' | 'geometric' | 'minimal' | 'batik';
+  ornament_style?: 'classic' | 'floral' | 'geometric' | 'minimal' | 'batik'
+    | 'islamic' | 'tropical' | 'vintage' | 'rustic' | 'glamour';
+  bg_pattern?: string;
+  border_style?: 'ornate' | 'thin' | 'double' | 'none' | 'deco' | 'dotted';
+  divider_style?: 'diamond' | 'floral' | 'geometric' | 'line' | 'wave' | 'star' | 'islamic' | 'leaf';
+  cover_style?: 'framed' | 'arch' | 'minimal' | 'full-bleed' | 'geometric' | 'botanical' | 'ornate';
 }
 
 // ============================================================================
@@ -255,4 +260,18 @@ export interface AdminStats {
   revenue_myr: number;
   active_invitations: number;
   expired_invitations: number;
+}
+
+export interface SiteSettings {
+  id: string;
+  company_name: string;
+  company_tagline: string;
+  about_short: string;
+  contact_email: string;
+  contact_phone?: string;
+  address?: string;
+  instagram_url?: string;
+  facebook_url?: string;
+  x_url?: string;
+  updated_at?: string;
 }

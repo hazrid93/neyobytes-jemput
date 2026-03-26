@@ -7,6 +7,12 @@ import InvitationPage from './pages/InvitationPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PricingPage from './pages/PricingPage';
+import TrialEditorPage from './pages/TrialEditorPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import RefundPage from './pages/RefundPage';
 
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
@@ -30,6 +36,12 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/tentang-kami" element={<AboutPage />} />
+      <Route path="/hubungi-kami" element={<ContactPage />} />
+      <Route path="/terma" element={<TermsPage />} />
+      <Route path="/privasi" element={<PrivacyPage />} />
+      <Route path="/polisi-bayaran-balik" element={<RefundPage />} />
+      <Route path="/cuba" element={<TrialEditorPage />} />
       <Route path="/dashboard/*" element={<DashboardPage />} />
       <Route
         path="/admin/*"

@@ -466,6 +466,48 @@ CREATE POLICY "payments_admin_all" ON public.payments FOR ALL USING (
 );
 
 -- =============================================================================
+-- SITE SETTINGS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  id                text PRIMARY KEY,
+  company_name      text NOT NULL DEFAULT 'Jemput by Neyobytes',
+  company_tagline   text NOT NULL DEFAULT 'Platform kad kahwin digital premium untuk pasangan Malaysia moden.',
+  about_short       text NOT NULL DEFAULT 'Jemput membantu pasangan Malaysia membina kad kahwin digital yang cantik, mudah dikongsi, dan mudah diurus dari RSVP hingga ke salam kaut digital.',
+  contact_email     text NOT NULL DEFAULT 'hello@jemput.neyobytes.com',
+  contact_phone     text,
+  address           text,
+  instagram_url     text,
+  facebook_url      text,
+  x_url             text,
+  updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "site_settings_select_public" ON public.site_settings FOR SELECT USING (true);
+
+CREATE POLICY "site_settings_admin_all" ON public.site_settings FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
+
+INSERT INTO public.site_settings (
+  id,
+  company_name,
+  company_tagline,
+  about_short,
+  contact_email,
+  address
+) VALUES (
+  'main',
+  'Jemput by Neyobytes',
+  'Platform kad kahwin digital premium untuk pasangan Malaysia moden.',
+  'Jemput membantu pasangan Malaysia membina kad kahwin digital yang cantik, mudah dikongsi, dan mudah diurus dari RSVP hingga ke salam kaut digital.',
+  'hello@jemput.neyobytes.com',
+  'Malaysia'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
 -- SEED DEFAULT PLANS
 -- =============================================================================
 INSERT INTO public.plans (name, name_ms, description, price_myr, duration_days, features, chatbot_enabled, chatbot_daily_limit, is_active, sort_order) VALUES

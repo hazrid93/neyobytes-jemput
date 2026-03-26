@@ -48,19 +48,31 @@ const DEFAULT_PLANS: Plan[] = [
   },
 ];
 
+interface StripeConfig {
+  publishableKey: string | null;
+  mode: string;
+}
+
 interface PaymentState {
   plans: Plan[];
   currentPayment: Payment | null;
+  stripeConfig: StripeConfig | null;
   loading: boolean;
 
   fetchPlans: () => Promise<void>;
-  createCheckout: (planId: string, invitationId: string) => Promise<string>;
-  verifyPayment: (sessionId: string) => Promise<void>;
+  fetchStripeConfig: () => Promise<StripeConfig>;
+  createCheckout: (planId: string, invitationId?: string) => Promise<string>;
+  verifyPayment: (sessionId: string) => Promise<{
+    status: string;
+    payment_status: string;
+    customer_email?: string;
+  }>;
 }
 
 export const usePaymentStore = create<PaymentState>((set, get) => ({
   plans: DEFAULT_PLANS,
   currentPayment: null,
+  stripeConfig: null,
   loading: false,
 
   fetchPlans: async () => {
@@ -94,16 +106,28 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
         }));
         set({ plans, loading: false });
       } else {
-        // Fall back to default demo plans
         set({ plans: DEFAULT_PLANS, loading: false });
       }
     } catch {
-      // Fall back to default demo plans on error
       set({ plans: DEFAULT_PLANS, loading: false });
     }
   },
 
-  createCheckout: async (planId: string, invitationId: string) => {
+  fetchStripeConfig: async () => {
+    // Return cached config if available
+    const cached = get().stripeConfig;
+    if (cached) return cached;
+
+    const API_URL = import.meta.env.VITE_API_URL || '/api';
+    const res = await fetch(`${API_URL}/stripe/config`);
+    if (!res.ok) throw new Error('Failed to fetch Stripe config');
+
+    const config: StripeConfig = await res.json();
+    set({ stripeConfig: config });
+    return config;
+  },
+
+  createCheckout: async (planId: string, invitationId?: string) => {
     set({ loading: true });
     try {
       const plans = get().plans;
@@ -119,7 +143,7 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
 
         const { error } = await supabase.from('payments').insert({
           user_id: user.id,
-          invitation_id: invitationId,
+          invitation_id: invitationId || null,
           plan_id: planId,
           amount: 0,
           currency: 'myr',
@@ -129,73 +153,44 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
         if (error) throw error;
 
         set({ loading: false });
-        return `${window.location.origin}/dashboard`;
+        return '';
       }
 
-      // Paid plan: create Stripe Checkout session via backend
-      if (plan.stripe_price_id) {
-        const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) throw new Error('Not authenticated');
-
-        const response = await fetch(`${API_URL}/stripe/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            planId,
-            invitationId,
-            userId: session.user.id,
-            priceId: plan.stripe_price_id,
-            email: session.user.email,
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to create checkout');
-
-        const { url } = await response.json();
-
-        set({ loading: false });
-        return url as string;
+      // Paid plan: create Stripe Embedded Checkout session
+      if (!plan.stripe_price_id) {
+        throw new Error(
+          'Pelan ini belum dikonfigurasi untuk pembayaran. Sila hubungi pentadbir.'
+        );
       }
 
-      // Fallback: create a pending payment record (placeholder for when Stripe isn't configured)
+      const API_URL = import.meta.env.VITE_API_URL || '/api';
+
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('Not authenticated');
 
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .insert({
-          user_id: user.id,
-          invitation_id: invitationId,
-          plan_id: planId,
-          amount: plan.price_myr,
-          currency: 'myr',
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      set({
-        currentPayment: {
-          id: payment.id,
-          user_id: payment.user_id,
-          invitation_id: payment.invitation_id ?? undefined,
-          plan_id: payment.plan_id,
-          amount: Number(payment.amount),
-          currency: payment.currency,
-          status: payment.status,
-          created_at: payment.created_at,
-        },
-        loading: false,
+      const response = await fetch(`${API_URL}/stripe/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId,
+          invitationId: invitationId || '',
+          userId: session.user.id,
+          priceId: plan.stripe_price_id,
+          email: session.user.email,
+        }),
       });
 
-      // Return dashboard URL as fallback
-      return `${window.location.origin}/dashboard?payment=pending&id=${payment.id}`;
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to create checkout session');
+      }
+
+      const { clientSecret } = await response.json();
+
+      set({ loading: false });
+      return clientSecret as string;
     } catch (err) {
       console.error('Checkout failed:', err);
       set({ loading: false });
@@ -204,41 +199,13 @@ export const usePaymentStore = create<PaymentState>((set, get) => ({
   },
 
   verifyPayment: async (sessionId: string) => {
-    set({ loading: true });
-    try {
-      // Call Supabase Edge Function to verify the Stripe session
-      const { data, error } = await supabase.functions.invoke(
-        'verify-payment',
-        {
-          body: { session_id: sessionId },
-        }
-      );
+    const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-      if (error) throw error;
+    const res = await fetch(
+      `${API_URL}/stripe/session-status?session_id=${encodeURIComponent(sessionId)}`
+    );
+    if (!res.ok) throw new Error('Failed to verify payment');
 
-      if (data?.payment) {
-        set({
-          currentPayment: {
-            id: data.payment.id,
-            user_id: data.payment.user_id,
-            invitation_id: data.payment.invitation_id ?? undefined,
-            plan_id: data.payment.plan_id,
-            amount: Number(data.payment.amount),
-            currency: data.payment.currency,
-            stripe_session_id: data.payment.stripe_session_id ?? undefined,
-            stripe_payment_intent_id:
-              data.payment.stripe_payment_intent_id ?? undefined,
-            status: data.payment.status,
-            created_at: data.payment.created_at,
-          },
-          loading: false,
-        });
-      } else {
-        set({ loading: false });
-      }
-    } catch (err) {
-      console.error('Payment verification failed:', err);
-      set({ loading: false });
-    }
+    return await res.json();
   },
 }));

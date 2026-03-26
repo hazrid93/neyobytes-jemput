@@ -71,7 +71,7 @@ export default function CoupleSection({ invitation }: CoupleSectionProps) {
               width: '100%',
               height: '100%',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,111,78,0.1))',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 10%, transparent), color-mix(in srgb, var(--primary-color, #8B6F4E) 10%, transparent))',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

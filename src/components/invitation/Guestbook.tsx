@@ -52,7 +52,7 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    border: '1px solid rgba(212,175,55,0.3)',
+    border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
     borderRadius: '4px',
     background: 'rgba(255,255,255,0.5)',
     fontFamily: 'var(--font-body, "Poppins"), sans-serif',
@@ -112,7 +112,7 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.8, delay: 0.2 }}
         style={{
-          border: '1px solid rgba(212,175,55,0.3)',
+          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
           borderRadius: '4px',
           padding: '24px 20px',
           background: 'rgba(255,255,255,0.3)',
@@ -154,7 +154,7 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
             borderRadius: '4px',
             background:
               !name.trim() || !message.trim()
-                ? 'rgba(212,175,55,0.3)'
+                ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)'
                 : 'linear-gradient(135deg, var(--secondary-color, #D4AF37), #C5A028)',
             fontFamily: 'var(--font-body, "Poppins"), sans-serif',
             fontSize: '12px',
@@ -184,7 +184,7 @@ export default function Guestbook({ invitationId, messages }: GuestbookProps) {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
               style={{
-                border: '1px solid rgba(212,175,55,0.15)',
+                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
                 borderRadius: '4px',
                 padding: '16px 16px',
                 background: 'rgba(255,255,255,0.2)',

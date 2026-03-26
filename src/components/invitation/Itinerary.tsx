@@ -32,6 +32,33 @@ function getIcon(icon?: string): string {
 export default function Itinerary({ items }: ItineraryProps) {
   if (!items || items.length === 0) return null;
 
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (index: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.6, delay: index * 0.1 },
+    }),
+  };
+
+  const lineVariants = {
+    hidden: { scaleY: 0, opacity: 0 },
+    visible: (index: number) => ({
+      scaleY: 1,
+      opacity: 1,
+      transition: { duration: 0.45, delay: index * 0.1 + 0.15 },
+    }),
+  };
+
+  const dotVariants = {
+    hidden: { scale: 0, opacity: 0 },
+    visible: (index: number) => ({
+      scale: 1,
+      opacity: 1,
+      transition: { duration: 0.3, delay: index * 0.1 + 0.1 },
+    }),
+  };
+
   return (
     <section
       style={{
@@ -87,10 +114,11 @@ export default function Itinerary({ items }: ItineraryProps) {
         {items.map((item, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            custom={index}
             viewport={{ once: true, margin: '-30px' }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
             style={{
               display: 'grid',
               gridTemplateColumns: '80px 32px 1fr',
@@ -132,34 +160,51 @@ export default function Itinerary({ items }: ItineraryProps) {
             >
               {/* Vertical line */}
               {index < items.length - 1 && (
-                <div
+                <motion.div
+                  variants={lineVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  custom={index}
+                  viewport={{ once: true, margin: '-30px' }}
                   style={{
                     position: 'absolute',
                     top: '50%',
                     bottom: '-50%',
                     width: '1px',
-                    background: 'linear-gradient(180deg, var(--secondary-color, #D4AF37), rgba(212,175,55,0.2))',
+                    background: 'linear-gradient(180deg, var(--secondary-color, #D4AF37), color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent))',
                     left: '50%',
                     transform: 'translateX(-50%)',
+                    transformOrigin: 'top center',
                   }}
                 />
               )}
               {/* Top line segment for non-first items */}
               {index > 0 && (
-                <div
+                <motion.div
+                  variants={lineVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  custom={index}
+                  viewport={{ once: true, margin: '-30px' }}
                   style={{
                     position: 'absolute',
                     top: '-50%',
                     bottom: '50%',
                     width: '1px',
-                    background: 'linear-gradient(180deg, rgba(212,175,55,0.2), var(--secondary-color, #D4AF37))',
+                    background: 'linear-gradient(180deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 20%, transparent), var(--secondary-color, #D4AF37))',
                     left: '50%',
                     transform: 'translateX(-50%)',
+                    transformOrigin: 'bottom center',
                   }}
                 />
               )}
               {/* Dot */}
-              <div
+              <motion.div
+                variants={dotVariants}
+                initial="hidden"
+                whileInView="visible"
+                custom={index}
+                viewport={{ once: true, margin: '-30px' }}
                 style={{
                   width: '10px',
                   height: '10px',
@@ -168,7 +213,7 @@ export default function Itinerary({ items }: ItineraryProps) {
                   position: 'relative',
                   zIndex: 1,
                   flexShrink: 0,
-                  boxShadow: '0 0 0 3px rgba(212,175,55,0.15)',
+                  boxShadow: '0 0 0 3px color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
                 }}
               />
             </div>

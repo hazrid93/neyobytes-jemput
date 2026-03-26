@@ -9,6 +9,8 @@ interface ChatbotWidgetProps {
   weddingContext: string;
   extraContext?: string;
   dailyLimit?: number;
+  /** When false, chatbot returns a canned response without hitting the LLM backend */
+  subscriptionActive?: boolean;
 }
 
 const INITIAL_MESSAGE: ChatMessage = {
@@ -25,6 +27,7 @@ export default function ChatbotWidget({
   weddingContext,
   extraContext,
   dailyLimit = 20,
+  subscriptionActive = true,
 }: ChatbotWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
@@ -58,6 +61,32 @@ export default function ChatbotWidget({
     if (!trimmed || isTyping || quotaExceeded) return;
 
     if (!isConfigured) return;
+
+    // If the invitation owner has no active subscription, return a canned
+    // response entirely on the client — no backend / LLM call at all.
+    if (!subscriptionActive) {
+      const userMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: trimmed,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput('');
+      // Short delay to feel natural
+      setIsTyping(true);
+      await new Promise((r) => setTimeout(r, 600));
+      setIsTyping(false);
+      const blockedMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content:
+          'Maaf, ciri chatbot ini memerlukan langganan aktif. Sila hubungi pihak pengantin untuk sebarang pertanyaan.',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, blockedMsg]);
+      return;
+    }
 
     // Check quota before sending
     try {

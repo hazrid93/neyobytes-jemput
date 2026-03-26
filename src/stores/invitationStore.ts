@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import type { Invitation, RSVP, GuestbookMessage } from '../types';
 import { supabase } from '../lib/supabase';
-import { demoInvitation, demoRSVPs, demoGuestbook } from '../lib/demo-data';
+import {
+  demoInvitation,
+  demoRSVPs,
+  demoGuestbook,
+  TRIAL_PREVIEW_STORAGE_KEY,
+} from '../lib/demo-data';
 
 interface InvitationState {
   invitation: Invitation | null;
@@ -28,6 +33,30 @@ export const useInvitationStore = create<InvitationState>((set, get) => ({
 
   fetchInvitation: async (slug: string) => {
     set({ loading: true, error: null });
+
+    // Demo slug — use local demo data immediately, skip Supabase entirely
+    if (slug === 'aiman-nadia') {
+      let trialInvitation = demoInvitation;
+
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem(TRIAL_PREVIEW_STORAGE_KEY);
+
+        if (raw) {
+          try {
+            trialInvitation = {
+              ...demoInvitation,
+              ...JSON.parse(raw),
+            } as Invitation;
+          } catch {
+            trialInvitation = demoInvitation;
+          }
+        }
+      }
+
+      set({ invitation: trialInvitation, rsvps: demoRSVPs, guestbook: demoGuestbook, loading: false });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('invitations')

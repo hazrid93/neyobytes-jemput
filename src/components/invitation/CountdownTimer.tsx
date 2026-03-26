@@ -118,7 +118,7 @@ export default function CountdownTimer({ eventDate, eventTime }: CountdownTimerP
               flex: '0 0 auto',
               minWidth: '68px',
               padding: '16px 8px',
-              border: '1px solid rgba(212,175,55,0.3)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
               borderRadius: '4px',
               background: 'rgba(255,255,255,0.4)',
               position: 'relative',

@@ -8,6 +8,45 @@ function getAuthRedirectUrl(path = '/login') {
   return `${baseUrl}${normalizedPath}`;
 }
 
+async function buildUserProfile(sessionUser: {
+  id: string;
+  email?: string;
+  created_at: string;
+  user_metadata?: { full_name?: string };
+}): Promise<UserProfile> {
+  const fallbackProfile: UserProfile = {
+    id: sessionUser.id,
+    email: sessionUser.email || '',
+    full_name: sessionUser.user_metadata?.full_name,
+    role: 'user',
+    created_at: sessionUser.created_at,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email, full_name, phone, role, stripe_customer_id, created_at')
+      .eq('id', sessionUser.id)
+      .maybeSingle();
+
+    if (error || !data) {
+      return fallbackProfile;
+    }
+
+    return {
+      id: sessionUser.id,
+      email: data.email || sessionUser.email || '',
+      full_name: data.full_name ?? sessionUser.user_metadata?.full_name,
+      phone: data.phone ?? undefined,
+      role: data.role === 'admin' ? 'admin' : 'user',
+      stripe_customer_id: data.stripe_customer_id ?? undefined,
+      created_at: data.created_at || sessionUser.created_at,
+    };
+  } catch {
+    return fallbackProfile;
+  }
+}
+
 interface AuthState {
   user: UserProfile | null;
   loading: boolean;
@@ -30,14 +69,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        const userProfile = await buildUserProfile(session.user);
         set({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name,
-            role: 'user',
-            created_at: session.user.created_at,
-          },
+          user: userProfile,
           initialized: true,
         });
       } else {
@@ -47,62 +81,76 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ initialized: true });
     }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        const userProfile = await buildUserProfile(session.user);
         set({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name,
-            role: 'user',
-            created_at: session.user.created_at,
-          },
+          user: userProfile,
         });
       } else {
         set({ user: null });
       }
     });
+
+    // Store the unsubscribe function for cleanup
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__authUnsubscribe = () => subscription.unsubscribe();
   },
 
   signIn: async (email, password) => {
     set({ loading: true });
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    set({ loading: false });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   signUp: async (email, password, fullName) => {
     set({ loading: true });
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: getAuthRedirectUrl('/login'),
-      },
-    });
-    set({ loading: false });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: getAuthRedirectUrl('/login'),
+        },
+      });
+      if (error) throw error;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
-    set({ user: null });
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      set({ user: null });
+    }
   },
 
   resetPassword: async (email) => {
     set({ loading: true });
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getAuthRedirectUrl('/login?reset=true'),
-    });
-    set({ loading: false });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getAuthRedirectUrl('/login?reset=true'),
+      });
+      if (error) throw error;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   updatePassword: async (newPassword) => {
     set({ loading: true });
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    set({ loading: false });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    } finally {
+      set({ loading: false });
+    }
   },
 }));

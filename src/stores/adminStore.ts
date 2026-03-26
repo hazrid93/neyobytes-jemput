@@ -1,13 +1,20 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Plan, UserProfile, Payment, AdminStats } from '../types';
+import type { Plan, UserProfile, Payment, AdminStats, SiteSettings } from '../types';
+import { DEFAULT_SITE_SETTINGS, normalizeSiteSettings } from '../lib/site-settings';
 
 interface AdminState {
   plans: Plan[];
   users: UserProfile[];
   payments: Payment[];
   stats: AdminStats | null;
+  siteSettings: SiteSettings;
   loading: boolean;
+  loadingPlans: boolean;
+  loadingUsers: boolean;
+  loadingPayments: boolean;
+  loadingStats: boolean;
+  loadingSiteSettings: boolean;
 
   fetchPlans: () => Promise<void>;
   createPlan: (plan: Partial<Plan>) => Promise<void>;
@@ -16,6 +23,8 @@ interface AdminState {
   fetchUsers: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  fetchSiteSettings: () => Promise<void>;
+  updateSiteSettings: (updates: Partial<SiteSettings>) => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -23,10 +32,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   users: [],
   payments: [],
   stats: null,
+  siteSettings: DEFAULT_SITE_SETTINGS,
   loading: false,
+  loadingPlans: false,
+  loadingUsers: false,
+  loadingPayments: false,
+  loadingStats: false,
+  loadingSiteSettings: false,
 
   fetchPlans: async () => {
-    set({ loading: true });
+    set({ loadingPlans: true, loading: true });
     try {
       const { data, error } = await supabase
         .from('plans')
@@ -50,15 +65,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         sort_order: row.sort_order,
       }));
 
-      set({ plans, loading: false });
+      set({ plans });
     } catch (err) {
       console.error('Failed to fetch plans:', err);
-      set({ loading: false });
+    } finally {
+      set({ loadingPlans: false, loading: false });
     }
   },
 
   createPlan: async (plan) => {
-    set({ loading: true });
+    set({ loadingPlans: true, loading: true });
     try {
       const { error } = await supabase.from('plans').insert({
         name: plan.name ?? '',
@@ -80,13 +96,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await get().fetchPlans();
     } catch (err) {
       console.error('Failed to create plan:', err);
-      set({ loading: false });
       throw err;
+    } finally {
+      set({ loadingPlans: false, loading: false });
     }
   },
 
   updatePlan: async (id, updates) => {
-    set({ loading: true });
+    set({ loadingPlans: true, loading: true });
     try {
       const payload: Record<string, unknown> = {};
       if (updates.name !== undefined) payload.name = updates.name;
@@ -107,13 +124,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await get().fetchPlans();
     } catch (err) {
       console.error('Failed to update plan:', err);
-      set({ loading: false });
       throw err;
+    } finally {
+      set({ loadingPlans: false, loading: false });
     }
   },
 
   deletePlan: async (id) => {
-    set({ loading: true });
+    set({ loadingPlans: true, loading: true });
     try {
       const { error } = await supabase.from('plans').delete().eq('id', id);
       if (error) throw error;
@@ -121,13 +139,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await get().fetchPlans();
     } catch (err) {
       console.error('Failed to delete plan:', err);
-      set({ loading: false });
       throw err;
+    } finally {
+      set({ loadingPlans: false, loading: false });
     }
   },
 
   fetchUsers: async () => {
-    set({ loading: true });
+    set({ loadingUsers: true, loading: true });
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -146,15 +165,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         created_at: row.created_at,
       }));
 
-      set({ users, loading: false });
+      set({ users });
     } catch (err) {
       console.error('Failed to fetch users:', err);
-      set({ loading: false });
+    } finally {
+      set({ loadingUsers: false, loading: false });
     }
   },
 
   fetchPayments: async () => {
-    set({ loading: true });
+    set({ loadingPayments: true, loading: true });
     try {
       const { data, error } = await supabase
         .from('payments')
@@ -176,15 +196,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         created_at: row.created_at,
       }));
 
-      set({ payments, loading: false });
+      set({ payments });
     } catch (err) {
       console.error('Failed to fetch payments:', err);
-      set({ loading: false });
+    } finally {
+      set({ loadingPayments: false, loading: false });
     }
   },
 
   fetchStats: async () => {
-    set({ loading: true });
+    set({ loadingStats: true, loading: true });
     try {
       // Fetch counts in parallel
       const [usersRes, invitationsRes, paymentsRes, activeRes, expiredRes] = await Promise.all([
@@ -218,10 +239,51 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         expired_invitations: expiredRes.count ?? 0,
       };
 
-      set({ stats, loading: false });
+      set({ stats });
     } catch (err) {
       console.error('Failed to fetch stats:', err);
-      set({ loading: false });
+    } finally {
+      set({ loadingStats: false, loading: false });
+    }
+  },
+
+  fetchSiteSettings: async () => {
+    set({ loadingSiteSettings: true, loading: true });
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      set({ siteSettings: normalizeSiteSettings(data as Partial<SiteSettings> | null) });
+    } catch (err) {
+      console.error('Failed to fetch site settings:', err);
+      set({ siteSettings: DEFAULT_SITE_SETTINGS });
+    } finally {
+      set({ loadingSiteSettings: false, loading: false });
+    }
+  },
+
+  updateSiteSettings: async (updates) => {
+    set({ loadingSiteSettings: true, loading: true });
+    try {
+      const payload = {
+        ...normalizeSiteSettings({ ...get().siteSettings, ...updates }),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('site_settings').upsert(payload, { onConflict: 'id' });
+      if (error) throw error;
+
+      set({ siteSettings: normalizeSiteSettings(payload) });
+    } catch (err) {
+      console.error('Failed to update site settings:', err);
+      throw err;
+    } finally {
+      set({ loadingSiteSettings: false, loading: false });
     }
   },
 }));

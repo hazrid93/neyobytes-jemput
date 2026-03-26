@@ -61,7 +61,7 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
             viewport={{ once: true, margin: '-30px' }}
             transition={{ duration: 0.6, delay: index * 0.15 }}
             style={{
-              border: '1px solid rgba(212,175,55,0.25)',
+              border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
               borderRadius: '4px',
               padding: '20px',
               background: 'rgba(255,255,255,0.3)',
@@ -110,7 +110,7 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 16px',
-                  border: '1px solid rgba(212,175,55,0.3)',
+                  border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                   borderRadius: '4px',
                   background: 'transparent',
                   textDecoration: 'none',
@@ -136,7 +136,7 @@ export default function ContactSection({ contacts }: ContactSectionProps) {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 16px',
-                  border: '1px solid rgba(212,175,55,0.3)',
+                  border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                   borderRadius: '4px',
                   background: 'transparent',
                   textDecoration: 'none',

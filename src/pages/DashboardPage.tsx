@@ -35,6 +35,8 @@ import InvitationEditor from '../components/dashboard/InvitationEditor';
 import RSVPDashboard from '../components/dashboard/RSVPDashboard';
 import GuestbookManager from '../components/dashboard/GuestbookManager';
 import SubscriptionPage from '../components/dashboard/SubscriptionPage';
+import CheckoutPage from '../components/dashboard/CheckoutPage';
+import CheckoutReturnPage from '../components/dashboard/CheckoutReturnPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore();
@@ -327,6 +329,8 @@ export default function DashboardPage() {
               element={<InvitationSubPage component={GuestbookManager} />}
             />
             <Route path="subscription" element={<SubscriptionPage />} />
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="checkout/return" element={<CheckoutReturnPage />} />
           </Routes>
         </AppShell.Main>
       </AppShell>

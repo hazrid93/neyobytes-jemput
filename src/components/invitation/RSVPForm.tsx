@@ -96,7 +96,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    border: '1px solid rgba(212,175,55,0.3)',
+    border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
     borderRadius: '4px',
     background: 'rgba(255,255,255,0.5)',
     fontFamily: 'var(--font-body, "Poppins"), sans-serif',
@@ -170,7 +170,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
           transition={{ duration: 0.6 }}
           style={{
             padding: '48px 24px',
-            border: '1px solid rgba(212,175,55,0.25)',
+            border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 25%, transparent)',
             borderRadius: '4px',
             background: 'rgba(255,255,255,0.3)',
           }}
@@ -181,12 +181,12 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              border: '2px solid rgba(212,175,55,0.35)',
+              border: '2px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 35%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 20px',
-              background: 'rgba(212,175,55,0.05)',
+              background: 'color-mix(in srgb, var(--secondary-color, #D4AF37) 5%, transparent)',
             }}
           >
             <svg
@@ -255,7 +255,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               transition={{ duration: 0.5 }}
               style={{
                 padding: '40px 24px',
-                border: '1px solid rgba(212,175,55,0.3)',
+                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                 borderRadius: '4px',
                 background: 'rgba(255,255,255,0.3)',
               }}
@@ -308,7 +308,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.8, delay: 0.2 }}
               style={{
-                border: '1px solid rgba(212,175,55,0.3)',
+                border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                 borderRadius: '4px',
                 padding: '28px 20px',
                 background: 'rgba(255,255,255,0.3)',
@@ -321,8 +321,8 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                     marginBottom: '24px',
                     padding: '10px 16px',
                     borderRadius: '4px',
-                    background: 'rgba(212,175,55,0.08)',
-                    border: '1px solid rgba(212,175,55,0.15)',
+                    background: 'color-mix(in srgb, var(--secondary-color, #D4AF37) 8%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent)',
                   }}
                 >
                   <p
@@ -364,10 +364,10 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                       padding: '14px 16px',
                       border: attending === true
                         ? '2px solid var(--secondary-color, #D4AF37)'
-                        : '1px solid rgba(212,175,55,0.3)',
+                        : '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                       borderRadius: '4px',
                       background: attending === true
-                        ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
+                        ? 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent), color-mix(in srgb, var(--secondary-color, #D4AF37) 5%, transparent))'
                         : 'transparent',
                       fontFamily: 'var(--font-body, "Poppins"), sans-serif',
                       fontSize: '13px',
@@ -388,10 +388,10 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                       padding: '14px 16px',
                       border: attending === false
                         ? '2px solid var(--secondary-color, #D4AF37)'
-                        : '1px solid rgba(212,175,55,0.3)',
+                        : '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                       borderRadius: '4px',
                       background: attending === false
-                        ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
+                        ? 'linear-gradient(135deg, color-mix(in srgb, var(--secondary-color, #D4AF37) 15%, transparent), color-mix(in srgb, var(--secondary-color, #D4AF37) 5%, transparent))'
                         : 'transparent',
                       fontFamily: 'var(--font-body, "Poppins"), sans-serif',
                       fontSize: '13px',
@@ -455,7 +455,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          border: '1px solid rgba(212,175,55,0.3)',
+                          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                           borderRadius: '4px',
                           overflow: 'hidden',
                         }}
@@ -520,7 +520,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          border: '1px solid rgba(212,175,55,0.3)',
+                          border: '1px solid color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)',
                           borderRadius: '4px',
                           overflow: 'hidden',
                         }}
@@ -610,7 +610,7 @@ export default function RSVPForm({ invitationId, rsvpDeadline, rsvpEnabled }: RS
                   borderRadius: '4px',
                   background:
                     attending === null || !name.trim()
-                      ? 'rgba(212,175,55,0.3)'
+                      ? 'color-mix(in srgb, var(--secondary-color, #D4AF37) 30%, transparent)'
                       : 'linear-gradient(135deg, var(--secondary-color, #D4AF37), #C5A028)',
                   fontFamily: 'var(--font-body, "Poppins"), sans-serif',
                   fontSize: '13px',
