@@ -1663,6 +1663,48 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                                   )
                                 }
                               />
+                              <TextInput
+                                label="Subtajuk"
+                                value={sectionConfig.subtitle || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { subtitle: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <Group grow>
+                                <Select
+                                  label="Penjajaran"
+                                  data={[
+                                    { value: 'left', label: 'Kiri' },
+                                    { value: 'center', label: 'Tengah' },
+                                    { value: 'right', label: 'Kanan' },
+                                  ]}
+                                  value={sectionConfig.align || 'center'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { align: value || 'center' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                                <Select
+                                  label="Lebar"
+                                  data={[
+                                    { value: 'narrow', label: 'Sempit' },
+                                    { value: 'normal', label: 'Normal' },
+                                    { value: 'wide', label: 'Lebar' },
+                                  ]}
+                                  value={sectionConfig.width || 'normal'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { width: value || 'normal' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                              </Group>
                               <Textarea
                                 label="Kandungan"
                                 minRows={4}
@@ -1681,6 +1723,26 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                           {section.type === 'custom_image' && (
                             <>
                               <TextInput
+                                label="Tajuk"
+                                value={sectionConfig.title || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { title: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <TextInput
+                                label="Caption"
+                                value={sectionConfig.caption || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { caption: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <TextInput
                                 label="URL Gambar"
                                 placeholder="https://..."
                                 value={sectionConfig.image_url || ''}
@@ -1691,14 +1753,105 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                                   )
                                 }
                               />
-                              <Text size="xs" c="dimmed">
-                                Buat masa ini, bahagian khas menggunakan URL gambar terus.
-                              </Text>
+                              <Group grow>
+                                <Select
+                                  label="Gaya Bingkai"
+                                  data={[
+                                    { value: 'soft', label: 'Lembut' },
+                                    { value: 'square', label: 'Petak' },
+                                    { value: 'polaroid', label: 'Polaroid' },
+                                  ]}
+                                  value={sectionConfig.frame || 'soft'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { frame: value || 'soft' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                                <Select
+                                  label="Penjajaran"
+                                  data={[
+                                    { value: 'left', label: 'Kiri' },
+                                    { value: 'center', label: 'Tengah' },
+                                    { value: 'right', label: 'Kanan' },
+                                  ]}
+                                  value={sectionConfig.align || 'center'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { align: value || 'center' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                              </Group>
+                              <Dropzone
+                                onDrop={async (files) => {
+                                  if (!files[0]) return;
+                                  if (trialMode) {
+                                    const localUrl = createLocalImageUrl(files[0]);
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { image_url: localUrl }) as InvitationSection[]
+                                    );
+                                    return;
+                                  }
+                                  if (!currentInvitation) return;
+                                  try {
+                                    const url = await uploadImage(files[0], currentInvitation.user_id, 'custom');
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { image_url: url }) as InvitationSection[]
+                                    );
+                                  } catch {
+                                    notifications.show({ title: 'Ralat', message: 'Gagal memuat naik gambar khas', color: 'red' });
+                                  }
+                                }}
+                                accept={IMAGE_MIME_TYPE}
+                                maxSize={5 * 1024 ** 2}
+                                styles={{
+                                  root: {
+                                    borderColor: '#D4AF37',
+                                    borderStyle: 'dashed',
+                                    background: 'rgba(253, 248, 240, 0.5)',
+                                    minHeight: 72,
+                                  },
+                                }}
+                              >
+                                <Center p="sm">
+                                  <Stack align="center" gap={4}>
+                                    <IconUpload size={20} color="#8B6F4E" />
+                                    <Text size="xs" c="dimmed">
+                                      Muat naik gambar khas
+                                    </Text>
+                                  </Stack>
+                                </Center>
+                              </Dropzone>
                             </>
                           )}
 
                           {section.type === 'custom_video' && (
                             <>
+                              <TextInput
+                                label="Tajuk"
+                                value={sectionConfig.title || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { title: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
+                              <TextInput
+                                label="Subtajuk"
+                                value={sectionConfig.subtitle || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    'sections',
+                                    updateSectionConfigById(currentSections, section.id, { subtitle: e.currentTarget.value }) as InvitationSection[]
+                                  )
+                                }
+                              />
                               <TextInput
                                 label="URL Video Embed"
                                 placeholder="https://www.youtube.com/embed/..."
@@ -1710,9 +1863,38 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                                   )
                                 }
                               />
-                              <Text size="xs" c="dimmed">
-                                Gunakan pautan embed yang sesuai untuk iframe.
-                              </Text>
+                              <Group grow>
+                                <Select
+                                  label="Nisbah Video"
+                                  data={[
+                                    { value: '16 / 9', label: 'Landskap 16:9' },
+                                    { value: '9 / 16', label: 'Potret 9:16' },
+                                    { value: '1 / 1', label: 'Petak 1:1' },
+                                  ]}
+                                  value={sectionConfig.aspect_ratio || '16 / 9'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { aspect_ratio: value || '16 / 9' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                                <Select
+                                  label="Penjajaran"
+                                  data={[
+                                    { value: 'left', label: 'Kiri' },
+                                    { value: 'center', label: 'Tengah' },
+                                    { value: 'right', label: 'Kanan' },
+                                  ]}
+                                  value={sectionConfig.align || 'center'}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      'sections',
+                                      updateSectionConfigById(currentSections, section.id, { align: value || 'center' }) as InvitationSection[]
+                                    )
+                                  }
+                                />
+                              </Group>
                             </>
                           )}
                         </Stack>

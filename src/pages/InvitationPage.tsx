@@ -222,15 +222,18 @@ function renderSection(
 
     // ---- Custom section types ----
     case 'custom_text': {
-      const content = (section.config as Record<string, string> | undefined)?.content;
+      const config = (section.config as Record<string, string> | undefined) || {};
+      const content = config.content;
+      const align = config.align || 'center';
+      const maxWidth = config.width === 'narrow' ? '340px' : config.width === 'wide' ? '560px' : '480px';
       return content ? (
         <div
           key={section.id}
           style={{
-            maxWidth: '480px',
+            maxWidth,
             margin: '0 auto',
             padding: '24px',
-            textAlign: 'center',
+            textAlign: align as 'left' | 'center' | 'right',
             fontFamily: 'var(--font-body, "Poppins"), sans-serif',
             fontSize: '15px',
             lineHeight: 1.7,
@@ -238,13 +241,26 @@ function renderSection(
             whiteSpace: 'pre-wrap',
           }}
         >
+          {config.title && (
+            <div style={{ marginBottom: 8, fontFamily: 'var(--font-display, "Playfair Display"), serif', fontSize: 24, fontWeight: 600 }}>
+              {config.title}
+            </div>
+          )}
+          {config.subtitle && (
+            <div style={{ marginBottom: 14, color: 'var(--primary-color, #8B6F4E)', fontSize: 13 }}>
+              {config.subtitle}
+            </div>
+          )}
           {content}
         </div>
       ) : null;
     }
 
     case 'custom_image': {
-      const imageUrl = (section.config as Record<string, string> | undefined)?.image_url;
+      const config = (section.config as Record<string, string> | undefined) || {};
+      const imageUrl = config.image_url;
+      const align = config.align || 'center';
+      const frame = config.frame || 'soft';
       return imageUrl ? (
         <div
           key={section.id}
@@ -252,23 +268,38 @@ function renderSection(
             maxWidth: '480px',
             margin: '0 auto',
             padding: '24px',
-            textAlign: 'center',
+            textAlign: align as 'left' | 'center' | 'right',
           }}
         >
+          {config.title && (
+            <div style={{ marginBottom: 10, fontFamily: 'var(--font-display, "Playfair Display"), serif', fontSize: 24, fontWeight: 600 }}>
+              {config.title}
+            </div>
+          )}
           <img
             src={imageUrl}
-            alt="Custom"
+            alt={config.title || 'Custom'}
             style={{
               maxWidth: '100%',
-              borderRadius: '8px',
+              borderRadius: frame === 'square' ? '4px' : frame === 'polaroid' ? '2px' : '16px',
+              padding: frame === 'polaroid' ? '10px 10px 26px' : undefined,
+              background: frame === 'polaroid' ? 'white' : undefined,
+              boxShadow: frame === 'polaroid' ? '0 16px 28px rgba(44,24,16,0.12)' : undefined,
             }}
           />
+          {config.caption && (
+            <div style={{ marginTop: 10, color: 'var(--primary-color, #8B6F4E)', fontSize: 13 }}>
+              {config.caption}
+            </div>
+          )}
         </div>
       ) : null;
     }
 
     case 'custom_video': {
-      const videoUrl = (section.config as Record<string, string> | undefined)?.video_url;
+      const config = (section.config as Record<string, string> | undefined) || {};
+      const videoUrl = config.video_url;
+      const align = config.align || 'center';
       return videoUrl ? (
         <div
           key={section.id}
@@ -276,15 +307,25 @@ function renderSection(
             maxWidth: '480px',
             margin: '0 auto',
             padding: '24px',
-            textAlign: 'center',
+            textAlign: align as 'left' | 'center' | 'right',
           }}
         >
+          {config.title && (
+            <div style={{ marginBottom: 8, fontFamily: 'var(--font-display, "Playfair Display"), serif', fontSize: 24, fontWeight: 600 }}>
+              {config.title}
+            </div>
+          )}
+          {config.subtitle && (
+            <div style={{ marginBottom: 14, color: 'var(--primary-color, #8B6F4E)', fontSize: 13 }}>
+              {config.subtitle}
+            </div>
+          )}
           <iframe
             src={videoUrl}
             title="Custom video"
             style={{
               width: '100%',
-              aspectRatio: '16/9',
+              aspectRatio: config.aspect_ratio || '16 / 9',
               border: 'none',
               borderRadius: '8px',
             }}

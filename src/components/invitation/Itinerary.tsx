@@ -14,22 +14,6 @@ function formatTime(time: string): string {
   return `${displayHour}:${m} ${period}`;
 }
 
-function getIcon(icon?: string): string {
-  const icons: Record<string, string> = {
-    clock: '⏰',
-    users: '👥',
-    heart: '♥',
-    crown: '👑',
-    utensils: '🍴',
-    camera: '📷',
-    check: '✓',
-    music: '♫',
-    ring: '💍',
-    gift: '🎁',
-  };
-  return icon && icons[icon] ? icons[icon] : '◇';
-}
-
 export default function Itinerary({ items, styleVariant = 'timeline' }: ItineraryProps) {
   if (!items || items.length === 0) return null;
 
@@ -235,12 +219,8 @@ export default function Itinerary({ items, styleVariant = 'timeline' }: Itinerar
                   margin: 0,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
                 }}
               >
-                <span style={{ fontSize: '14px', opacity: 0.7 }}>
-                  {getIcon(item.icon)}
-                </span>
                 {styleVariant !== 'timeline' && (
                   <span style={{ fontSize: '12px', color: 'var(--primary-color, #8B6F4E)', marginRight: 6 }}>
                     {formatTime(item.time)}

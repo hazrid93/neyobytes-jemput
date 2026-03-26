@@ -34,32 +34,6 @@ const CUSTOM_SECTION_TYPES: { type: SectionType; label: string; icon: React.Reac
   { type: 'custom_video', label: 'Video Khas', icon: <IconVideo size={16} /> },
 ];
 
-// Map section label icon names to a simple character/emoji representation
-// since tabler icons need explicit imports. We use a lightweight approach.
-function getSectionIcon(iconName: string): string {
-  const iconMap: Record<string, string> = {
-    image: '🖼️',
-    heart: '💝',
-    message: '✉️',
-    users: '👫',
-    calendar: '📅',
-    clock: '⏱️',
-    list: '📋',
-    'map-pin': '📍',
-    phone: '📞',
-    check: '✅',
-    'credit-card': '💳',
-    photo: '📸',
-    book: '📖',
-    'calendar-plus': '📆',
-    'chevron-down': '⬇️',
-    'text-plus': '📝',
-    'photo-plus': '🖼️',
-    'video-plus': '🎬',
-  };
-  return iconMap[iconName] || '📄';
-}
-
 export default function SectionManager({ sections, onChange }: SectionManagerProps) {
   const sorted = [...sections].sort((a, b) => a.sort_order - b.sort_order);
 
@@ -147,33 +121,28 @@ export default function SectionManager({ sections, onChange }: SectionManagerPro
 
                 {/* Section info */}
                 <Box style={{ flex: 1, minWidth: 0 }}>
-                  <Group gap={6} wrap="nowrap">
-                    <Text size="sm" style={{ flexShrink: 0 }}>
-                      {labelData ? getSectionIcon(labelData.icon) : '📄'}
-                    </Text>
-                    <Box style={{ minWidth: 0, flex: 1 }}>
-                      <Group gap={6}>
-                        <Text size="sm" fw={600} truncate="end">
-                          {labelData?.label || section.type}
-                        </Text>
-                        {isFirst && (
-                          <Badge size="xs" variant="light" color="yellow">
-                            Mula
-                          </Badge>
-                        )}
-                        {isLast && (
-                          <Badge size="xs" variant="light" color="yellow">
-                            Akhir
-                          </Badge>
-                        )}
-                      </Group>
-                      {labelData?.description && (
-                        <Text size="xs" c="dimmed" truncate="end">
-                          {labelData.description}
-                        </Text>
+                  <Box style={{ minWidth: 0, flex: 1 }}>
+                    <Group gap={6}>
+                      <Text size="sm" fw={600} truncate="end">
+                        {labelData?.label || section.type}
+                      </Text>
+                      {isFirst && (
+                        <Badge size="xs" variant="light" color="yellow">
+                          Mula
+                        </Badge>
                       )}
-                    </Box>
-                  </Group>
+                      {isLast && (
+                        <Badge size="xs" variant="light" color="yellow">
+                          Akhir
+                        </Badge>
+                      )}
+                    </Group>
+                    {labelData?.description && (
+                      <Text size="xs" c="dimmed" truncate="end">
+                        {labelData.description}
+                      </Text>
+                    )}
+                  </Box>
                 </Box>
 
                 {/* Move buttons */}
