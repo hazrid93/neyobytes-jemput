@@ -19,7 +19,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 function LazyFallback() {
   return (
     <Center style={{ minHeight: '100vh' }}>
-      <Loader color="#B08D5B" />
+      <Loader color="#1E3A5F" />
     </Center>
   );
 }

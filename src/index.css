@@ -14,15 +14,16 @@ html {
 
 body {
   min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   overflow-x: hidden;
+  color: #0A1628;
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Invitation page CSS variables */
+/* Invitation page CSS variables (unchanged — invitations keep their own themes) */
 .invitation-page {
   --primary: #8B6F4E;
   --secondary: #D4AF37;
@@ -63,28 +64,28 @@ body {
   transform: scale(1);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — navy/gold */
 ::-webkit-scrollbar {
   width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #FDF8F0;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D4AF37;
+  background: #1E3A5F;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #8B6F4E;
+  background: #D4AF37;
 }
 
-/* Selection */
+/* Selection — gold accent */
 ::selection {
   background: #D4AF37;
-  color: #FDF8F0;
+  color: #0A1628;
 }
 
-/* Ornamental divider */
+/* Ornamental divider (used in invitation pages) */
 .ornament-divider {
   display: flex;
   align-items: center;

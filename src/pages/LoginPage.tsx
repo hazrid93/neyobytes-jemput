@@ -19,6 +19,11 @@ import { IconMail, IconLock, IconUser, IconAlertCircle, IconCheck, IconArrowLeft
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/authStore';
 
+const NAVY = '#0A1628';
+const NAVY_LIGHT = '#1E3A5F';
+const GOLD = '#D4AF37';
+const GOLD_WARM = '#C8A951';
+
 type ViewMode = 'auth' | 'forgot' | 'reset-password';
 
 export default function LoginPage() {
@@ -129,7 +134,11 @@ export default function LoginPage() {
     <Box
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #FDF8F0 0%, #F5E6D3 50%, #E8D5B7 100%)',
+        background: `
+          radial-gradient(ellipse 80% 50% at 20% 80%, rgba(30,58,95,0.4) 0%, transparent 50%),
+          radial-gradient(ellipse 60% 40% at 80% 20%, rgba(37,99,235,0.1) 0%, transparent 50%),
+          linear-gradient(160deg, ${NAVY} 0%, #162240 60%, ${NAVY_LIGHT} 100%)
+        `,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -149,13 +158,13 @@ export default function LoginPage() {
               style={{
                 fontFamily: 'Playfair Display, serif',
                 fontSize: '2.8rem',
-                color: '#8B6F4E',
+                color: '#FFFFFF',
                 letterSpacing: '-0.02em',
               }}
             >
               Jemput
             </Title>
-            <Text size="sm" c="dimmed" mt={4}>
+            <Text size="sm" mt={4} style={{ color: 'rgba(255,255,255,0.5)' }}>
               Kad Kahwin Digital Terbaik
             </Text>
           </Box>
@@ -165,9 +174,9 @@ export default function LoginPage() {
             p="xl"
             radius="lg"
             style={{
-              background: 'rgba(255, 255, 255, 0.92)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(212, 175, 55, 0.15)',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.2)',
             }}
           >
             {/* Forgot Password View */}
@@ -179,12 +188,12 @@ export default function LoginPage() {
                     type="button"
                     size="sm"
                     onClick={() => { setView('auth'); setError(''); setSuccess(''); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, color: NAVY_LIGHT }}
                   >
                     <IconArrowLeft size={14} /> Kembali
                   </Anchor>
 
-                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: '#2C1810' }}>
+                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: NAVY }}>
                     Lupa Kata Laluan?
                   </Title>
                   <Text size="sm" c="dimmed">
@@ -218,7 +227,7 @@ export default function LoginPage() {
                     size="md"
                     loading={loading}
                     style={{
-                      background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                      background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY_LIGHT} 100%)`,
                       border: 'none',
                     }}
                   >
@@ -232,7 +241,7 @@ export default function LoginPage() {
             {view === 'reset-password' && (
               <form onSubmit={handleSubmit}>
                 <Stack gap="md">
-                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: '#2C1810' }}>
+                  <Title order={3} style={{ fontFamily: 'Playfair Display, serif', color: NAVY }}>
                     Tetapkan Kata Laluan Baru
                   </Title>
                   <Text size="sm" c="dimmed">
@@ -276,7 +285,7 @@ export default function LoginPage() {
                     size="md"
                     loading={loading}
                     style={{
-                      background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                      background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY_LIGHT} 100%)`,
                       border: 'none',
                     }}
                   >
@@ -290,6 +299,7 @@ export default function LoginPage() {
                       size="sm"
                       ta="center"
                       onClick={() => { signOut(); setView('auth'); }}
+                      style={{ color: NAVY_LIGHT }}
                     >
                       Log keluar & kembali
                     </Anchor>
@@ -360,8 +370,10 @@ export default function LoginPage() {
                           size="md"
                           loading={loading}
                           style={{
-                            background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                            background: `linear-gradient(135deg, ${GOLD_WARM} 0%, ${GOLD} 100%)`,
                             border: 'none',
+                            color: NAVY,
+                            fontWeight: 700,
                           }}
                         >
                           Log Masuk
@@ -412,8 +424,10 @@ export default function LoginPage() {
                           size="md"
                           loading={loading}
                           style={{
-                            background: 'linear-gradient(135deg, #8B6F4E, #D4AF37)',
+                            background: `linear-gradient(135deg, ${GOLD_WARM} 0%, ${GOLD} 100%)`,
                             border: 'none',
+                            color: NAVY,
+                            fontWeight: 700,
                           }}
                         >
                           Daftar Akaun

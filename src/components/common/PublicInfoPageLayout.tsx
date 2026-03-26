@@ -4,10 +4,12 @@ import { Box, Button, Container, Group, Stack, Text, Title } from '@mantine/core
 import { IconArrowLeft } from '@tabler/icons-react';
 import Logo from './Logo';
 
-const GOLD = '#B08D5B';
-const CREAM = '#FDF8F0';
-const DARK = '#2C1810';
-const DARK_MID = '#4A3B2D';
+const NAVY = '#0A1628';
+const NAVY_LIGHT = '#1E3A5F';
+const GOLD = '#D4AF37';
+const SLATE_200 = '#E2E8F0';
+const SLATE_500 = '#64748B';
+const OFF_WHITE = '#F8FAFC';
 
 interface PublicInfoPageLayoutProps {
   eyebrow: string;
@@ -25,28 +27,28 @@ export default function PublicInfoPageLayout({
   const navigate = useNavigate();
 
   return (
-    <Box style={{ minHeight: '100vh', background: CREAM }}>
+    <Box style={{ minHeight: '100vh', background: OFF_WHITE }}>
       <Box
         component="nav"
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: 'rgba(253,248,240,0.9)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(176,141,91,0.12)',
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          borderBottom: `1px solid ${SLATE_200}`,
         }}
       >
         <Container size="lg">
           <Group justify="space-between" h={64}>
             <Box onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-              <Logo size="sm" color={GOLD} />
+              <Logo size="sm" color={NAVY} />
             </Box>
             <Button
               variant="subtle"
               leftSection={<IconArrowLeft size={16} />}
               onClick={() => navigate('/')}
-              style={{ color: GOLD, fontWeight: 600 }}
+              style={{ color: NAVY_LIGHT, fontWeight: 600 }}
             >
               Kembali
             </Button>
@@ -57,7 +59,7 @@ export default function PublicInfoPageLayout({
       <Box
         py={72}
         style={{
-          background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,175,55,0.08) 0%, transparent 60%), ${CREAM}`,
+          background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.04) 0%, transparent 60%), ${OFF_WHITE}`,
         }}
       >
         <Container size="md">
@@ -75,23 +77,23 @@ export default function PublicInfoPageLayout({
               style={{
                 fontFamily: "'Playfair Display', serif",
                 fontSize: 'clamp(2rem, 5vw, 3rem)',
-                color: DARK,
+                color: NAVY,
               }}
             >
               {title}
             </Title>
-            <Text size="md" style={{ color: DARK_MID, lineHeight: 1.8 }}>
+            <Text size="md" style={{ color: SLATE_500, lineHeight: 1.8 }}>
               {subtitle}
             </Text>
           </Stack>
 
           <Box
             style={{
-              background: 'rgba(255,255,255,0.78)',
-              border: '1px solid rgba(176,141,91,0.14)',
+              background: 'rgba(255,255,255,0.85)',
+              border: `1px solid ${SLATE_200}`,
               borderRadius: 20,
               padding: '32px',
-              boxShadow: '0 24px 80px rgba(44,24,16,0.06)',
+              boxShadow: '0 24px 80px rgba(10,22,40,0.04)',
             }}
           >
             {children}

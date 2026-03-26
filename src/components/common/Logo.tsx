@@ -11,8 +11,9 @@ const sizes = {
   lg: { font: 52, flourish: 18 },
 };
 
-export default function Logo({ size = 'md', color = '#B08D5B' }: LogoProps) {
+export default function Logo({ size = 'md', color = '#0A1628' }: LogoProps) {
   const s = sizes[size];
+  const goldAccent = '#D4AF37';
 
   return (
     <Group gap={0} align="center" style={{ userSelect: 'none' }}>
@@ -22,17 +23,17 @@ export default function Logo({ size = 'md', color = '#B08D5B' }: LogoProps) {
         height={s.flourish * 2}
         viewBox="0 0 30 20"
         fill="none"
-        style={{ marginRight: 4, opacity: 0.7 }}
+        style={{ marginRight: 4, opacity: 0.6 }}
       >
         <path
           d="M28 10C22 10 18 4 10 4C6 4 3 6 2 10C3 14 6 16 10 16C18 16 22 10 28 10Z"
-          stroke={color}
+          stroke={goldAccent}
           strokeWidth="1.2"
           fill="none"
         />
         <path
           d="M24 10C20 10 17 6 12 6"
-          stroke={color}
+          stroke={goldAccent}
           strokeWidth="0.8"
           fill="none"
         />
@@ -58,17 +59,17 @@ export default function Logo({ size = 'md', color = '#B08D5B' }: LogoProps) {
         height={s.flourish * 2}
         viewBox="0 0 30 20"
         fill="none"
-        style={{ marginLeft: 4, opacity: 0.7, transform: 'scaleX(-1)' }}
+        style={{ marginLeft: 4, opacity: 0.6, transform: 'scaleX(-1)' }}
       >
         <path
           d="M28 10C22 10 18 4 10 4C6 4 3 6 2 10C3 14 6 16 10 16C18 16 22 10 28 10Z"
-          stroke={color}
+          stroke={goldAccent}
           strokeWidth="1.2"
           fill="none"
         />
         <path
           d="M24 10C20 10 17 6 12 6"
-          stroke={color}
+          stroke={goldAccent}
           strokeWidth="0.8"
           fill="none"
         />
