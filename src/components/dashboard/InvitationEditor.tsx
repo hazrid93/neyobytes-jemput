@@ -74,6 +74,7 @@ import { CoachmarkTour } from '../common/CoachmarkHints';
 import EditorChatAssistant from './EditorChatAssistant';
 import { fetchPublicSiteSettings } from '../../lib/site-settings';
 import type { Invitation, ItineraryItem, ContactPerson, WishlistItem, InvitationSection, ThemeTemplate, SiteSettings } from '../../types';
+import { NAVY_LIGHT, SLATE_200 } from '../../constants/colors';
 
 interface InvitationEditorProps {
   trialMode?: boolean;
@@ -687,6 +688,12 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     handleFieldChange('wishlist', current as WishlistItem[]);
   };
 
+  const updateWishlistItemUrl = (index: number, url: string) => {
+    const current = [...((form.getValues().wishlist || []) as WishlistItem[])];
+    current[index] = { ...current[index], url };
+    handleFieldChange('wishlist', current as WishlistItem[]);
+  };
+
   // --- Loading state (skip in trial mode — demo data is immediate) ---
   if (!trialMode && (loading || !currentInvitation)) {
     return (
@@ -978,7 +985,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           styles={{
             item: {
               borderRadius: 12,
-              border: '1px solid #E8D5B7',
+              border: `1px solid ${SLATE_200}`,
               '&[data-active]': { border: '1px solid #D4AF37' },
             },
           }}
@@ -986,7 +993,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Couple Info */}
           <Accordion.Item value="couple">
             <div ref={coupleAccordionRef}>
-            <Accordion.Control icon={<IconUser size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconUser size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Maklumat Pengantin</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1084,7 +1091,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   >
                     <Center p="sm">
                       <Stack align="center" gap={4}>
-                        <IconUpload size={24} color="#8B6F4E" />
+                        <IconUpload size={24} color={NAVY_LIGHT} />
                         <Text size="xs" c="dimmed">
                           Seret gambar atau klik untuk muat naik
                         </Text>
@@ -1101,7 +1108,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Event Info */}
           <Accordion.Item value="event">
             <div ref={eventAccordionRef}>
-            <Accordion.Control icon={<IconCalendar size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconCalendar size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Maklumat Majlis</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1175,7 +1182,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           </Accordion.Item>
           <Accordion.Item value="text">
             <div ref={textAccordionRef}>
-            <Accordion.Control icon={<IconMessage size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconMessage size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Ayat Jemputan</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1195,7 +1202,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Itinerary */}
           <Accordion.Item value="itinerary">
             <div ref={itineraryAccordionRef}>
-            <Accordion.Control icon={<IconClock size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconClock size={18} color={NAVY_LIGHT} />}>
               <Group gap="xs">
                 <Text fw={600}>Tentatif Majlis</Text>
                 <Badge size="sm" variant="light" color="gold">
@@ -1251,7 +1258,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Contacts */}
           <Accordion.Item value="contacts">
             <div ref={contactsAccordionRef}>
-            <Accordion.Control icon={<IconPhone size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconPhone size={18} color={NAVY_LIGHT} />}>
               <Group gap="xs">
                 <Text fw={600}>Kenalan</Text>
                 <Badge size="sm" variant="light" color="gold">
@@ -1316,7 +1323,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* RSVP */}
           <Accordion.Item value="rsvp">
             <div ref={rsvpAccordionRef}>
-            <Accordion.Control icon={<IconChecklist size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconChecklist size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Tetapan RSVP</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1351,7 +1358,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Money Gift */}
           <Accordion.Item value="moneygift">
             <div ref={moneyGiftAccordionRef}>
-            <Accordion.Control icon={<IconCreditCard size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconCreditCard size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Salam Kaut</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1467,7 +1474,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                   >
                     <Center p="xs">
                       <Group gap="xs">
-                        <IconUpload size={18} color="#8B6F4E" />
+                        <IconUpload size={18} color={NAVY_LIGHT} />
                         <Text size="xs" c="dimmed">
                           Muat naik gambar QR code
                         </Text>
@@ -1484,7 +1491,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Wishlist */}
           <Accordion.Item value="wishlist">
             <div ref={wishlistAccordionRef}>
-            <Accordion.Control icon={<IconGift size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconGift size={18} color={NAVY_LIGHT} />}>
               <Group gap="xs">
                 <Text fw={600}>Senarai Hadiah</Text>
                 <Badge size="sm" variant="light" color="gold">
@@ -1495,28 +1502,36 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             <Accordion.Panel>
               <Stack gap="xs">
                 {wishlist.map((item, i) => (
-                  <Group key={item.id || i} gap="xs">
+                  <Stack key={item.id || i} gap={4}>
+                    <Group gap="xs">
+                      <TextInput
+                        placeholder="Nama hadiah"
+                        value={item.name}
+                        onChange={(e) => updateWishlistItem(i, e.currentTarget.value)}
+                        style={{ flex: 1 }}
+                        size="sm"
+                      />
+                      {item.claimed && (
+                        <Badge size="xs" color="green" variant="light">
+                          Dituntut
+                        </Badge>
+                      )}
+                      <ActionIcon
+                        color="red"
+                        variant="subtle"
+                        size="sm"
+                        onClick={() => removeWishlistItem(i)}
+                      >
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Group>
                     <TextInput
-                      placeholder="Nama hadiah"
-                      value={item.name}
-                      onChange={(e) => updateWishlistItem(i, e.currentTarget.value)}
-                      style={{ flex: 1 }}
-                      size="sm"
+                      placeholder="Pautan produk (pilihan)"
+                      value={item.url || ''}
+                      onChange={(e) => updateWishlistItemUrl(i, e.currentTarget.value)}
+                      size="xs"
                     />
-                    {item.claimed && (
-                      <Badge size="xs" color="green" variant="light">
-                        Dituntut
-                      </Badge>
-                    )}
-                    <ActionIcon
-                      color="red"
-                      variant="subtle"
-                      size="sm"
-                      onClick={() => removeWishlistItem(i)}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  </Group>
+                  </Stack>
                 ))}
                 <Button
                   variant="light"
@@ -1534,7 +1549,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           <Accordion.Item value="gallery">
             <div ref={galleryAccordionRef}>
-            <Accordion.Control icon={<IconPhoto size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconPhoto size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Galeri Foto</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1695,7 +1710,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 >
                   <Center p="lg">
                     <Stack align="center" gap="xs">
-                      <IconPhoto size={32} color="#8B6F4E" />
+                      <IconPhoto size={32} color={NAVY_LIGHT} />
                       <Text size="sm" c="dimmed" ta="center">
                         Seret gambar atau klik untuk muat naik
                       </Text>
@@ -1713,7 +1728,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Template */}
           <Accordion.Item value="template">
             <div ref={themeAccordionRef}>
-            <Accordion.Control icon={<IconPalette size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconPalette size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Template Kad</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1731,7 +1746,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Color Theme */}
           <Accordion.Item value="color-theme">
             <div ref={colorThemeAccordionRef}>
-            <Accordion.Control icon={<IconPalette size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconPalette size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Tema Warna & Font</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1739,7 +1754,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 <Group grow>
                   <ColorInput
                     label="Utama"
-                    value={themeConfig?.primary_color || '#8B6F4E'}
+                    value={themeConfig?.primary_color || NAVY_LIGHT}
                     onChange={(v) =>
                       handleFieldChange('theme_config', {
                         ...themeConfig,
@@ -1841,7 +1856,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           <Accordion.Item value="copy-texts">
             <div ref={copyAccordionRef}>
-            <Accordion.Control icon={<IconMessage size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconMessage size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Teks & Copy</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1851,7 +1866,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                 </Text>
 
                 {COPY_FIELDS.map((group) => (
-                  <Paper key={group.label} withBorder radius="md" p="md" style={{ borderColor: '#E8D5B7' }}>
+                  <Paper key={group.label} withBorder radius="md" p="md" style={{ borderColor: SLATE_200 }}>
                     <Stack gap="sm">
                       <Text fw={600} size="sm">{group.label}</Text>
                       {group.fields.map((field) => {
@@ -1912,7 +1927,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Section Styles */}
           <Accordion.Item value="section-styles">
             <div ref={sectionStylesAccordionRef}>
-            <Accordion.Control icon={<IconChecklist size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconChecklist size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Gaya Bahagian</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -1972,7 +1987,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
 
           {customSections.length > 0 && (
             <Accordion.Item value="custom-sections-editor">
-              <Accordion.Control icon={<IconEdit size={18} color="#8B6F4E" />}>
+              <Accordion.Control icon={<IconEdit size={18} color={NAVY_LIGHT} />}>
                 <Text fw={600}>Bahagian Khas</Text>
               </Accordion.Control>
               <Accordion.Panel>
@@ -1991,7 +2006,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                           : `Video Khas ${index + 1}`;
 
                     return (
-                      <Paper key={section.id} withBorder radius="md" p="md" style={{ borderColor: '#E8D5B7' }}>
+                      <Paper key={section.id} withBorder radius="md" p="md" style={{ borderColor: SLATE_200 }}>
                         <Stack gap="sm">
                           <Text fw={600} size="sm">
                             {title}
@@ -2166,7 +2181,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
                               >
                                 <Center p="sm">
                                   <Stack align="center" gap={4}>
-                                    <IconUpload size={20} color="#8B6F4E" />
+                                    <IconUpload size={20} color={NAVY_LIGHT} />
                                     <Text size="xs" c="dimmed">
                                       Muat naik gambar khas
                                     </Text>
@@ -2255,7 +2270,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Section Manager */}
           <Accordion.Item value="sections">
             <div ref={sectionManagerRef}>
-            <Accordion.Control icon={<IconLayoutList size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconLayoutList size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Susun Bahagian</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -2270,7 +2285,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Chatbot AI (hidden in trial mode) */}
           {!trialMode && (
           <Accordion.Item value="chatbot">
-            <Accordion.Control icon={<IconRobot size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconRobot size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Chatbot AI</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -2308,7 +2323,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           {/* Settings (hidden in trial mode) */}
           {!trialMode && (
           <Accordion.Item value="settings">
-            <Accordion.Control icon={<IconSettings size={18} color="#8B6F4E" />}>
+            <Accordion.Control icon={<IconSettings size={18} color={NAVY_LIGHT} />}>
               <Text fw={600}>Tetapan</Text>
             </Accordion.Control>
             <Accordion.Panel>
@@ -2548,7 +2563,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       centered
       radius="md"
       styles={{
-        header: { borderBottom: '1px solid #E8D5B7' },
+        header: { borderBottom: `1px solid ${SLATE_200}` },
         body: { padding: '1.5rem' },
       }}
     >
@@ -2556,7 +2571,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         <Box
           style={{
             background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
-            border: '1px solid #E8D5B7',
+            border: `1px solid ${SLATE_200}`,
             borderRadius: 12,
             padding: '1.25rem',
             textAlign: 'center',
@@ -2613,7 +2628,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       centered
       radius="md"
       styles={{
-        header: { borderBottom: '1px solid #E8D5B7' },
+        header: { borderBottom: `1px solid ${SLATE_200}` },
         body: { padding: '1.5rem' },
       }}
     >
@@ -2621,7 +2636,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         <Box
           style={{
             background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
-            border: '1px solid #E8D5B7',
+            border: `1px solid ${SLATE_200}`,
             borderRadius: 12,
             padding: '1.25rem',
             textAlign: 'center',
@@ -2730,7 +2745,7 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       />
       <Box style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
         {/* Left: Editor (60%) */}
-        <Box style={{ width: '60%', borderRight: '1px solid #E8D5B7', overflow: 'hidden' }}>
+        <Box style={{ width: '60%', borderRight: `1px solid ${SLATE_200}`, overflow: 'hidden' }}>
           {FormPanel}
         </Box>
         {/* Right: Preview (40%) */}

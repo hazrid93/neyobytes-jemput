@@ -21,6 +21,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import { SECTION_LABELS } from '../../lib/themes';
+import { GOLD, SLATE_200 } from '../../constants/colors';
 import type { InvitationSection, SectionType } from '../../types';
 
 interface SectionManagerProps {
@@ -102,7 +103,7 @@ export default function SectionManager({ sections, onChange }: SectionManagerPro
               radius="md"
               withBorder
               style={{
-                borderColor: isBookend ? '#D4AF37' : '#E8D5B7',
+                borderColor: isBookend ? GOLD : SLATE_200,
                 borderWidth: isBookend ? 1.5 : 1,
                 opacity: section.enabled ? 1 : 0.55,
                 transition: 'all 0.2s ease',

@@ -14,6 +14,7 @@ export type SectionType =
   | 'contact'
   | 'rsvp'
   | 'money_gift'
+  | 'wishlist'
   | 'gallery'
   | 'guestbook'
   | 'calendar_save'
@@ -109,6 +110,7 @@ export interface MoneyGift {
 export interface WishlistItem {
   id: string;
   name: string;
+  url?: string;
   claimed: boolean;
   claimed_by?: string;
 }
@@ -283,5 +285,8 @@ export interface SiteSettings {
   // Chat config — signed-in editor AI assistant
   editor_chat_enabled?: boolean;
   editor_chat_daily_limit?: number;
+  // Chat config — published invitation chatbot
+  invitation_chat_enabled?: boolean;
+  invitation_chat_daily_limit?: number;
   updated_at?: string;
 }

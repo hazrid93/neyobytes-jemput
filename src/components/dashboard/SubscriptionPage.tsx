@@ -33,6 +33,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { usePaymentStore } from '../../stores/paymentStore';
 import { useDashboardStore } from '../../stores/dashboardStore';
+import { SLATE_200 } from '../../constants/colors';
 import type { Payment } from '../../types';
 import { supabase } from '../../lib/supabase';
 
@@ -223,7 +224,7 @@ export default function SubscriptionPage() {
         padding="xl"
         withBorder
         style={{
-          borderColor: '#E8D5B7',
+          borderColor: SLATE_200,
           background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
         }}
       >
@@ -244,7 +245,7 @@ export default function SubscriptionPage() {
           </Badge>
         </Group>
 
-        <Divider mb="md" color="#E8D5B7" />
+        <Divider mb="md" color={SLATE_200} />
 
         {/* Expiry info */}
         {expiresAt && (
@@ -333,7 +334,7 @@ export default function SubscriptionPage() {
         )}
 
         {/* Action Buttons */}
-        <Divider mb="md" color="#E8D5B7" />
+        <Divider mb="md" color={SLATE_200} />
         <Group gap="sm">
           {isExpired ? (
             <Button
@@ -368,7 +369,7 @@ export default function SubscriptionPage() {
       </Card>
 
       {/* Payment History */}
-      <Card shadow="sm" radius="md" padding="xl" withBorder style={{ borderColor: '#E8D5B7' }}>
+      <Card shadow="sm" radius="md" padding="xl" withBorder style={{ borderColor: SLATE_200 }}>
         <Group gap="sm" mb="md">
           <IconReceipt size={22} color="#D4AF37" />
           <Title order={4} style={{ color: '#8B6F4E' }}>

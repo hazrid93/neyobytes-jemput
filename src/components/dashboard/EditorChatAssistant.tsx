@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sendChatMessage, buildEditorSystemPrompt, checkEditorQuota } from '../../lib/chatbot';
+import { NAVY, NAVY_LIGHT, OFF_WHITE, SLATE_200 } from '../../constants/colors';
 import type { ChatMessage } from '../../types';
 
 interface EditorChatAssistantProps {
@@ -145,11 +146,10 @@ export default function EditorChatAssistant({
   };
 
   // --- Colour constants (dashboard uses gold/brown palette) ---
-  const PRIMARY = '#8B6F4E';
-  const GOLD = '#B08D5B';
-  const BG = '#FDF8F0';
-  const ACCENT = '#F5E6D3';
-  const TEXT = '#2C1810';
+  const PRIMARY = NAVY;
+  const ACCENT = NAVY_LIGHT;
+  const BG = OFF_WHITE;
+  const TEXT = NAVY;
 
   return (
     <>
@@ -170,21 +170,26 @@ export default function EditorChatAssistant({
               width: 48,
               height: 48,
               borderRadius: '50%',
-              background: `linear-gradient(135deg, ${GOLD} 0%, ${PRIMARY} 100%)`,
+              background: `linear-gradient(135deg, ${ACCENT} 0%, ${PRIMARY} 100%)`,
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: `0 4px 20px rgba(176,141,91,0.4)`,
+              boxShadow: `0 4px 20px rgba(30,58,95,0.4)`,
               zIndex: 1000,
               animation: 'editor-chat-pulse 2s ease-in-out 3',
             }}
-          >
-            {/* Sparkle / AI icon */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white"/>
-            </svg>
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 2C6.477 2 2 5.813 2 10.5c0 2.694 1.475 5.087 3.775 6.625L4.5 21.5l4.325-2.437C9.863 19.35 10.913 19.5 12 19.5c5.523 0 10-3.813 10-8.5S17.523 2 12 2z"
+                  fill="white"
+                />
+                <circle cx="8" cy="10.5" r="1.25" fill={ACCENT} />
+                <circle cx="12" cy="10.5" r="1.25" fill={ACCENT} />
+                <circle cx="16" cy="10.5" r="1.25" fill={ACCENT} />
+              </svg>
           </motion.button>
         )}
       </AnimatePresence>
@@ -210,7 +215,7 @@ export default function EditorChatAssistant({
               flexDirection: 'column',
               overflow: 'hidden',
               zIndex: 1001,
-              border: `1px solid rgba(176,141,91,0.24)`,
+              border: `1px solid ${SLATE_200}`,
             }}
           >
             {/* Header */}
@@ -220,16 +225,22 @@ export default function EditorChatAssistant({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: `linear-gradient(135deg, ${GOLD} 0%, ${PRIMARY} 100%)`,
+                background: `linear-gradient(135deg, ${ACCENT} 0%, ${PRIMARY} 100%)`,
                 color: 'white',
                 flexShrink: 0,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white"/>
+                  <path
+                    d="M12 2C6.477 2 2 5.813 2 10.5c0 2.694 1.475 5.087 3.775 6.625L4.5 21.5l4.325-2.437C9.863 19.35 10.913 19.5 12 19.5c5.523 0 10-3.813 10-8.5S17.523 2 12 2z"
+                    fill="white"
+                  />
+                  <circle cx="8" cy="10.5" r="1.25" fill={ACCENT} />
+                  <circle cx="12" cy="10.5" r="1.25" fill={ACCENT} />
+                  <circle cx="16" cy="10.5" r="1.25" fill={ACCENT} />
                 </svg>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>Pembantu AI</span>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>Tanya Kami</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -264,7 +275,7 @@ export default function EditorChatAssistant({
                 flexDirection: 'column',
                 gap: 10,
                 minHeight: 200,
-                scrollbarColor: `rgba(176,141,91,0.55) transparent`,
+                scrollbarColor: `rgba(30,58,95,0.55) transparent`,
               }}
             >
               {messages.map((msg) => (
@@ -285,9 +296,9 @@ export default function EditorChatAssistant({
                           : '16px 16px 16px 4px',
                       background:
                         msg.role === 'user'
-                          ? `linear-gradient(135deg, ${GOLD}, ${PRIMARY})`
+                          ? `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`
                           : ACCENT,
-                      color: msg.role === 'user' ? 'white' : TEXT,
+                      color: 'white',
                       fontSize: 14,
                       lineHeight: 1.5,
                       wordBreak: 'break-word',
@@ -328,8 +339,8 @@ export default function EditorChatAssistant({
               <div
                 style={{
                   padding: '4px 12px',
-                  background: quotaExceeded ? 'rgba(255, 59, 48, 0.08)' : `rgba(176,141,91,0.1)`,
-                  borderTop: `1px solid rgba(176,141,91,0.24)`,
+                  background: quotaExceeded ? 'rgba(255, 59, 48, 0.08)' : `rgba(30,58,95,0.1)`,
+                  borderTop: `1px solid ${SLATE_200}`,
                   textAlign: 'center',
                   fontSize: 12,
                   color: quotaExceeded ? '#e03131' : PRIMARY,
@@ -349,7 +360,7 @@ export default function EditorChatAssistant({
                 alignItems: 'center',
                 gap: 8,
                 padding: '10px 12px',
-                borderTop: `1px solid rgba(176,141,91,0.24)`,
+                borderTop: `1px solid ${SLATE_200}`,
                 background: BG,
                 flexShrink: 0,
                 boxSizing: 'border-box',
@@ -371,7 +382,7 @@ export default function EditorChatAssistant({
                   flex: 1,
                   minWidth: 0,
                   width: 0,
-                  border: `1px solid rgba(176,141,91,0.24)`,
+                  border: `1px solid ${SLATE_200}`,
                   borderRadius: 20,
                   padding: '8px 16px',
                   fontSize: 14,
@@ -393,7 +404,7 @@ export default function EditorChatAssistant({
                   border: 'none',
                   background:
                     input.trim() && !isTyping && !quotaExceeded
-                      ? `linear-gradient(135deg, ${GOLD} 0%, ${PRIMARY} 100%)`
+                      ? `linear-gradient(135deg, ${ACCENT} 0%, ${PRIMARY} 100%)`
                       : ACCENT,
                   cursor:
                     input.trim() && !isTyping && !quotaExceeded
@@ -418,8 +429,8 @@ export default function EditorChatAssistant({
       {/* Keyframe styles */}
       <style>{`
         @keyframes editor-chat-pulse {
-          0%, 100% { box-shadow: 0 4px 20px rgba(176,141,91,0.4); }
-          50% { box-shadow: 0 4px 30px rgba(176,141,91,0.65), 0 0 0 8px rgba(176,141,91,0.15); }
+          0%, 100% { box-shadow: 0 4px 20px rgba(30,58,95,0.4); }
+          50% { box-shadow: 0 4px 30px rgba(30,58,95,0.65), 0 0 0 8px rgba(30,58,95,0.15); }
         }
         @keyframes editor-chat-typing-dot {
           0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -427,7 +438,7 @@ export default function EditorChatAssistant({
         }
         [aria-label="Buka pembantu AI editor"]:focus-visible,
         [aria-label="Tutup pembantu AI"]:focus-visible {
-          outline: 2px solid ${GOLD};
+          outline: 2px solid ${ACCENT};
           outline-offset: 2px;
         }
         .editor-chat-messages-scroll::-webkit-scrollbar {
@@ -437,11 +448,11 @@ export default function EditorChatAssistant({
           background: transparent;
         }
         .editor-chat-messages-scroll::-webkit-scrollbar-thumb {
-          background: rgba(176,141,91,0.55);
+          background: rgba(30,58,95,0.55);
           border-radius: 999px;
         }
         .editor-chat-messages-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(176,141,91,0.75);
+          background: rgba(30,58,95,0.75);
         }
       `}</style>
     </>
@@ -452,7 +463,7 @@ const typingDotStyle: React.CSSProperties = {
   width: 7,
   height: 7,
   borderRadius: '50%',
-  background: '#8B6F4E',
+  background: NAVY_LIGHT,
   display: 'inline-block',
   animation: 'editor-chat-typing-dot 1.2s ease-in-out infinite',
 };

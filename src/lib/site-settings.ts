@@ -19,6 +19,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   cuba_editor_chat_daily_limit: 10,
   editor_chat_enabled: true,
   editor_chat_daily_limit: 20,
+  invitation_chat_enabled: true,
+  invitation_chat_daily_limit: 20,
 };
 
 export function normalizeSiteSettings(data?: Partial<SiteSettings> | null): SiteSettings {

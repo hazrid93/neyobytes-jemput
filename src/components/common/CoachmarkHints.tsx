@@ -21,6 +21,7 @@ import {
   ThemeIcon,
 } from '@mantine/core';
 import { IconBulb, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconX } from '@tabler/icons-react';
+import { NAVY, NAVY_LIGHT, OFF_WHITE } from '../../constants/colors';
 
 export interface CoachmarkHintItem {
   id: string;
@@ -98,7 +99,7 @@ const TONE_STYLES = {
     iconBg: 'rgba(212,175,55,0.14)',
     iconColor: '#A0781D',
     badgeBg: 'rgba(212,175,55,0.14)',
-    badgeColor: '#8B6F4E',
+    badgeColor: NAVY_LIGHT,
   },
   blue: {
     surface: 'linear-gradient(135deg, rgba(245,249,255,0.98) 0%, rgba(236,244,255,0.96) 100%)',
@@ -297,7 +298,7 @@ export function SmartCoachmark({
       position: 'absolute' as const,
       width: size * 2,
       height: size * 2,
-      background: '#FDF8F0',
+      background: OFF_WHITE,
       border: 'none',
     };
 
@@ -416,7 +417,7 @@ export function SmartCoachmark({
           style={{
             position: 'relative',
             overflow: 'visible',
-            background: '#FDF8F0',
+            background: OFF_WHITE,
             borderColor: 'rgba(212,175,55,0.26)',
             boxShadow: '0 24px 60px rgba(44,24,16,0.14)',
           }}
@@ -431,7 +432,7 @@ export function SmartCoachmark({
                     {badge}
                   </Badge>
                 )}
-                <Text fw={700} style={{ color: '#2C1810' }}>
+                <Text fw={700} style={{ color: NAVY }}>
                   {title}
                 </Text>
               </Group>
@@ -637,7 +638,7 @@ export default function CoachmarkHints({
                 {badge}
               </Badge>
             )}
-            <Text fw={700} style={{ color: '#2C1810' }}>
+            <Text fw={700} style={{ color: NAVY }}>
               {title}
             </Text>
           </Group>
@@ -683,7 +684,7 @@ export default function CoachmarkHints({
                 {item.icon || <IconBulb size={18} />}
               </ThemeIcon>
               <Box>
-                <Text size="sm" fw={700} style={{ color: '#2C1810' }} mb={4}>
+                <Text size="sm" fw={700} style={{ color: NAVY }} mb={4}>
                   {item.title}
                 </Text>
                 <Text size="sm" c="dimmed" style={{ lineHeight: 1.55 }}>

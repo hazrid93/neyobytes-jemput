@@ -7,66 +7,46 @@ export interface ChatRequest {
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
+// ---------------------------------------------------------------------------
+// Shared-pool quota check — calls the Supabase RPC for atomic check+increment
+// ---------------------------------------------------------------------------
+export async function checkPoolQuota(
+  poolKey: string,
+  dailyLimit: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  if (dailyLimit <= 0) return { allowed: true, remaining: 999 };
 
-// Generate a visitor ID (fingerprint) from browser
-export function getVisitorId(): string {
-  let id = localStorage.getItem('jemput_visitor_id');
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem('jemput_visitor_id', id);
+  try {
+    const { data, error } = await supabase.rpc('check_and_increment_chat_quota', {
+      p_pool_key: poolKey,
+      p_daily_limit: dailyLimit,
+    });
+
+    if (error) throw error;
+
+    return {
+      allowed: data.allowed,
+      remaining: data.remaining,
+    };
+  } catch (error) {
+    console.warn('Chat quota check failed, allowing request:', error);
+    return { allowed: true, remaining: 999 };
   }
-  return id;
 }
 
-// Check and increment chatbot usage quota
+// Convenience wrappers for each context
 export async function checkQuota(
   invitationId: string,
   dailyLimit: number
 ): Promise<{ allowed: boolean; remaining: number }> {
-  if (dailyLimit <= 0) return { allowed: true, remaining: 999 }; // 0 = unlimited
-  if (!isUuid(invitationId)) return { allowed: true, remaining: 999 }; // demo / fallback invitation
+  return checkPoolQuota(`invitation:${invitationId}`, dailyLimit);
+}
 
-  const visitorId = getVisitorId();
-  const today = new Date().toISOString().split('T')[0];
-
-  try {
-    // Try to get existing usage
-    const { data, error } = await supabase
-      .from('chatbot_usage')
-      .select('count')
-      .eq('invitation_id', invitationId)
-      .eq('visitor_id', visitorId)
-      .eq('date', today)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    const currentCount = data?.count || 0;
-    if (currentCount >= dailyLimit) {
-      return { allowed: false, remaining: 0 };
-    }
-
-    // Upsert usage count
-    const { error: upsertError } = await supabase.from('chatbot_usage').upsert(
-      {
-        invitation_id: invitationId,
-        visitor_id: visitorId,
-        date: today,
-        count: currentCount + 1,
-      },
-      { onConflict: 'invitation_id,visitor_id,date' }
-    );
-
-    if (upsertError) throw upsertError;
-
-    return { allowed: true, remaining: dailyLimit - currentCount - 1 };
-  } catch (error) {
-    console.warn('Chatbot quota check failed, allowing request without quota tracking.', error);
-    return { allowed: true, remaining: 999 };
-  }
+export async function checkEditorQuota(
+  contextKey: 'cuba_editor' | 'editor',
+  dailyLimit: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  return checkPoolQuota(contextKey, dailyLimit);
 }
 
 export function getChatConfig() {
@@ -90,34 +70,6 @@ export async function sendChatMessage(req: ChatRequest): Promise<string> {
 
   const data = await response.json();
   return data.content;
-}
-
-// ---------------------------------------------------------------------------
-// Editor-assistant quota — tracked in localStorage (no DB dependency).
-// Key format: jemput_editor_chat_{contextKey}_{date}
-// ---------------------------------------------------------------------------
-export async function checkEditorQuota(
-  contextKey: 'cuba_editor' | 'editor',
-  dailyLimit: number
-): Promise<{ allowed: boolean; remaining: number }> {
-  if (dailyLimit <= 0) return { allowed: true, remaining: 999 }; // 0 = unlimited
-
-  const today = new Date().toISOString().split('T')[0];
-  const storageKey = `jemput_editor_chat_${contextKey}_${today}`;
-
-  try {
-    const currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
-
-    if (currentCount >= dailyLimit) {
-      return { allowed: false, remaining: 0 };
-    }
-
-    localStorage.setItem(storageKey, String(currentCount + 1));
-    return { allowed: true, remaining: dailyLimit - currentCount - 1 };
-  } catch {
-    // If localStorage is unavailable, allow the request
-    return { allowed: true, remaining: 999 };
-  }
 }
 
 // ---------------------------------------------------------------------------

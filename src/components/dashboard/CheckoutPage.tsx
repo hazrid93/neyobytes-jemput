@@ -31,6 +31,7 @@ import {
   IconRobot,
 } from '@tabler/icons-react';
 import { usePaymentStore } from '../../stores/paymentStore';
+import { SLATE_200 } from '../../constants/colors';
 import type { Plan } from '../../types';
 
 export default function CheckoutPage() {
@@ -210,7 +211,7 @@ export default function CheckoutPage() {
           radius="md"
           padding={0}
           withBorder
-          style={{ borderColor: '#E8D5B7', overflow: 'hidden' }}
+          style={{ borderColor: SLATE_200, overflow: 'hidden' }}
         >
           <EmbeddedCheckoutProvider
             stripe={stripePromise}
@@ -232,7 +233,7 @@ function PlanSummaryCard({ plan }: { plan: Plan }) {
       padding="xl"
       withBorder
       style={{
-        borderColor: '#E8D5B7',
+        borderColor: SLATE_200,
         background: 'linear-gradient(135deg, #FFFAF3 0%, #FDF5E6 100%)',
       }}
     >
@@ -243,7 +244,7 @@ function PlanSummaryCard({ plan }: { plan: Plan }) {
         </Title>
       </Group>
 
-      <Divider mb="md" color="#E8D5B7" />
+      <Divider mb="md" color={SLATE_200} />
 
       <Group justify="space-between" mb="xs">
         <Text fw={600} style={{ color: '#2C1810' }}>
@@ -263,7 +264,7 @@ function PlanSummaryCard({ plan }: { plan: Plan }) {
         Aktif selama {plan.duration_days} hari
       </Text>
 
-      <Divider mb="md" color="#E8D5B7" />
+      <Divider mb="md" color={SLATE_200} />
 
       <Text size="sm" fw={600} c="#8B6F4E" mb="xs">
         Termasuk:

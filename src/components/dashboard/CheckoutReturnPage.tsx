@@ -20,6 +20,7 @@ import {
   IconRefresh,
 } from '@tabler/icons-react';
 import { usePaymentStore } from '../../stores/paymentStore';
+import { GOLD, GOLD_WARM } from '../../constants/colors';
 
 export default function CheckoutReturnPage() {
   const navigate = useNavigate();
@@ -157,7 +158,7 @@ export default function CheckoutReturnPage() {
               }
               style={{
                 background:
-                  'linear-gradient(135deg, #B08D5B 0%, #D4AF37 100%)',
+                  `linear-gradient(135deg, ${GOLD_WARM} 0%, ${GOLD} 100%)`,
                 border: 'none',
                 fontWeight: 600,
               }}
@@ -215,7 +216,7 @@ export default function CheckoutReturnPage() {
               onClick={() => navigate('/pricing')}
               style={{
                 background:
-                  'linear-gradient(135deg, #B08D5B 0%, #D4AF37 100%)',
+                  `linear-gradient(135deg, ${GOLD_WARM} 0%, ${GOLD} 100%)`,
                 border: 'none',
                 fontWeight: 600,
               }}

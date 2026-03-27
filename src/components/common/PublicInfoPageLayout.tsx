@@ -3,13 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Button, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import Logo from './Logo';
-
-const NAVY = '#0A1628';
-const NAVY_LIGHT = '#1E3A5F';
-const GOLD = '#D4AF37';
-const SLATE_200 = '#E2E8F0';
-const SLATE_500 = '#64748B';
-const OFF_WHITE = '#F8FAFC';
+import { NAVY, NAVY_LIGHT, GOLD, SLATE_200, SLATE_500, OFF_WHITE } from '../../constants/colors';
 
 interface PublicInfoPageLayoutProps {
   eyebrow: string;

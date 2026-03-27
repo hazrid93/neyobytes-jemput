@@ -45,14 +45,14 @@ import { useAdminStore } from '../stores/adminStore';
 import { useAuthStore } from '../stores/authStore';
 import type { Plan, SiteSettings } from '../types';
 import { DEFAULT_SITE_SETTINGS } from '../lib/site-settings';
+import { NAVY, GOLD, GOLD_WARM, OFF_WHITE, SLATE_200 } from '../constants/colors';
 
 // ---------------------------------------------------------------------------
 // Theme constants
 // ---------------------------------------------------------------------------
-const GOLD = '#B08D5B';
-const GOLD_LIGHT = '#D4AF37';
-const CREAM = '#FDF8F0';
-const DARK = '#2C1810';
+const GOLD_LIGHT = GOLD_WARM;
+const CREAM = OFF_WHITE;
+const DARK = NAVY;
 
 // ---------------------------------------------------------------------------
 // Stats Card
@@ -73,7 +73,7 @@ function StatCard({
       padding="lg"
       radius="md"
       style={{
-        border: `1px solid rgba(176,141,91,0.15)`,
+        border: `1px solid ${SLATE_200}`,
         background: '#fff',
       }}
     >
@@ -165,7 +165,7 @@ function DashboardTab() {
       <Card
         padding="lg"
         radius="md"
-        style={{ border: '1px solid rgba(176,141,91,0.15)', background: '#fff' }}
+        style={{ border: `1px solid ${SLATE_200}`, background: '#fff' }}
       >
         <Title order={4} mb="md" style={{ color: DARK }}>
           Bayaran Terkini
@@ -345,7 +345,7 @@ function PlansTab() {
           padding="lg"
           radius="md"
           style={{
-            border: '1px solid rgba(176,141,91,0.15)',
+            border: `1px solid ${SLATE_200}`,
             background: '#fff',
           }}
         >
@@ -607,7 +607,7 @@ function UsersTab() {
         padding="lg"
         radius="md"
         style={{
-          border: '1px solid rgba(176,141,91,0.15)',
+          border: `1px solid ${SLATE_200}`,
           background: '#fff',
         }}
       >
@@ -701,7 +701,7 @@ function PaymentsTab() {
         padding="lg"
         radius="md"
         style={{
-          border: '1px solid rgba(176,141,91,0.15)',
+          border: `1px solid ${SLATE_200}`,
           background: '#fff',
         }}
       >
@@ -815,7 +815,7 @@ function SiteSettingsTab() {
         padding="lg"
         radius="md"
         style={{
-          border: '1px solid rgba(176,141,91,0.15)',
+          border: `1px solid ${SLATE_200}`,
           background: '#fff',
         }}
       >
@@ -891,7 +891,7 @@ function SiteSettingsTab() {
           </Text>
 
           {/* /cuba preview chatbot */}
-          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(10,22,40,0.03)' }}>
             <Stack gap="xs">
               <Text fw={600} size="sm">Chatbot Pratonton /cuba</Text>
               <Text size="xs" c="dimmed">Chatbot tetamu di pratonton halaman percubaan</Text>
@@ -907,7 +907,7 @@ function SiteSettingsTab() {
                 {form.cuba_preview_chat_enabled !== false && (
                   <NumberInput
                     label="Had harian"
-                    description="Soalan per pelawat sehari. 0 = tiada had"
+                    description="Jumlah soalan dikongsi semua pelawat sehari. 0 = tiada had"
                     value={form.cuba_preview_chat_daily_limit ?? 10}
                     onChange={(val) => setForm({ ...form, cuba_preview_chat_daily_limit: Number(val) || 0 })}
                     min={0}
@@ -918,7 +918,7 @@ function SiteSettingsTab() {
           </Card>
 
           {/* /cuba editor AI assistant */}
-          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(10,22,40,0.03)' }}>
             <Stack gap="xs">
               <Text fw={600} size="sm">Pembantu AI Editor /cuba</Text>
               <Text size="xs" c="dimmed">Pembantu AI dalam editor halaman percubaan</Text>
@@ -934,7 +934,7 @@ function SiteSettingsTab() {
                 {form.cuba_editor_chat_enabled !== false && (
                   <NumberInput
                     label="Had harian"
-                    description="Soalan per pelawat sehari. 0 = tiada had"
+                    description="Jumlah soalan dikongsi semua pengguna sehari. 0 = tiada had"
                     value={form.cuba_editor_chat_daily_limit ?? 10}
                     onChange={(val) => setForm({ ...form, cuba_editor_chat_daily_limit: Number(val) || 0 })}
                     min={0}
@@ -945,7 +945,7 @@ function SiteSettingsTab() {
           </Card>
 
           {/* Signed-in editor AI assistant */}
-          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(176,141,91,0.03)' }}>
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(10,22,40,0.03)' }}>
             <Stack gap="xs">
               <Text fw={600} size="sm">Pembantu AI Editor (Pengguna Berdaftar)</Text>
               <Text size="xs" c="dimmed">Pembantu AI dalam editor untuk pengguna yang telah log masuk</Text>
@@ -961,9 +961,36 @@ function SiteSettingsTab() {
                 {form.editor_chat_enabled !== false && (
                   <NumberInput
                     label="Had harian"
-                    description="Soalan per pengguna sehari. 0 = tiada had"
+                    description="Jumlah soalan dikongsi semua pengguna sehari. 0 = tiada had"
                     value={form.editor_chat_daily_limit ?? 20}
                     onChange={(val) => setForm({ ...form, editor_chat_daily_limit: Number(val) || 0 })}
+                    min={0}
+                  />
+                )}
+              </Group>
+            </Stack>
+          </Card>
+
+          {/* Published invitation chatbot */}
+          <Card padding="sm" radius="sm" withBorder style={{ background: 'rgba(10,22,40,0.03)' }}>
+            <Stack gap="xs">
+              <Text fw={600} size="sm">Chatbot Kad Jemputan</Text>
+              <Text size="xs" c="dimmed">Chatbot tetamu di kad jemputan yang diterbitkan (dikongsi semua pelawat)</Text>
+              <Group grow>
+                <Box pt={8}>
+                  <Switch
+                    label="Aktifkan"
+                    checked={form.invitation_chat_enabled ?? true}
+                    onChange={(e) => setForm({ ...form, invitation_chat_enabled: e.currentTarget.checked })}
+                    color={GOLD}
+                  />
+                </Box>
+                {form.invitation_chat_enabled !== false && (
+                  <NumberInput
+                    label="Had harian"
+                    description="Jumlah soalan dikongsi semua pelawat sehari. 0 = tiada had"
+                    value={form.invitation_chat_daily_limit ?? 20}
+                    onChange={(val) => setForm({ ...form, invitation_chat_daily_limit: Number(val) || 0 })}
                     min={0}
                   />
                 )}
@@ -1058,9 +1085,9 @@ export default function AdminPage() {
     >
       <AppShell.Header
         style={{
-          background: 'rgba(253,248,240,0.95)',
+          background: 'rgba(255,255,255,0.95)',
           backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid rgba(176,141,91,0.15)`,
+          borderBottom: `1px solid ${SLATE_200}`,
         }}
       >
         <Container size="xl" h="100%">

@@ -48,24 +48,7 @@ import { cubicBezier, motion, useScroll, useTransform, type Variants } from 'fra
 import Logo from '../components/common/Logo';
 import { fetchPublicSiteSettings } from '../lib/site-settings';
 import type { SiteSettings } from '../types';
-
-// ---------------------------------------------------------------------------
-// Color constants — Navy / White / Gold
-// ---------------------------------------------------------------------------
-const NAVY = '#0A1628';
-const NAVY_MID = '#162240';
-const NAVY_LIGHT = '#1E3A5F';
-const BLUE = '#2563EB';
-const BLUE_LIGHT = '#3B82F6';
-const GOLD = '#D4AF37';
-const GOLD_WARM = '#C8A951';
-const GOLD_PALE = '#E8D48B';
-const WHITE = '#FFFFFF';
-const OFF_WHITE = '#F8FAFC';
-const SLATE_100 = '#F1F5F9';
-const SLATE_200 = '#E2E8F0';
-const SLATE_500 = '#64748B';
-const SLATE_700 = '#334155';
+import { NAVY, NAVY_MID, NAVY_LIGHT, BLUE, BLUE_LIGHT, GOLD, GOLD_WARM, GOLD_PALE, WHITE, OFF_WHITE, SLATE_100, SLATE_200, SLATE_500, SLATE_700 } from '../constants/colors';
 
 // ---------------------------------------------------------------------------
 // Animation helpers

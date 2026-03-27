@@ -19,6 +19,7 @@ import LocationSection from '../components/invitation/LocationSection';
 import ContactSection from '../components/invitation/ContactSection';
 import RSVPForm from '../components/invitation/RSVPForm';
 import MoneyGift from '../components/invitation/MoneyGift';
+import WishlistSection from '../components/invitation/WishlistSection';
 import GallerySection from '../components/invitation/GallerySection';
 import Guestbook from '../components/invitation/Guestbook';
 import CalendarSave from '../components/invitation/CalendarSave';
@@ -207,6 +208,11 @@ function renderSection(
     case 'money_gift':
       return invitation.money_gift ? (
         <MoneyGift key={section.id} moneyGift={invitation.money_gift} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />
+      ) : null;
+
+    case 'wishlist':
+      return invitation.wishlist?.length ? (
+        <WishlistSection key={section.id} wishlist={invitation.wishlist} templateId={templateId} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />
       ) : null;
 
     case 'gallery':
@@ -823,7 +829,7 @@ export default function InvitationPage() {
           dailyLimit={
             isDemoInvitation
               ? (siteSettings?.cuba_preview_chat_daily_limit ?? 10)
-              : 20
+              : (siteSettings?.invitation_chat_daily_limit ?? 20)
           }
           subscriptionActive={
             isDemoInvitation

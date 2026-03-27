@@ -29,6 +29,7 @@ import {
   IconCrown,
   IconEdit,
 } from '@tabler/icons-react';
+import { NAVY, NAVY_LIGHT } from '../constants/colors';
 import { useAuthStore } from '../stores/authStore';
 import { useDashboardStore } from '../stores/dashboardStore';
 import DashboardOverview from '../components/dashboard/DashboardOverview';
@@ -199,17 +200,17 @@ export default function DashboardPage() {
         padding={isEditorMode ? 0 : 'md'}
         styles={{
           header: {
-            background: 'linear-gradient(90deg, #FDF8F0, #F5E6D3)',
-            borderBottom: '1px solid #E8D5B7',
+            background: 'linear-gradient(90deg, #FFFFFF, #F1F5F9)',
+            borderBottom: '1px solid #E2E8F0',
             zIndex: 200,
           },
           navbar: {
-            background: '#FDFAF5',
-            borderRight: '1px solid #E8D5B7',
+            background: '#FFFFFF',
+            borderRight: '1px solid #E2E8F0',
             zIndex: 201,
           },
           main: {
-            background: '#FAFAFA',
+            background: '#F8FAFC',
           },
         }}
       >
@@ -232,7 +233,7 @@ export default function DashboardPage() {
                   alignItems: 'center',
                 }}
               >
-                <Logo size="sm" color="#8B6F4E" />
+                <Logo size="sm" color={NAVY} />
               </Box>
 
               {/* Desktop breadcrumbs */}
@@ -241,12 +242,12 @@ export default function DashboardPage() {
                   {breadcrumbs.map((crumb, idx) => (
                     <Group key={idx} gap={4} style={{ flexWrap: 'nowrap' }}>
                       {idx > 0 && (
-                        <IconChevronRight size={14} color="#8B6F4E" style={{ opacity: 0.5, flexShrink: 0 }} />
+                        <IconChevronRight size={14} color={NAVY_LIGHT} style={{ opacity: 0.5, flexShrink: 0 }} />
                       )}
                       {crumb.path && idx < breadcrumbs.length - 1 ? (
                         <Anchor
                           size="sm"
-                          c="#8B6F4E"
+                          c={NAVY_LIGHT}
                           fw={500}
                           onClick={(e) => {
                             e.preventDefault();
@@ -264,7 +265,7 @@ export default function DashboardPage() {
                       ) : (
                         <Text
                           size="sm"
-                          c={idx === breadcrumbs.length - 1 ? '#5A4633' : 'dimmed'}
+                          c={idx === breadcrumbs.length - 1 ? NAVY : 'dimmed'}
                           fw={idx === breadcrumbs.length - 1 ? 600 : 400}
                           style={{ whiteSpace: 'nowrap' }}
                           lineClamp={1}

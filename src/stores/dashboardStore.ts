@@ -108,7 +108,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   updateInvitation: async (id, updates) => {
-    const { error } = await supabase.from('invitations').update(updates).eq('id', id);
+    // gallery_images lives in a separate table — never send it to the invitations PATCH
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { gallery_images, ...rest } = updates as Record<string, unknown>;
+    const { error } = await supabase.from('invitations').update(rest).eq('id', id);
     if (error) handleSlugError(error);
     set({
       invitations: get().invitations.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv)),

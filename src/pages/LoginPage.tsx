@@ -18,11 +18,7 @@ import {
 import { IconMail, IconLock, IconUser, IconAlertCircle, IconCheck, IconArrowLeft } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/authStore';
-
-const NAVY = '#0A1628';
-const NAVY_LIGHT = '#1E3A5F';
-const GOLD = '#D4AF37';
-const GOLD_WARM = '#C8A951';
+import { NAVY, NAVY_LIGHT, GOLD, GOLD_WARM } from '../constants/colors';
 
 type ViewMode = 'auth' | 'forgot' | 'reset-password';
 

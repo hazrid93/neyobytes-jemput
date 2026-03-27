@@ -27,17 +27,9 @@ import { useAuthStore } from '../stores/authStore';
 import type { Plan } from '../types';
 
 // ---------------------------------------------------------------------------
-// Theme constants (matching new landing page)
+// Theme constants
 // ---------------------------------------------------------------------------
-const NAVY = '#0A1628';
-const NAVY_LIGHT = '#1E3A5F';
-const GOLD = '#D4AF37';
-const GOLD_WARM = '#C8A951';
-const WHITE = '#FFFFFF';
-const OFF_WHITE = '#F8FAFC';
-const SLATE_200 = '#E2E8F0';
-const SLATE_500 = '#64748B';
-const SLATE_700 = '#334155';
+import { NAVY, NAVY_LIGHT, GOLD, GOLD_WARM, WHITE, OFF_WHITE, SLATE_200, SLATE_500, SLATE_700 } from '../constants/colors';
 
 // ---------------------------------------------------------------------------
 // Animation helpers

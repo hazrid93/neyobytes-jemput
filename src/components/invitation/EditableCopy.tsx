@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   createElement,
   type CSSProperties,
@@ -25,10 +26,24 @@ export default function EditableCopy({
   style,
 }: EditableCopyProps) {
   const [draft, setDraft] = useState(value);
+  const elementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setDraft(value);
   }, [value]);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!editMode || !element) return;
+
+    if (typeof document !== 'undefined' && document.activeElement === element) {
+      return;
+    }
+
+    if (element.innerText !== value) {
+      element.innerText = value;
+    }
+  }, [editMode, value]);
 
   const postDraft = (nextValue: string) => {
     if (typeof window === 'undefined') return;
@@ -43,6 +58,7 @@ export default function EditableCopy({
   }
 
   return createElement(as, {
+    ref: elementRef,
     contentEditable: true,
     suppressContentEditableWarning: true,
     style: {
@@ -63,5 +79,5 @@ export default function EditableCopy({
       setDraft(nextValue);
       postDraft(nextValue);
     },
-  }, draft);
+  }, null);
 }

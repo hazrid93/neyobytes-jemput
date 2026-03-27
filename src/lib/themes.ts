@@ -12,10 +12,11 @@ const DEFAULT_SECTIONS: InvitationSection[] = [
   { id: 'contact', type: 'contact', enabled: true, sort_order: 8 },
   { id: 'rsvp', type: 'rsvp', enabled: true, sort_order: 9 },
   { id: 'money_gift', type: 'money_gift', enabled: true, sort_order: 10 },
-  { id: 'gallery', type: 'gallery', enabled: true, sort_order: 11 },
-  { id: 'guestbook', type: 'guestbook', enabled: true, sort_order: 12 },
-  { id: 'calendar_save', type: 'calendar_save', enabled: true, sort_order: 13 },
-  { id: 'footer', type: 'footer', enabled: true, sort_order: 14 },
+  { id: 'wishlist', type: 'wishlist', enabled: true, sort_order: 11 },
+  { id: 'gallery', type: 'gallery', enabled: true, sort_order: 12 },
+  { id: 'guestbook', type: 'guestbook', enabled: true, sort_order: 13 },
+  { id: 'calendar_save', type: 'calendar_save', enabled: true, sort_order: 14 },
+  { id: 'footer', type: 'footer', enabled: true, sort_order: 15 },
 ];
 
 // ============================================================================
@@ -318,6 +319,7 @@ export const SECTION_LABELS: Record<string, { label: string; icon: string; descr
   contact: { label: 'Hubungi', icon: 'phone', description: 'Nombor telefon & WhatsApp' },
   rsvp: { label: 'RSVP', icon: 'check', description: 'Borang pengesahan kehadiran' },
   money_gift: { label: 'Salam Kaut', icon: 'credit-card', description: 'Hadiah wang / DuitNow' },
+  wishlist: { label: 'Senarai Hadiah', icon: 'gift', description: 'Senarai hadiah yang diingini' },
   gallery: { label: 'Galeri', icon: 'photo', description: 'Gambar-gambar pengantin' },
   guestbook: { label: 'Buku Tamu', icon: 'book', description: 'Ucapan dari tetamu' },
   calendar_save: { label: 'Simpan Tarikh', icon: 'calendar-plus', description: 'Tambah ke kalendar' },

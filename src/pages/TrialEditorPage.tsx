@@ -3,19 +3,20 @@ import { Link } from 'react-router-dom';
 import { IconArrowLeft } from '@tabler/icons-react';
 import InvitationEditor from '../components/dashboard/InvitationEditor';
 import Logo from '../components/common/Logo';
+import { OFF_WHITE, SLATE_200 } from '../constants/colors';
 
 export default function TrialEditorPage() {
   return (
-    <Box style={{ minHeight: '100vh', background: '#FDF8F0' }}>
+    <Box style={{ minHeight: '100vh', background: OFF_WHITE }}>
       <Box
         component="header"
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 20,
-          background: 'rgba(253,248,240,0.94)',
+          background: 'rgba(248,250,252,0.94)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(176,141,91,0.14)',
+          borderBottom: `1px solid ${SLATE_200}`,
         }}
       >
         <Container size="xl" py="sm">
