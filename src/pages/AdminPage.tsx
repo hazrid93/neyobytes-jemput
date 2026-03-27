@@ -25,6 +25,7 @@ import {
   Divider,
   Select,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import {
   IconDashboard,
   IconCreditCard,
@@ -40,10 +41,14 @@ import {
   IconCalendarEvent,
   IconChevronRight,
   IconSettings,
+  IconMessageCircle,
+  IconRefresh,
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 import { useAdminStore } from '../stores/adminStore';
+import type { ChatPoolUsageRow } from '../stores/adminStore';
 import { useAuthStore } from '../stores/authStore';
-import type { Plan, SiteSettings } from '../types';
+import type { Plan, SiteSettings, UserProfile } from '../types';
 import { DEFAULT_SITE_SETTINGS } from '../lib/site-settings';
 import { NAVY, GOLD, GOLD_WARM, OFF_WHITE, SLATE_200 } from '../constants/colors';
 
@@ -115,13 +120,14 @@ function StatCard({
 // Dashboard Tab
 // ---------------------------------------------------------------------------
 function DashboardTab() {
-  const { stats, payments, loadingStats, fetchStats, fetchPayments } =
+  const { stats, payments, loadingStats, fetchStats, fetchPayments, chatUsage, loadingChatUsage, fetchChatUsage } =
     useAdminStore();
 
   useEffect(() => {
     fetchStats();
     fetchPayments();
-  }, [fetchStats, fetchPayments]);
+    fetchChatUsage();
+  }, [fetchStats, fetchPayments, fetchChatUsage]);
 
   if (loadingStats && !stats) {
     return (
@@ -220,7 +226,148 @@ function DashboardTab() {
           </Table>
         )}
       </Card>
+
+      {/* Chat Usage Stats */}
+      <ChatUsagePanel rows={chatUsage} loading={loadingChatUsage} />
     </Stack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Chat Usage Panel (used in DashboardTab)
+// ---------------------------------------------------------------------------
+const GLOBAL_POOL_LABELS: Record<string, string> = {
+  cuba_preview: 'Chatbot Pratonton /cuba',
+  cuba_editor: 'Pembantu AI Editor /cuba',
+  editor: 'Pembantu AI Editor (pengguna)',
+};
+
+function ChatUsagePanel({ rows, loading }: { rows: ChatPoolUsageRow[]; loading: boolean }) {
+  const { resetPoolUsage } = useAdminStore();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const globalKeys = ['cuba_preview', 'cuba_editor', 'editor'];
+  const globalToday: Record<string, number> = {};
+  const globalTotal: Record<string, number> = {};
+  const invitationToday: Record<string, number> = {};
+  const invitationTotal: Record<string, number> = {};
+
+  for (const r of rows) {
+    if (globalKeys.includes(r.pool_key)) {
+      globalTotal[r.pool_key] = (globalTotal[r.pool_key] ?? 0) + r.count;
+      if (r.date === today) globalToday[r.pool_key] = r.count;
+    } else if (r.pool_key.startsWith('invitation:')) {
+      const invId = r.pool_key.replace('invitation:', '');
+      invitationTotal[invId] = (invitationTotal[invId] ?? 0) + r.count;
+      if (r.date === today) invitationToday[invId] = (invitationToday[invId] ?? 0) + r.count;
+    }
+  }
+
+  const invEntries = Object.entries(invitationTotal).sort((a, b) => b[1] - a[1]);
+
+  const handleReset = async (poolKey: string, mode: 'today' | 'all') => {
+    try {
+      await resetPoolUsage(poolKey, mode);
+      notifications.show({
+        title: 'Berjaya',
+        message: mode === 'today' ? 'Kiraan hari ini telah direset' : 'Semua kiraan telah direset',
+        color: 'green',
+        autoClose: 2000,
+      });
+    } catch {
+      notifications.show({ title: 'Ralat', message: 'Gagal mereset kiraan', color: 'red' });
+    }
+  };
+
+  return (
+    <Card padding="lg" radius="md" style={{ border: `1px solid ${SLATE_200}`, background: '#fff' }}>
+      <Group mb="md" gap="xs">
+        <IconMessageCircle size={20} color={GOLD} />
+        <Title order={4} style={{ color: DARK }}>Penggunaan Chatbot</Title>
+      </Group>
+
+      {loading ? (
+        <Center py="xl"><Loader color={GOLD} size="sm" /></Center>
+      ) : rows.length === 0 ? (
+        <Text c="dimmed" ta="center" py="xl">Tiada data penggunaan lagi.</Text>
+      ) : (
+        <Stack gap="md">
+          {/* Global Pools */}
+          <Box>
+            <Text fw={600} size="sm" mb="xs" c="dimmed">Pool Global (dikongsi semua pelawat)</Text>
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+              {globalKeys.map((key) => (
+                <Card key={key} padding="sm" radius="sm" withBorder style={{ background: 'rgba(10,22,40,0.02)' }}>
+                  <Text size="xs" fw={600} mb={4}>{GLOBAL_POOL_LABELS[key]}</Text>
+                  <Group gap="lg">
+                    <Box>
+                      <Text size="xl" fw={700} style={{ color: DARK }}>{globalToday[key] ?? 0}</Text>
+                      <Text size="xs" c="dimmed">Hari ini</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xl" fw={700} style={{ color: DARK }}>{globalTotal[key] ?? 0}</Text>
+                      <Text size="xs" c="dimmed">Jumlah</Text>
+                    </Box>
+                  </Group>
+                  <Group mt="xs" gap="xs">
+                    <Button size="compact-xs" variant="light" color="yellow" leftSection={<IconRefresh size={12} />}
+                      onClick={() => handleReset(key, 'today')}>Reset hari ini</Button>
+                    <Button size="compact-xs" variant="light" color="red" leftSection={<IconTrash size={12} />}
+                      onClick={() => handleReset(key, 'all')}>Reset semua</Button>
+                  </Group>
+                </Card>
+              ))}
+            </SimpleGrid>
+          </Box>
+
+          <Divider />
+
+          {/* Per-Invitation Pools */}
+          <Box>
+            <Text fw={600} size="sm" mb="xs" c="dimmed">Chatbot Kad Jemputan (per kad)</Text>
+            {invEntries.length === 0 ? (
+              <Text size="sm" c="dimmed" ta="center" py="sm">Tiada penggunaan chatbot kad jemputan.</Text>
+            ) : (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>ID Jemputan</Table.Th>
+                    <Table.Th style={{ textAlign: 'right' }}>Hari Ini</Table.Th>
+                    <Table.Th style={{ textAlign: 'right' }}>Jumlah</Table.Th>
+                    <Table.Th style={{ textAlign: 'right' }}>Tindakan</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {invEntries.map(([invId, total]) => (
+                    <Table.Tr key={invId}>
+                      <Table.Td>
+                        <Text size="xs" ff="monospace">{invId.slice(0, 12)}…</Text>
+                      </Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>{invitationToday[invId] ?? 0}</Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>{total}</Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>
+                        <Group gap={4} justify="flex-end">
+                          <ActionIcon size="sm" variant="light" color="yellow"
+                            onClick={() => handleReset(`invitation:${invId}`, 'today')}
+                            title="Reset hari ini">
+                            <IconRefresh size={14} />
+                          </ActionIcon>
+                          <ActionIcon size="sm" variant="light" color="red"
+                            onClick={() => handleReset(`invitation:${invId}`, 'all')}
+                            title="Reset semua">
+                            <IconTrash size={14} />
+                          </ActionIcon>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
+          </Box>
+        </Stack>
+      )}
+    </Card>
   );
 }
 
@@ -583,13 +730,99 @@ function PlansTab() {
 // Users Tab
 // ---------------------------------------------------------------------------
 function UsersTab() {
-  const { users, loadingUsers, fetchUsers } = useAdminStore();
+  const { users, plans, loadingUsers, loadingPlans, fetchUsers, fetchPlans, updateUser } = useAdminStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [form, setForm] = useState({
+    subscription_plan_id: 'free',
+    subscription_status: 'inactive' as 'inactive' | 'active' | 'expired' | 'granted',
+    subscription_active_from: null as Date | null,
+    subscription_expires_at: null as Date | null,
+    invitation_chatbot_enabled_mode: 'inherit' as 'inherit' | 'enabled' | 'disabled',
+    invitation_chat_daily_limit_override: '' as number | '',
+    granted_features_text: '',
+    admin_notes: '',
+    role: 'user' as 'user' | 'admin',
+  });
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchPlans();
+  }, [fetchUsers, fetchPlans]);
 
-  if (loadingUsers && users.length === 0) {
+  const planOptions = [
+    { value: 'free', label: 'Percuma' },
+    ...plans.map((plan) => ({
+      value: plan.id,
+      label: plan.name_ms || plan.name,
+    })),
+  ];
+
+  const planLabelById = new Map(plans.map((plan) => [plan.id, plan.name_ms || plan.name]));
+
+  const openEdit = (user: UserProfile) => {
+    setEditingUser(user);
+    setForm({
+      subscription_plan_id: user.subscription_plan_id || 'free',
+      subscription_status: user.subscription_status || 'inactive',
+      subscription_active_from: user.subscription_active_from ? new Date(user.subscription_active_from) : null,
+      subscription_expires_at: user.subscription_expires_at ? new Date(user.subscription_expires_at) : null,
+      invitation_chatbot_enabled_mode:
+        user.invitation_chatbot_enabled_override === null || user.invitation_chatbot_enabled_override === undefined
+          ? 'inherit'
+          : user.invitation_chatbot_enabled_override
+            ? 'enabled'
+            : 'disabled',
+      invitation_chat_daily_limit_override:
+        user.invitation_chat_daily_limit_override === null || user.invitation_chat_daily_limit_override === undefined
+          ? ''
+          : user.invitation_chat_daily_limit_override,
+      granted_features_text: (user.granted_features || []).join('\n'),
+      admin_notes: user.admin_notes || '',
+      role: user.role,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!editingUser) return;
+
+    try {
+      await updateUser(editingUser.id, {
+        role: form.role,
+        subscription_plan_id: form.subscription_plan_id === 'free' ? null : form.subscription_plan_id,
+        subscription_status: form.subscription_status,
+        subscription_active_from: form.subscription_active_from ? form.subscription_active_from.toISOString() : null,
+        subscription_expires_at: form.subscription_expires_at ? form.subscription_expires_at.toISOString() : null,
+        invitation_chatbot_enabled_override:
+          form.invitation_chatbot_enabled_mode === 'inherit'
+            ? null
+            : form.invitation_chatbot_enabled_mode === 'enabled',
+        invitation_chat_daily_limit_override:
+          form.invitation_chat_daily_limit_override === '' ? null : Number(form.invitation_chat_daily_limit_override),
+        granted_features: form.granted_features_text
+          .split('\n')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        admin_notes: form.admin_notes.trim() || null,
+      });
+
+      notifications.show({
+        title: 'Berjaya',
+        message: 'Tetapan pengguna berjaya dikemas kini',
+        color: 'green',
+      });
+      setModalOpen(false);
+    } catch {
+      notifications.show({
+        title: 'Ralat',
+        message: 'Gagal menyimpan tetapan pengguna',
+        color: 'red',
+      });
+    }
+  };
+
+  if ((loadingUsers && users.length === 0) || (loadingPlans && plans.length === 0)) {
     return (
       <Center py={60}>
         <Loader color={GOLD} />
@@ -622,7 +855,12 @@ function UsersTab() {
                 <Table.Th>E-mel</Table.Th>
                 <Table.Th>Nama</Table.Th>
                 <Table.Th>Peranan</Table.Th>
+                <Table.Th>Pelan</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Had Chat</Table.Th>
+                <Table.Th>Tamat</Table.Th>
                 <Table.Th>Tarikh Daftar</Table.Th>
+                <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -639,10 +877,48 @@ function UsersTab() {
                       {user.role}
                     </Badge>
                   </Table.Td>
+                  <Table.Td>{user.subscription_plan_id ? (planLabelById.get(user.subscription_plan_id) || 'Pelan') : 'Percuma'}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={
+                        user.subscription_status === 'active' || user.subscription_status === 'granted'
+                          ? 'green'
+                          : user.subscription_status === 'expired'
+                            ? 'red'
+                            : 'gray'
+                      }
+                      variant="light"
+                      size="sm"
+                    >
+                      {user.subscription_status || 'inactive'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    {user.invitation_chat_daily_limit_override === null || user.invitation_chat_daily_limit_override === undefined
+                      ? '-'
+                      : user.invitation_chat_daily_limit_override}
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">
+                      {user.subscription_expires_at
+                        ? new Date(user.subscription_expires_at).toLocaleDateString('ms-MY')
+                        : '-'}
+                    </Text>
+                  </Table.Td>
                   <Table.Td>
                     <Text size="sm">
                       {new Date(user.created_at).toLocaleDateString('ms-MY')}
                     </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Button
+                      size="xs"
+                      variant="light"
+                      leftSection={<IconEdit size={14} />}
+                      onClick={() => openEdit(user)}
+                    >
+                      Edit
+                    </Button>
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -650,6 +926,138 @@ function UsersTab() {
           </Table>
         )}
       </Card>
+
+      <Modal
+        opened={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingUser ? `Urus langganan: ${editingUser.email}` : 'Urus langganan pengguna'}
+        size="lg"
+      >
+        <Stack gap="md">
+          <Group grow>
+            <Select
+              label="Pelan / Tier"
+              data={planOptions}
+              value={form.subscription_plan_id}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                subscription_plan_id: value || 'free',
+              }))}
+            />
+            <Select
+              label="Status Langganan"
+              data={[
+                { value: 'inactive', label: 'Tidak Aktif' },
+                { value: 'active', label: 'Aktif' },
+                { value: 'expired', label: 'Tamat' },
+                { value: 'granted', label: 'Grant Manual' },
+              ]}
+              value={form.subscription_status}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                subscription_status: (value as typeof current.subscription_status) || 'inactive',
+              }))}
+            />
+          </Group>
+
+          <Group grow>
+            <DatePickerInput
+              label="Aktif Dari"
+              placeholder="Pilih tarikh"
+              value={form.subscription_active_from}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                subscription_active_from: value ? new Date(value) : null,
+              }))}
+              clearable
+            />
+            <DatePickerInput
+              label="Tamat Pada"
+              placeholder="Pilih tarikh"
+              value={form.subscription_expires_at}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                subscription_expires_at: value ? new Date(value) : null,
+              }))}
+              clearable
+            />
+          </Group>
+
+          <Group grow>
+            <Select
+              label="Peranan"
+              data={[
+                { value: 'user', label: 'User' },
+                { value: 'admin', label: 'Admin' },
+              ]}
+              value={form.role}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                role: (value as 'user' | 'admin') || 'user',
+              }))}
+            />
+            <Select
+              label="Override Chatbot Kad Jemputan"
+              description="Pilih sama ada ikut pelan, paksa aktif, atau matikan terus"
+              data={[
+                { value: 'inherit', label: 'Ikut pelan / default' },
+                { value: 'enabled', label: 'Paksa aktif' },
+                { value: 'disabled', label: 'Matikan' },
+              ]}
+              value={form.invitation_chatbot_enabled_mode}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                invitation_chatbot_enabled_mode:
+                  (value as 'inherit' | 'enabled' | 'disabled') || 'inherit',
+              }))}
+            />
+          </Group>
+
+          <NumberInput
+            label="Had Chatbot Kad Jemputan (override)"
+            description="Kosongkan untuk ikut pelan. 0 = tanpa had."
+            value={form.invitation_chat_daily_limit_override}
+            onChange={(value) => setForm((current) => ({
+              ...current,
+              invitation_chat_daily_limit_override:
+                value === '' || value === null ? '' : Number(value),
+            }))}
+            min={0}
+          />
+
+          <Textarea
+            label="Grant / Extra Features"
+            description="Satu baris satu kelebihan, contoh: unlimited-chatbot, vip-support, custom-theme"
+            value={form.granted_features_text}
+            onChange={(e) => setForm((current) => ({
+              ...current,
+              granted_features_text: e.currentTarget.value,
+            }))}
+            minRows={3}
+            autosize
+          />
+
+          <Textarea
+            label="Nota Admin"
+            value={form.admin_notes}
+            onChange={(e) => setForm((current) => ({
+              ...current,
+              admin_notes: e.currentTarget.value,
+            }))}
+            minRows={3}
+            autosize
+          />
+
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setModalOpen(false)}>
+              Batal
+            </Button>
+            <Button onClick={handleSubmit} loading={loadingUsers}>
+              Simpan Perubahan
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

@@ -1,15 +1,25 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
 import { getPhotoFrameStyles } from '../../lib/template-ui';
+import EditableCopy from './EditableCopy';
+import { getCopy } from '../../lib/invitation-copy';
 
 interface CoupleSectionProps {
   invitation: Invitation;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
-export default function CoupleSection({ invitation, templateId }: CoupleSectionProps) {
+export default function CoupleSection({
+  invitation,
+  templateId,
+  copyOverrides,
+  previewEditMode = false,
+}: CoupleSectionProps) {
   const hasPhoto = invitation.couple_photo_url && invitation.couple_photo_url.length > 0;
   const photoFrame = getPhotoFrameStyles(templateId);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   return (
     <section
@@ -82,7 +92,12 @@ export default function CoupleSection({ invitation, templateId }: CoupleSectionP
                 opacity: 0.5,
               }}
             >
-              Foto Pengantin
+              <EditableCopy
+                as="span"
+                value={copy('couple.photo_placeholder', 'Foto Pengantin')}
+                copyKey="couple.photo_placeholder"
+                editMode={previewEditMode}
+              />
             </span>
           </div>
         )}
@@ -105,7 +120,12 @@ export default function CoupleSection({ invitation, templateId }: CoupleSectionP
             lineHeight: 1.3,
           }}
         >
-          {invitation.groom_name}
+          <EditableCopy
+            as="span"
+            value={invitation.groom_name}
+            fieldKey="groom_name"
+            editMode={previewEditMode}
+          />
         </h2>
 
         <div
@@ -153,7 +173,12 @@ export default function CoupleSection({ invitation, templateId }: CoupleSectionP
             lineHeight: 1.3,
           }}
         >
-          {invitation.bride_name}
+          <EditableCopy
+            as="span"
+            value={invitation.bride_name}
+            fieldKey="bride_name"
+            editMode={previewEditMode}
+          />
         </h2>
       </motion.div>
     </section>

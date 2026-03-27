@@ -12,6 +12,7 @@ interface CoverSectionProps {
   templateId: string;
   copyOverrides?: Record<string, string>;
   previewEditMode?: boolean;
+  backgroundPhotoUrl?: string;
 }
 
 function formatMalayDate(dateStr: string): string {
@@ -262,6 +263,7 @@ export default function CoverSection({
   templateId,
   copyOverrides,
   previewEditMode = false,
+  backgroundPhotoUrl,
 }: CoverSectionProps) {
   const groomFirst = invitation.groom_name.split(' ')[0];
   const brideFirst = invitation.bride_name.split(' ')[0];
@@ -287,6 +289,19 @@ export default function CoverSection({
         ...coverBgStyle,
       }}
     >
+      {backgroundPhotoUrl && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `linear-gradient(color-mix(in srgb, var(--bg-color, #FDF8F0) 72%, transparent), color-mix(in srgb, var(--bg-color, #FDF8F0) 72%, transparent)), url("${backgroundPhotoUrl}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+      )}
+
       {/* Template-specific pattern overlay */}
       <div style={coverPatternStyle} />
 

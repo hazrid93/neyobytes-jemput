@@ -1,11 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInvitationStore } from '../stores/invitationStore';
-import { supabase } from '../lib/supabase';
 import { getTemplateVisuals, buildThemeVars } from '../lib/template-styles';
 import { resolveTemplateId } from '../lib/themes';
 import { getCopy } from '../lib/invitation-copy';
+import { getUserSubscriptionFeatures } from '../lib/subscription';
 import type { GuestbookMessage, Invitation, InvitationSection } from '../types';
 
 import CoverSection from '../components/invitation/CoverSection';
@@ -120,6 +120,54 @@ const DIVIDER_BEFORE: Set<string> = new Set([
   'footer',
 ]);
 
+function getBackgroundImages(invitation: Invitation) {
+  return {
+    globalUrl: invitation.theme_config.backgrounds?.global_url || '',
+    perSection: invitation.theme_config.backgrounds?.per_section || {},
+  };
+}
+
+function getSectionBackgroundUrl(invitation: Invitation, sectionId: string) {
+  const backgrounds = getBackgroundImages(invitation);
+  if (sectionId === 'cover') {
+    return backgrounds.perSection.cover || invitation.cover_photo_url || backgrounds.globalUrl || '';
+  }
+  return backgrounds.perSection[sectionId] || backgrounds.globalUrl || '';
+}
+
+function wrapWithSectionBackground(
+  invitation: Invitation,
+  sectionId: string,
+  content: ReactNode,
+) {
+  if (!content) return null;
+
+  const backgroundUrl = getSectionBackgroundUrl(invitation, sectionId);
+  if (!backgroundUrl) return content;
+
+  return (
+    <div
+      key={`background-${sectionId}`}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `linear-gradient(color-mix(in srgb, var(--bg-color, #FDF8F0) 80%, transparent), color-mix(in srgb, var(--bg-color, #FDF8F0) 80%, transparent)), url("${backgroundUrl}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      <div style={{ position: 'relative' }}>{content}</div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Render a single section by type
 // ---------------------------------------------------------------------------
@@ -130,15 +178,32 @@ function renderSection(
   templateId: string,
   previewEditMode: boolean,
 ) {
-  switch (section.type) {
+  const content = (() => {
+    switch (section.type) {
     case 'islamic_greeting':
       return <IslamicGreeting key={section.id} copyOverrides={invitation.theme_config.copy_overrides} previewEditMode={previewEditMode} />;
 
     case 'invitation_text':
-      return <InvitationText key={section.id} invitation={invitation} templateId={templateId} />;
+      return (
+        <InvitationText
+          key={section.id}
+          invitation={invitation}
+          templateId={templateId}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
+        />
+      );
 
     case 'couple':
-      return <CoupleSection key={section.id} invitation={invitation} templateId={templateId} />;
+      return (
+        <CoupleSection
+          key={section.id}
+          invitation={invitation}
+          templateId={templateId}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
+        />
+      );
 
     case 'event_details':
       return (
@@ -222,6 +287,8 @@ function renderSection(
           images={invitation.gallery_images}
           layout={((section.config as { layout?: 'carousel' | 'grid' | 'masonry' } | undefined)?.layout) || 'carousel'}
           templateId={templateId}
+          copyOverrides={invitation.theme_config.copy_overrides}
+          previewEditMode={previewEditMode}
         />
       );
 
@@ -361,7 +428,10 @@ function renderSection(
 
     default:
       return null;
-  }
+    }
+  })();
+
+  return wrapWithSectionBackground(invitation, section.id, content);
 }
 
 // ---------------------------------------------------------------------------
@@ -379,10 +449,11 @@ const DEFAULT_SECTION_ORDER: InvitationSection[] = [
   { id: 'default-contact', type: 'contact', enabled: true, sort_order: 8 },
   { id: 'default-rsvp', type: 'rsvp', enabled: true, sort_order: 9 },
   { id: 'default-money_gift', type: 'money_gift', enabled: true, sort_order: 10 },
-  { id: 'default-gallery', type: 'gallery', enabled: true, sort_order: 11 },
-  { id: 'default-guestbook', type: 'guestbook', enabled: true, sort_order: 12 },
-  { id: 'default-calendar_save', type: 'calendar_save', enabled: true, sort_order: 13 },
-  { id: 'default-footer', type: 'footer', enabled: true, sort_order: 14 },
+  { id: 'default-wishlist', type: 'wishlist', enabled: true, sort_order: 11 },
+  { id: 'default-gallery', type: 'gallery', enabled: true, sort_order: 12 },
+  { id: 'default-guestbook', type: 'guestbook', enabled: true, sort_order: 13 },
+  { id: 'default-calendar_save', type: 'calendar_save', enabled: true, sort_order: 14 },
+  { id: 'default-footer', type: 'footer', enabled: true, sort_order: 15 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -401,6 +472,8 @@ export default function InvitationPage() {
 
   const [coverOpen, setCoverOpen] = useState(false);
   const [ownerHasSubscription, setOwnerHasSubscription] = useState(false);
+  const [ownerInvitationChatEnabled, setOwnerInvitationChatEnabled] = useState(true);
+  const [ownerInvitationChatLimit, setOwnerInvitationChatLimit] = useState<number | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -419,15 +492,18 @@ export default function InvitationPage() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from('payments')
-          .select('id')
-          .eq('user_id', invitation.user_id)
-          .eq('status', 'succeeded')
-          .limit(1);
-        if (!cancelled) setOwnerHasSubscription((data ?? []).length > 0);
+        const subscription = await getUserSubscriptionFeatures(invitation.user_id);
+        if (!cancelled) {
+          setOwnerHasSubscription(subscription.is_active);
+          setOwnerInvitationChatEnabled(subscription.invitation_chatbot_enabled);
+          setOwnerInvitationChatLimit(subscription.invitation_chat_daily_limit);
+        }
       } catch {
-        if (!cancelled) setOwnerHasSubscription(false);
+        if (!cancelled) {
+          setOwnerHasSubscription(false);
+          setOwnerInvitationChatEnabled(false);
+          setOwnerInvitationChatLimit(null);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -514,11 +590,11 @@ export default function InvitationPage() {
     }
 
     const handleLocalDraft = (event: Event) => {
-      const customEvent = event as CustomEvent<{ copyKey?: string; value?: string }>;
-      if (!customEvent.detail?.copyKey) return;
+      const customEvent = event as CustomEvent<{ key?: string; value?: string }>;
+      if (!customEvent.detail?.key) return;
       setPreviewDrafts((current) => ({
         ...current,
-        [customEvent.detail.copyKey as string]: customEvent.detail.value || '',
+        [customEvent.detail.key as string]: customEvent.detail.value || '',
       }));
       setPreviewSaveState('idle');
     };
@@ -526,7 +602,7 @@ export default function InvitationPage() {
     const handleParentMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { type?: string; success?: boolean };
-      if (data.type !== 'preview-copy-save-result') return;
+      if (data.type !== 'preview-edit-save-result') return;
 
       if (data.success) {
         setPreviewDrafts({});
@@ -537,10 +613,10 @@ export default function InvitationPage() {
       }
     };
 
-    window.addEventListener('preview-copy-local-change', handleLocalDraft as EventListener);
+    window.addEventListener('preview-edit-local-change', handleLocalDraft as EventListener);
     window.addEventListener('message', handleParentMessage);
     return () => {
-      window.removeEventListener('preview-copy-local-change', handleLocalDraft as EventListener);
+      window.removeEventListener('preview-edit-local-change', handleLocalDraft as EventListener);
       window.removeEventListener('message', handleParentMessage);
     };
   }, [previewEditMode]);
@@ -659,21 +735,21 @@ export default function InvitationPage() {
               }}
             >
               {previewSaveState === 'saving'
-                ? 'Menyimpan teks...'
+                ? 'Menyimpan perubahan...'
                 : previewSaveState === 'saved'
-                  ? 'Teks disimpan'
+                  ? 'Perubahan disimpan'
                   : previewSaveState === 'error'
-                    ? 'Gagal simpan teks'
+                    ? 'Gagal simpan perubahan'
                     : Object.keys(previewDrafts).length > 0
                       ? 'Perubahan belum disimpan'
-                      : 'Mod edit teks aktif'}
+                      : 'Mod edit preview aktif'}
             </span>
             <button
               type="button"
               disabled={previewSaveState === 'saving' || Object.keys(previewDrafts).length === 0}
               onClick={() => {
                 setPreviewSaveState('saving');
-                window.parent.postMessage({ type: 'preview-copy-save' }, window.location.origin);
+                window.parent.postMessage({ type: 'preview-edit-save' }, window.location.origin);
               }}
               style={{
                 border: 'none',
@@ -694,7 +770,7 @@ export default function InvitationPage() {
                 letterSpacing: '1px',
               }}
             >
-              {previewSaveState === 'saving' ? 'Menyimpan...' : 'Simpan Teks'}
+              {previewSaveState === 'saving' ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
           </div>
         </div>
@@ -715,6 +791,7 @@ export default function InvitationPage() {
           templateId={templateId}
           copyOverrides={invitation.theme_config.copy_overrides}
           previewEditMode={previewEditMode}
+          backgroundPhotoUrl={getSectionBackgroundUrl(invitation, 'cover')}
         />
           </motion.div>
         )}
@@ -822,14 +899,14 @@ export default function InvitationPage() {
           enabled={
             isDemoInvitation
               ? (siteSettings?.cuba_preview_chat_enabled ?? true)
-              : invitation.chatbot_enabled
+              : invitation.chatbot_enabled && ownerInvitationChatEnabled
           }
           weddingContext={buildWeddingContext(invitation)}
           extraContext={invitation.chatbot_context}
           dailyLimit={
             isDemoInvitation
               ? (siteSettings?.cuba_preview_chat_daily_limit ?? 10)
-              : (siteSettings?.invitation_chat_daily_limit ?? 20)
+              : (ownerInvitationChatLimit ?? siteSettings?.invitation_chat_daily_limit ?? 20)
           }
           subscriptionActive={
             isDemoInvitation

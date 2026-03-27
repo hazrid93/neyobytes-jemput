@@ -1936,7 +1936,7 @@ function Footer() {
 // ---------------------------------------------------------------------------
 export default function LandingPage() {
   return (
-    <Box style={{ background: WHITE }}>
+    <Box style={{ background: WHITE, overflowX: 'hidden' }}>
       <Navbar />
       <Hero />
       <Features />

@@ -64,10 +64,11 @@ import {
   IconCompass,
 } from '@tabler/icons-react';
 import { uploadImage, deleteImage } from '../../lib/upload';
-import { COPY_FIELDS } from '../../lib/invitation-copy';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { supabase } from '../../lib/supabase';
 import { demoInvitation, TRIAL_PREVIEW_STORAGE_KEY, EDITOR_PREVIEW_STORAGE_KEY } from '../../lib/demo-data';
+import { SECTION_LABELS, DEFAULT_SECTIONS } from '../../lib/themes';
+import { getUserSubscriptionFeatures } from '../../lib/subscription';
 import ThemeSelector from './ThemeSelector';
 import SectionManager from './SectionManager';
 import { CoachmarkTour } from '../common/CoachmarkHints';
@@ -136,8 +137,30 @@ const FONT_ARABIC_OPTIONS = [
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
+function getThemeBackgrounds(
+  themeConfig: Invitation['theme_config'] | undefined,
+  coverPhotoUrl?: string,
+): { global_url: string; per_section: Record<string, string> } {
+  return {
+    global_url: themeConfig?.backgrounds?.global_url || '',
+    per_section: {
+      ...(coverPhotoUrl ? { cover: coverPhotoUrl } : {}),
+      ...(themeConfig?.backgrounds?.per_section || {}),
+    },
+  };
+}
+
 // Helper to populate form values from an invitation object
 function invitationToFormValues(inv: Invitation): Partial<Invitation> {
+  // Ensure all default section types exist (for invitations created before new sections were added)
+  let sections = inv.sections || [];
+  const existingTypes = new Set(sections.map((s) => s.type));
+  for (const def of DEFAULT_SECTIONS) {
+    if (!existingTypes.has(def.type)) {
+      sections = [...sections, { ...def }];
+    }
+  }
+
   return {
     bride_name: inv.bride_name,
     groom_name: inv.groom_name,
@@ -163,7 +186,7 @@ function invitationToFormValues(inv: Invitation): Partial<Invitation> {
     money_gift: inv.money_gift,
     wishlist: inv.wishlist || [],
     theme_config: inv.theme_config,
-    sections: inv.sections || [],
+    sections,
     template: inv.template,
     chatbot_enabled: inv.chatbot_enabled ?? false,
     chatbot_context: inv.chatbot_context || '',
@@ -315,13 +338,14 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const [previewEditMode, setPreviewEditMode] = useState(false);
   const [tourReplayToken, setTourReplayToken] = useState<number | undefined>(undefined);
   const previewDraftOverridesRef = useRef<Record<string, string>>({});
+  const previewFieldDraftsRef = useRef<Record<string, string>>({});
   const previewEditButtonRef = useRef<HTMLButtonElement | null>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
   const publishButtonRef = useRef<HTMLButtonElement | null>(null);
   const signupButtonRef = useRef<HTMLButtonElement | null>(null);
-  const copyAccordionRef = useRef<HTMLDivElement | null>(null);
   const themeAccordionRef = useRef<HTMLDivElement | null>(null);
   const colorThemeAccordionRef = useRef<HTMLDivElement | null>(null);
+  const backgroundsAccordionRef = useRef<HTMLDivElement | null>(null);
   const sectionManagerRef = useRef<HTMLDivElement | null>(null);
   const coupleAccordionRef = useRef<HTMLDivElement | null>(null);
   const eventAccordionRef = useRef<HTMLDivElement | null>(null);
@@ -359,15 +383,8 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setHasActiveSubscription(false); return; }
 
-        const { data, error } = await supabase
-          .from('payments')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('status', 'succeeded')
-          .limit(1);
-
-        if (error) { setHasActiveSubscription(false); return; }
-        setHasActiveSubscription((data ?? []).length > 0);
+        const subscription = await getUserSubscriptionFeatures(user.id);
+        setHasActiveSubscription(subscription.is_active);
       } catch {
         setHasActiveSubscription(false);
       }
@@ -412,25 +429,33 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     const handler = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
 
-      const data = event.data as { type?: string; copyKey?: string; value?: string };
-      if (!data?.type || !data.copyKey) return;
-      if (data.type !== 'preview-copy-draft') return;
+      const data = event.data as { type?: string; kind?: 'copy' | 'field'; key?: string; value?: string };
+      if (data?.type !== 'preview-edit-draft' || !data.key) return;
+
+      if (data.kind === 'field') {
+        previewFieldDraftsRef.current = {
+          ...previewFieldDraftsRef.current,
+          [data.key]: data.value || '',
+        };
+        return;
+      }
 
       previewDraftOverridesRef.current = {
         ...previewDraftOverridesRef.current,
-        [data.copyKey]: data.value || '',
+        [data.key]: data.value || '',
       };
     };
 
     const saveHandler = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { type?: string };
-      if (data?.type !== 'preview-copy-save') return;
+      if (data?.type !== 'preview-edit-save') return;
 
       const draftOverrides = previewDraftOverridesRef.current;
-      if (Object.keys(draftOverrides).length === 0) {
+      const draftFields = previewFieldDraftsRef.current;
+      if (Object.keys(draftOverrides).length === 0 && Object.keys(draftFields).length === 0) {
         previewRef.current?.contentWindow?.postMessage(
-          { type: 'preview-copy-save-result', success: true },
+          { type: 'preview-edit-save-result', success: true },
           window.location.origin,
         );
         return;
@@ -446,6 +471,10 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         ...currentThemeConfig,
         copy_overrides: nextCopyOverrides,
       } as Invitation['theme_config']);
+
+      Object.entries(draftFields).forEach(([field, nextValue]) => {
+        form.setFieldValue(field, nextValue);
+      });
       setRenderTick((t) => t + 1);
 
       const nextValues = form.getValues();
@@ -456,6 +485,14 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
           if (previewRef.current) {
             previewRef.current.src = previewRef.current.src;
           }
+          notifications.show({
+            title: 'Disimpan',
+            message: 'Perubahan disimpan secara lokal',
+            color: 'green',
+            autoClose: 1500,
+            withCloseButton: false,
+            style: { maxWidth: 260 },
+          });
         } else if (id) {
           setSaveStatus('saving');
           const galleryImages = galleryUrls.map((url, idx) => ({
@@ -484,15 +521,16 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
         }
 
         previewDraftOverridesRef.current = {};
+        previewFieldDraftsRef.current = {};
         previewRef.current?.contentWindow?.postMessage(
-          { type: 'preview-copy-save-result', success: true },
+          { type: 'preview-edit-save-result', success: true },
           window.location.origin,
         );
       } catch {
         setSaveStatus('error');
         window.setTimeout(() => setSaveStatus('idle'), 3000);
         previewRef.current?.contentWindow?.postMessage(
-          { type: 'preview-copy-save-result', success: false },
+          { type: 'preview-edit-save-result', success: false },
           window.location.origin,
         );
       }
@@ -514,6 +552,14 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       if (previewRef.current) {
         previewRef.current.src = previewRef.current.src;
       }
+      notifications.show({
+        title: 'Disimpan',
+        message: 'Perubahan disimpan secara lokal',
+        color: 'green',
+        autoClose: 1500,
+        withCloseButton: false,
+        style: { maxWidth: 260 },
+      });
       return;
     }
     if (sourceInvitation) {
@@ -539,9 +585,23 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       if (previewRef.current) {
         previewRef.current.src = previewRef.current.src;
       }
+      notifications.show({
+        title: 'Disimpan',
+        message: 'Perubahan berjaya disimpan',
+        color: 'green',
+        autoClose: 2000,
+        withCloseButton: false,
+        style: { maxWidth: 260 },
+      });
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch {
       setSaveStatus('error');
+      notifications.show({
+        title: 'Ralat',
+        message: 'Gagal menyimpan perubahan',
+        color: 'red',
+        autoClose: 3000,
+      });
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   }, trialMode ? 300 : 1500);
@@ -694,6 +754,74 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
     handleFieldChange('wishlist', current as WishlistItem[]);
   };
 
+  const updateBackgroundImage = (sectionId: string, url: string) => {
+    const currentThemeConfig = (form.getValues().theme_config || sourceInvitation!.theme_config) as Invitation['theme_config'];
+    const currentBackgrounds = getThemeBackgrounds(
+      currentThemeConfig,
+      (form.getValues().cover_photo_url as string | undefined) || sourceInvitation!.cover_photo_url,
+    );
+
+    if (sectionId === 'all') {
+      handleFieldChange('theme_config', {
+        ...currentThemeConfig,
+        backgrounds: {
+          ...currentBackgrounds,
+          global_url: url,
+        },
+      });
+      return;
+    }
+
+    const nextPerSection = { ...(currentBackgrounds.per_section || {}) };
+    if (url) {
+      nextPerSection[sectionId] = url;
+    } else {
+      delete nextPerSection[sectionId];
+    }
+
+    if (sectionId === 'cover') {
+      form.setFieldValue('cover_photo_url', url);
+    }
+
+    handleFieldChange('theme_config', {
+      ...currentThemeConfig,
+      backgrounds: {
+        ...currentBackgrounds,
+        per_section: nextPerSection,
+      },
+    });
+  };
+
+  const uploadBackgroundForSection = async (sectionId: string, file: File) => {
+    if (trialMode) {
+      updateBackgroundImage(sectionId, createLocalImageUrl(file));
+      notifications.show({
+        title: 'Berjaya!',
+        message: sectionId === 'all' ? 'Foto latar semua bahagian dimuat naik secara tempatan' : 'Foto latar bahagian dimuat naik secara tempatan',
+        color: 'green',
+      });
+      return;
+    }
+
+    if (!currentInvitation) return;
+    try {
+      const folder = sectionId === 'all' ? 'backgrounds/global' : `backgrounds/${sectionId}`;
+      const url = await uploadImage(file, currentInvitation.user_id, folder);
+      updateBackgroundImage(sectionId, url);
+      notifications.show({
+        title: 'Berjaya!',
+        message: sectionId === 'all' ? 'Foto latar semua bahagian dimuat naik' : 'Foto latar bahagian dimuat naik',
+        color: 'green',
+      });
+    } catch {
+      notifications.show({
+        title: 'Ralat',
+        message: 'Gagal memuat naik foto latar',
+        color: 'red',
+      });
+    }
+  };
+
   // --- Loading state (skip in trial mode — demo data is immediate) ---
   if (!trialMode && (loading || !currentInvitation)) {
     return (
@@ -714,9 +842,20 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
   const moneyGift = formValues.money_gift || sourceInvitation!.money_gift;
   const gallerySectionConfig = getGallerySectionConfig((formValues.sections || sourceInvitation!.sections) as InvitationSection[]);
   const currentSections = (formValues.sections || sourceInvitation!.sections || []) as InvitationSection[];
+  const backgroundImages = getThemeBackgrounds(
+    themeConfig,
+    (formValues.cover_photo_url as string | undefined) || sourceInvitation!.cover_photo_url,
+  );
   const customSections = currentSections.filter((section) =>
     section.type === 'custom_text' || section.type === 'custom_image' || section.type === 'custom_video'
   );
+  const backgroundSections = [
+    { id: 'cover', type: 'cover' as const },
+    ...currentSections
+      .filter((section) => section.id !== 'cover')
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((section) => ({ id: section.id, type: section.type })),
+  ];
 
   const previewUrl = trialMode ? '/aiman-nadia' : `/${formValues.slug || sourceInvitation!.slug}`;
 
@@ -815,10 +954,10 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
       description: 'Sesuaikan warna utama, aksen, latar belakang, dan pilih font paparan serta badan teks.',
     },
     {
-      id: 'step-copy',
-      targetRef: copyAccordionRef,
-      title: 'Teks & Copy',
-      description: 'Ubah semua teks label, butang, dan mesej dari satu tempat. Termasuk teks Arab, ucapan, dan mesej RSVP.',
+      id: 'step-backgrounds',
+      targetRef: backgroundsAccordionRef,
+      title: 'Foto Latar',
+      description: 'Gunakan satu foto untuk semua bahagian, kemudian tetapkan override khas untuk mana-mana skrin yang anda mahu.',
     },
     {
       id: 'step-section-styles',
@@ -1735,8 +1874,13 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
               <ThemeSelector
                 currentTemplate={formValues.template || sourceInvitation!.template}
                 onSelect={(template: ThemeTemplate) => {
+                  const currentThemeConfig = (form.getValues().theme_config || sourceInvitation!.theme_config) as Invitation['theme_config'];
                   handleFieldChange('template', template.id);
-                  handleFieldChange('theme_config', template.theme_config);
+                  handleFieldChange('theme_config', {
+                    ...template.theme_config,
+                    copy_overrides: currentThemeConfig.copy_overrides,
+                    backgrounds: currentThemeConfig.backgrounds,
+                  });
                 }}
               />
             </Accordion.Panel>
@@ -1854,71 +1998,161 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </div>
           </Accordion.Item>
 
-          <Accordion.Item value="copy-texts">
-            <div ref={copyAccordionRef}>
-            <Accordion.Control icon={<IconMessage size={18} color={NAVY_LIGHT} />}>
-              <Text fw={600}>Teks & Copy</Text>
+          <Accordion.Item value="background-photos">
+            <div ref={backgroundsAccordionRef}>
+            <Accordion.Control icon={<IconPhoto size={18} color={NAVY_LIGHT} />}>
+              <Text fw={600}>Foto Latar</Text>
             </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="md">
                 <Text size="sm" c="dimmed">
-                  Ubah semua teks utama yang muncul dalam preview, termasuk teks Arab, label bahagian, butang dan mesej sistem tetamu.
+                  Muat naik satu foto untuk semua bahagian, kemudian tetapkan override khas untuk mana-mana skrin. Jika bahagian tiada override, ia akan guna foto global secara automatik.
                 </Text>
 
-                {COPY_FIELDS.map((group) => (
-                  <Paper key={group.label} withBorder radius="md" p="md" style={{ borderColor: SLATE_200 }}>
-                    <Stack gap="sm">
-                      <Text fw={600} size="sm">{group.label}</Text>
-                      {group.fields.map((field) => {
-                        const currentThemeConfig = (form.getValues().theme_config || sourceInvitation!.theme_config) as Invitation['theme_config'];
-                        const copyOverrides = currentThemeConfig.copy_overrides || {};
-                        const value = copyOverrides[field.key] || '';
-                        const isMultiline = 'multiline' in field && field.multiline;
-                        const placeholder = ('defaultValue' in field && field.defaultValue) ? field.defaultValue : undefined;
+                <Paper withBorder radius="md" p="md" style={{ borderColor: SLATE_200 }}>
+                  <Stack gap="sm">
+                    <Text fw={600} size="sm">Foto Semua Bahagian</Text>
+                    {backgroundImages.global_url && (
+                      <Box pos="relative" style={{ display: 'inline-block' }}>
+                        <Image
+                          src={backgroundImages.global_url}
+                          alt="Foto semua bahagian"
+                          h={140}
+                          radius="md"
+                          fit="cover"
+                        />
+                        <ActionIcon
+                          color="red"
+                          variant="filled"
+                          size="sm"
+                          radius="xl"
+                          pos="absolute"
+                          top={8}
+                          right={8}
+                          onClick={() => updateBackgroundImage('all', '')}
+                        >
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Box>
+                    )}
+                    <Dropzone
+                      onDrop={async (files) => {
+                        if (!files[0]) return;
+                        await uploadBackgroundForSection('all', files[0]);
+                      }}
+                      accept={IMAGE_MIME_TYPE}
+                      maxSize={5 * 1024 ** 2}
+                      styles={{
+                        root: {
+                          borderColor: '#D4AF37',
+                          borderStyle: 'dashed',
+                          background: 'rgba(253, 248, 240, 0.5)',
+                          minHeight: 90,
+                        },
+                      }}
+                    >
+                      <Center p="md">
+                        <Stack align="center" gap={4}>
+                          <IconUpload size={22} color={NAVY_LIGHT} />
+                          <Text size="sm" c="dimmed" ta="center">
+                            Muat naik foto yang akan digunakan pada semua bahagian
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            Maksimum 5MB
+                          </Text>
+                        </Stack>
+                      </Center>
+                    </Dropzone>
+                  </Stack>
+                </Paper>
 
-                        if (isMultiline) {
-                          return (
-                            <Textarea
-                              key={field.key}
-                              label={field.label}
-                              placeholder={placeholder}
-                              minRows={2}
-                              autosize
-                              value={value}
-                              onChange={(e) =>
-                                handleFieldChange('theme_config', {
-                                  ...currentThemeConfig,
-                                  copy_overrides: {
-                                    ...copyOverrides,
-                                    [field.key]: e.currentTarget.value,
-                                  },
-                                })
-                              }
-                            />
-                          );
-                        }
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  {backgroundSections.map((section) => {
+                    const sectionLabel =
+                      section.id === 'cover'
+                        ? 'Muka Depan / Cover'
+                        : SECTION_LABELS[section.type]?.label || section.id;
+                    const sectionImage = backgroundImages.per_section?.[section.id] || '';
 
-                        return (
-                          <TextInput
-                            key={field.key}
-                            label={field.label}
-                            placeholder={placeholder}
-                            value={value}
-                            onChange={(e) =>
-                              handleFieldChange('theme_config', {
-                                ...currentThemeConfig,
-                                copy_overrides: {
-                                  ...copyOverrides,
-                                  [field.key]: e.currentTarget.value,
-                                },
-                              })
-                            }
-                          />
-                        );
-                      })}
-                    </Stack>
-                  </Paper>
-                ))}
+                    return (
+                      <Paper
+                        key={section.id}
+                        withBorder
+                        radius="md"
+                        p="md"
+                        style={{ borderColor: SLATE_200 }}
+                      >
+                        <Stack gap="sm">
+                          <Group justify="space-between" align="flex-start">
+                            <Box>
+                              <Text fw={600} size="sm">{sectionLabel}</Text>
+                              <Text size="xs" c="dimmed">
+                                {sectionImage
+                                  ? 'Override khas aktif untuk bahagian ini'
+                                  : 'Tiada override — akan guna foto semua bahagian'}
+                              </Text>
+                            </Box>
+                            {sectionImage && (
+                              <Badge size="xs" color="blue" variant="light">
+                                Override
+                              </Badge>
+                            )}
+                          </Group>
+
+                          {sectionImage && (
+                            <Box pos="relative" style={{ display: 'inline-block' }}>
+                              <Image
+                                src={sectionImage}
+                                alt={`Foto latar ${sectionLabel}`}
+                                h={120}
+                                radius="md"
+                                fit="cover"
+                              />
+                              <ActionIcon
+                                color="red"
+                                variant="filled"
+                                size="sm"
+                                radius="xl"
+                                pos="absolute"
+                                top={8}
+                                right={8}
+                                onClick={() => updateBackgroundImage(section.id, '')}
+                              >
+                                <IconX size={14} />
+                              </ActionIcon>
+                            </Box>
+                          )}
+
+                          <Dropzone
+                            onDrop={async (files) => {
+                              if (!files[0]) return;
+                              await uploadBackgroundForSection(section.id, files[0]);
+                            }}
+                            accept={IMAGE_MIME_TYPE}
+                            maxSize={5 * 1024 ** 2}
+                            styles={{
+                              root: {
+                                borderColor: '#D4AF37',
+                                borderStyle: 'dashed',
+                                background: 'rgba(253, 248, 240, 0.45)',
+                                minHeight: 84,
+                              },
+                            }}
+                          >
+                            <Center p="md">
+                              <Stack align="center" gap={4}>
+                                <IconPhoto size={20} color={NAVY_LIGHT} />
+                                <Text size="xs" c="dimmed" ta="center">
+                                  Muat naik foto khas untuk {sectionLabel.toLowerCase()}
+                                </Text>
+                              </Stack>
+                            </Center>
+                          </Dropzone>
+                        </Stack>
+                      </Paper>
+                    );
+                  })}
+                </SimpleGrid>
               </Stack>
             </Accordion.Panel>
             </div>
@@ -2716,6 +2950,26 @@ export default function InvitationEditor({ trialMode = false }: InvitationEditor
             </Tabs.Panel>
           </Tabs>
         </Box>
+
+        {/* Floating edit/preview toggle — bottom-left to avoid chat FAB overlap */}
+        <ActionIcon
+          size={48}
+          radius="xl"
+          variant="filled"
+          color="blue"
+          onClick={() => setMobileTab(mobileTab === 'edit' ? 'preview' : 'edit')}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: 24,
+            zIndex: 1002,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+          }}
+          aria-label={mobileTab === 'edit' ? 'Lihat Preview' : 'Edit'}
+        >
+          {mobileTab === 'edit' ? <IconEye size={22} /> : <IconEdit size={22} />}
+        </ActionIcon>
+
         <EditorChatAssistant
           enabled={
             trialMode

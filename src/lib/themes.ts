@@ -1,6 +1,6 @@
 import type { ThemeTemplate, InvitationSection } from '../types';
 
-const DEFAULT_SECTIONS: InvitationSection[] = [
+export const DEFAULT_SECTIONS: InvitationSection[] = [
   { id: 'cover', type: 'cover', enabled: true, sort_order: 0 },
   { id: 'islamic_greeting', type: 'islamic_greeting', enabled: true, sort_order: 1 },
   { id: 'invitation_text', type: 'invitation_text', enabled: true, sort_order: 2 },

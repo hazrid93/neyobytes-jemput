@@ -3,12 +3,20 @@ import { supabase } from '../lib/supabase';
 import type { Plan, UserProfile, Payment, AdminStats, SiteSettings } from '../types';
 import { DEFAULT_SITE_SETTINGS, normalizeSiteSettings } from '../lib/site-settings';
 
+export interface ChatPoolUsageRow {
+  pool_key: string;
+  date: string;
+  count: number;
+}
+
 interface AdminState {
   plans: Plan[];
   users: UserProfile[];
   payments: Payment[];
   stats: AdminStats | null;
   siteSettings: SiteSettings;
+  chatUsage: ChatPoolUsageRow[];
+  loadingChatUsage: boolean;
   loading: boolean;
   loadingPlans: boolean;
   loadingUsers: boolean;
@@ -23,8 +31,11 @@ interface AdminState {
   fetchUsers: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  fetchChatUsage: () => Promise<void>;
+  resetPoolUsage: (poolKey: string, mode: 'today' | 'all') => Promise<void>;
   fetchSiteSettings: () => Promise<void>;
   updateSiteSettings: (updates: Partial<SiteSettings>) => Promise<void>;
+  updateUser: (id: string, updates: Partial<UserProfile>) => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -33,6 +44,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   payments: [],
   stats: null,
   siteSettings: DEFAULT_SITE_SETTINGS,
+  chatUsage: [],
+  loadingChatUsage: false,
   loading: false,
   loadingPlans: false,
   loadingUsers: false,
@@ -162,6 +175,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         phone: row.phone ?? undefined,
         role: row.role ?? 'user',
         stripe_customer_id: row.stripe_customer_id ?? undefined,
+        subscription_plan_id: row.subscription_plan_id ?? null,
+        subscription_status: row.subscription_status ?? 'inactive',
+        subscription_active_from: row.subscription_active_from ?? null,
+        subscription_expires_at: row.subscription_expires_at ?? null,
+        invitation_chatbot_enabled_override: row.invitation_chatbot_enabled_override ?? null,
+        invitation_chat_daily_limit_override: row.invitation_chat_daily_limit_override ?? null,
+        granted_features: Array.isArray(row.granted_features) ? row.granted_features : [],
+        admin_notes: row.admin_notes ?? null,
         created_at: row.created_at,
       }));
 
@@ -247,6 +268,34 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
 
+  fetchChatUsage: async () => {
+    set({ loadingChatUsage: true });
+    try {
+      const { data, error } = await supabase
+        .from('chatbot_pool_usage')
+        .select('pool_key, date, count')
+        .order('date', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      set({ chatUsage: (data ?? []) as ChatPoolUsageRow[] });
+    } catch (err) {
+      console.error('Failed to fetch chat usage:', err);
+    } finally {
+      set({ loadingChatUsage: false });
+    }
+  },
+
+  resetPoolUsage: async (poolKey: string, mode: 'today' | 'all') => {
+    const { data, error } = await supabase.rpc('reset_chat_pool_usage', {
+      p_pool_key: poolKey,
+      p_mode: mode,
+    });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || 'Reset failed');
+    await get().fetchChatUsage();
+  },
+
   fetchSiteSettings: async () => {
     set({ loadingSiteSettings: true, loading: true });
     try {
@@ -284,6 +333,34 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       throw err;
     } finally {
       set({ loadingSiteSettings: false, loading: false });
+    }
+  },
+
+  updateUser: async (id, updates) => {
+    set({ loadingUsers: true, loading: true });
+    try {
+      const payload: Record<string, unknown> = {};
+      if (updates.full_name !== undefined) payload.full_name = updates.full_name;
+      if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.role !== undefined) payload.role = updates.role;
+      if (updates.subscription_plan_id !== undefined) payload.subscription_plan_id = updates.subscription_plan_id;
+      if (updates.subscription_status !== undefined) payload.subscription_status = updates.subscription_status;
+      if (updates.subscription_active_from !== undefined) payload.subscription_active_from = updates.subscription_active_from;
+      if (updates.subscription_expires_at !== undefined) payload.subscription_expires_at = updates.subscription_expires_at;
+      if (updates.invitation_chatbot_enabled_override !== undefined) payload.invitation_chatbot_enabled_override = updates.invitation_chatbot_enabled_override;
+      if (updates.invitation_chat_daily_limit_override !== undefined) payload.invitation_chat_daily_limit_override = updates.invitation_chat_daily_limit_override;
+      if (updates.granted_features !== undefined) payload.granted_features = updates.granted_features;
+      if (updates.admin_notes !== undefined) payload.admin_notes = updates.admin_notes;
+
+      const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+      if (error) throw error;
+
+      await get().fetchUsers();
+    } catch (err) {
+      console.error('Failed to update user:', err);
+      throw err;
+    } finally {
+      set({ loadingUsers: false, loading: false });
     }
   },
 }));

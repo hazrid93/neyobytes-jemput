@@ -36,6 +36,7 @@ import { useDashboardStore } from '../../stores/dashboardStore';
 import { SLATE_200 } from '../../constants/colors';
 import type { Payment } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { getUserSubscriptionFeatures } from '../../lib/subscription';
 
 export default function SubscriptionPage() {
   const navigate = useNavigate();
@@ -45,11 +46,13 @@ export default function SubscriptionPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [subscriptionSummary, setSubscriptionSummary] = useState<Awaited<ReturnType<typeof getUserSubscriptionFeatures>> | null>(null);
 
   useEffect(() => {
     fetchPlans();
     fetchMyInvitations();
     fetchPayments();
+    fetchSubscriptionSummary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPlans, fetchMyInvitations]);
 
@@ -89,6 +92,20 @@ export default function SubscriptionPage() {
       console.error('Failed to fetch payments:', err);
     } finally {
       setPaymentsLoading(false);
+    }
+  }
+
+  async function fetchSubscriptionSummary() {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const summary = await getUserSubscriptionFeatures(user.id);
+      setSubscriptionSummary(summary);
+    } catch (err) {
+      console.error('Failed to fetch subscription summary:', err);
     }
   }
 
@@ -150,7 +167,9 @@ export default function SubscriptionPage() {
 
   // Determine current plan from the first invitation
   const currentInvitation = invitations.length > 0 ? invitations[0] : null;
-  const expiresAt = currentInvitation?.expires_at
+  const expiresAt = subscriptionSummary?.expires_at
+    ? new Date(subscriptionSummary.expires_at)
+    : currentInvitation?.expires_at
     ? new Date(currentInvitation.expires_at)
     : null;
   const now = new Date();
@@ -161,7 +180,9 @@ export default function SubscriptionPage() {
 
   // Find the plan for the most recent successful payment
   const lastSuccessfulPayment = payments.find((p) => p.status === 'succeeded');
-  const currentPlan = lastSuccessfulPayment
+  const currentPlan = subscriptionSummary?.plan_id
+    ? plans.find((p) => p.id === subscriptionSummary.plan_id)
+    : lastSuccessfulPayment
     ? plans.find((p) => p.id === lastSuccessfulPayment.plan_id)
     : plans.find((p) => p.price_myr === 0); // fallback to free plan
 
@@ -318,15 +339,15 @@ export default function SubscriptionPage() {
                 </List.Item>
               ))}
             </List>
-            {currentPlan.chatbot_enabled && (
+            {(subscriptionSummary?.invitation_chatbot_enabled || currentPlan.chatbot_enabled) && (
               <Group gap="xs" mt="xs">
                 <ThemeIcon color="gold" size={20} radius="xl" variant="light">
                   <IconRobot size={12} />
                 </ThemeIcon>
                 <Text size="sm" c="#5C4033">
-                  Chatbot AI: {currentPlan.chatbot_daily_limit === 0
+                  Chatbot AI: {(subscriptionSummary?.invitation_chat_daily_limit ?? currentPlan.chatbot_daily_limit) === 0
                     ? 'Soalan tanpa had setiap tetamu'
-                    : `${currentPlan.chatbot_daily_limit} soalan/hari setiap tetamu`}
+                    : `${subscriptionSummary?.invitation_chat_daily_limit ?? currentPlan.chatbot_daily_limit} soalan/hari setiap tetamu`}
                 </Text>
               </Group>
             )}

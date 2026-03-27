@@ -1,16 +1,27 @@
 import { motion } from 'framer-motion';
 import type { GalleryImage } from '../../types';
 import { getGalleryFrameStyle } from '../../lib/template-ui';
+import EditableCopy from './EditableCopy';
+import { getCopy } from '../../lib/invitation-copy';
 
 interface GallerySectionProps {
   images: GalleryImage[];
   layout?: 'carousel' | 'grid' | 'masonry';
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
-export default function GallerySection({ images, layout = 'carousel', templateId }: GallerySectionProps) {
+export default function GallerySection({
+  images,
+  layout = 'carousel',
+  templateId,
+  copyOverrides,
+  previewEditMode = false,
+}: GallerySectionProps) {
   const hasImages = images && images.length > 0;
   const sortedImages = [...images].sort((a, b) => a.sort_order - b.sort_order);
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
 
   return (
     <section
@@ -36,7 +47,12 @@ export default function GallerySection({ images, layout = 'carousel', templateId
           marginBottom: '8px',
         }}
       >
-        Galeri
+        <EditableCopy
+          as="span"
+          value={copy('gallery.eyebrow', 'Galeri')}
+          copyKey="gallery.eyebrow"
+          editMode={previewEditMode}
+        />
       </motion.p>
 
       <motion.h3
@@ -52,7 +68,12 @@ export default function GallerySection({ images, layout = 'carousel', templateId
           marginBottom: '28px',
         }}
       >
-        Kenangan Bersama
+        <EditableCopy
+          as="span"
+          value={copy('gallery.title', 'Kenangan Bersama')}
+          copyKey="gallery.title"
+          editMode={previewEditMode}
+        />
       </motion.h3>
 
       {hasImages ? (
@@ -168,7 +189,12 @@ export default function GallerySection({ images, layout = 'carousel', templateId
               opacity: 0.7,
             }}
           >
-            Gambar akan datang
+            <EditableCopy
+              as="span"
+              value={copy('gallery.empty_title', 'Gambar akan datang')}
+              copyKey="gallery.empty_title"
+              editMode={previewEditMode}
+            />
           </p>
           <p
             style={{
@@ -179,7 +205,12 @@ export default function GallerySection({ images, layout = 'carousel', templateId
               opacity: 0.5,
             }}
           >
-            Nantikan koleksi foto kami
+            <EditableCopy
+              as="span"
+              value={copy('gallery.empty_description', 'Nantikan koleksi foto kami')}
+              copyKey="gallery.empty_description"
+              editMode={previewEditMode}
+            />
           </p>
         </motion.div>
       )}
@@ -200,7 +231,12 @@ export default function GallerySection({ images, layout = 'carousel', templateId
             letterSpacing: '1px',
           }}
         >
-          &#8592; Leret untuk lihat lagi &#8594;
+          <EditableCopy
+            as="span"
+            value={copy('gallery.swipe_hint', '← Leret untuk lihat lagi →')}
+            copyKey="gallery.swipe_hint"
+            editMode={previewEditMode}
+          />
         </motion.p>
       )}
 

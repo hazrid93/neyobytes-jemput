@@ -12,7 +12,8 @@ import {
 interface EditableCopyProps {
   as?: keyof HTMLElementTagNameMap;
   value: string;
-  copyKey: string;
+  copyKey?: string;
+  fieldKey?: string;
   editMode?: boolean;
   style?: CSSProperties;
   children?: ReactNode;
@@ -22,11 +23,14 @@ export default function EditableCopy({
   as = 'span',
   value,
   copyKey,
+  fieldKey,
   editMode = false,
   style,
 }: EditableCopyProps) {
   const [draft, setDraft] = useState(value);
   const elementRef = useRef<HTMLElement | null>(null);
+  const draftKey = fieldKey || copyKey;
+  const draftKind: 'copy' | 'field' = fieldKey ? 'field' : 'copy';
 
   useEffect(() => {
     setDraft(value);
@@ -46,11 +50,14 @@ export default function EditableCopy({
   }, [editMode, value]);
 
   const postDraft = (nextValue: string) => {
-    if (typeof window === 'undefined') return;
-    window.dispatchEvent(new CustomEvent('preview-copy-local-change', {
-      detail: { copyKey, value: nextValue },
+    if (typeof window === 'undefined' || !draftKey) return;
+    window.dispatchEvent(new CustomEvent('preview-edit-local-change', {
+      detail: { kind: draftKind, key: draftKey, value: nextValue },
     }));
-    window.parent.postMessage({ type: 'preview-copy-draft', copyKey, value: nextValue }, window.location.origin);
+    window.parent.postMessage(
+      { type: 'preview-edit-draft', kind: draftKind, key: draftKey, value: nextValue },
+      window.location.origin,
+    );
   };
 
   if (!editMode) {

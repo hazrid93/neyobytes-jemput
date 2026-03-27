@@ -124,6 +124,10 @@ export interface ThemeConfig {
   font_display: string;
   font_body: string;
   font_arabic: string;
+  backgrounds?: {
+    global_url?: string;
+    per_section?: Record<string, string>;
+  };
   ornament_style?: 'classic' | 'floral' | 'geometric' | 'minimal' | 'batik'
     | 'islamic' | 'tropical' | 'vintage' | 'rustic' | 'glamour';
   bg_pattern?: string;
@@ -189,7 +193,29 @@ export interface UserProfile {
   phone?: string;
   role: 'user' | 'admin';
   stripe_customer_id?: string;
+  subscription_plan_id?: string | null;
+  subscription_status?: 'inactive' | 'active' | 'expired' | 'granted';
+  subscription_active_from?: string | null;
+  subscription_expires_at?: string | null;
+  invitation_chatbot_enabled_override?: boolean | null;
+  invitation_chat_daily_limit_override?: number | null;
+  granted_features?: string[];
+  admin_notes?: string | null;
   created_at: string;
+}
+
+export interface UserSubscriptionFeatures {
+  plan_id?: string | null;
+  plan_name?: string | null;
+  plan_name_ms?: string | null;
+  is_active: boolean;
+  source: 'free' | 'payment_history' | 'profile_override';
+  invitation_chatbot_enabled: boolean;
+  invitation_chat_daily_limit: number;
+  subscription_status?: string | null;
+  active_from?: string | null;
+  expires_at?: string | null;
+  granted_features: string[];
 }
 
 // ============================================================================

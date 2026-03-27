@@ -1,13 +1,24 @@
 import { motion } from 'framer-motion';
 import type { Invitation } from '../../types';
 import TemplateSectionShell from './TemplateSectionShell';
+import EditableCopy from './EditableCopy';
+import { getCopy } from '../../lib/invitation-copy';
 
 interface InvitationTextProps {
   invitation: Invitation;
   templateId: string;
+  copyOverrides?: Record<string, string>;
+  previewEditMode?: boolean;
 }
 
-export default function InvitationText({ invitation, templateId }: InvitationTextProps) {
+export default function InvitationText({
+  invitation,
+  templateId,
+  copyOverrides,
+  previewEditMode = false,
+}: InvitationTextProps) {
+  const copy = (key: string, fallback: string) => getCopy(copyOverrides, key, fallback);
+
   return (
     <section
       style={{
@@ -36,7 +47,12 @@ export default function InvitationText({ invitation, templateId }: InvitationTex
             opacity: 0.8,
           }}
         >
-          Pihak Lelaki
+          <EditableCopy
+            as="span"
+            value={copy('invitation_text.groom_side_label', 'Pihak Lelaki')}
+            copyKey="invitation_text.groom_side_label"
+            editMode={previewEditMode}
+          />
         </p>
         <p
           style={{
@@ -48,7 +64,12 @@ export default function InvitationText({ invitation, templateId }: InvitationTex
             margin: 0,
           }}
         >
-          {invitation.groom_parent_names}
+          <EditableCopy
+            as="span"
+            value={invitation.groom_parent_names}
+            fieldKey="groom_parent_names"
+            editMode={previewEditMode}
+          />
         </p>
       </motion.div>
 
@@ -103,7 +124,12 @@ export default function InvitationText({ invitation, templateId }: InvitationTex
             opacity: 0.8,
           }}
         >
-          Pihak Perempuan
+          <EditableCopy
+            as="span"
+            value={copy('invitation_text.bride_side_label', 'Pihak Perempuan')}
+            copyKey="invitation_text.bride_side_label"
+            editMode={previewEditMode}
+          />
         </p>
         <p
           style={{
@@ -115,7 +141,12 @@ export default function InvitationText({ invitation, templateId }: InvitationTex
             margin: 0,
           }}
         >
-          {invitation.bride_parent_names}
+          <EditableCopy
+            as="span"
+            value={invitation.bride_parent_names}
+            fieldKey="bride_parent_names"
+            editMode={previewEditMode}
+          />
         </p>
       </motion.div>
 
@@ -154,7 +185,12 @@ export default function InvitationText({ invitation, templateId }: InvitationTex
               fontWeight: 300,
             }}
           >
-            {invitation.invitation_text}
+            <EditableCopy
+              as="span"
+              value={invitation.invitation_text}
+              fieldKey="invitation_text"
+              editMode={previewEditMode}
+            />
           </p>
           <span
             style={{
